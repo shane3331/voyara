@@ -76,7 +76,7 @@ module.exports = async (req, res) => {
         const rj = await rr.json();
         const entry = ((rj && rj.data) || [])[0] || {};
         const n = nights(checkIn, checkOut);
-        rooms = (entry.roomTypes || []).map((rt) => {
+        rooms = (entry.roomTypes || []).map((rt, idx) => {
           const offer = (rt.rates || [])[0] || {};
           const cost = pickAmount(rt.offerRetailRate, offer.retailRate && offer.retailRate.total);
           const market = pickAmount(rt.suggestedSellingPrice, offer.retailRate && offer.retailRate.suggestedSellingPrice);
@@ -86,7 +86,14 @@ module.exports = async (req, res) => {
             rateId: String(offer.rateId || ''),
             name: String(rt.roomTypeName || offer.name || 'Room'),
             board: String(offer.boardName || offer.boardType || ''),
-            maxOccupancy: Number(offer.maxOccupancy || 0) || null,
+            maxOccupancy: Number(offer.maxOccupancy || offer.adultCount || 0) || null,
+            bedType: bedOf(offer, rt),
+            sizeSqm: Number(rt.roomSizeSquareMeters || rt.size || 0) || null,
+            description: stripHtml(String(rt.roomTypeDescription || rt.description || '')).slice(0, 320),
+            // Room level photography where the supplier has it, otherwise a
+            // frame from the property gallery so every card has an image.
+            images: roomImages(rt, images, idx),
+            inclusions: inclusionsOf(offer, rt, cp),
             nights: n,
             costMinor: cost.minor,
             marketMinor: market.minor,
@@ -122,6 +129,48 @@ function price(r) {
       perNightDisplay: r.nights ? money(Math.round(yours / r.nights), r.currency) : null
     }
   });
+}
+
+function roomImages(rt, hotelImages, idx) {
+  const own = []
+    .concat(rt.photos || rt.roomTypeImages || rt.images || [])
+    .map((i) => (typeof i === 'string' ? i : (i && (i.urlHd || i.url || i.hd))))
+    .filter((u) => typeof u === 'string' && /^https?:\/\//.test(u));
+  if (own.length) return own.slice(0, 6);
+  if (hotelImages && hotelImages.length) {
+    const start = idx % hotelImages.length;
+    return hotelImages.slice(start).concat(hotelImages.slice(0, start)).slice(0, 3);
+  }
+  return [];
+}
+
+function bedOf(offer, rt) {
+  const b = (offer.bedTypes || rt.bedTypes || [])[0];
+  if (!b) return null;
+  if (typeof b === 'string') return b;
+  const qty = Number(b.quantity || 1);
+  const name = String(b.bedType || b.name || '').toLowerCase();
+  if (!name) return null;
+  return (qty > 1 ? qty + ' ' : '') + name.charAt(0).toUpperCase() + name.slice(1) + (qty > 1 ? ' beds' : ' bed');
+}
+
+// What the traveller actually gets, phrased the way a hotel would phrase it.
+function inclusionsOf(offer, rt, cp) {
+  const out = [];
+  const board = String(offer.boardName || offer.boardType || '').toLowerCase();
+  if (board && board !== 'room only' && board !== 'ro') {
+    out.push(board.charAt(0).toUpperCase() + board.slice(1));
+  } else if (board) {
+    out.push('Room only');
+  }
+  if (cp && cp.refundableTag === 'RFN') out.push('Free cancellation before the deadline');
+  else out.push('Non refundable rate');
+  if (offer.maxOccupancy) out.push('Sleeps up to ' + offer.maxOccupancy);
+  out.push('Taxes and fees included in the price shown');
+  [].concat(offer.rateAmenities || rt.amenities || [])
+    .map((a) => (typeof a === 'string' ? a : (a && a.name)))
+    .filter(Boolean).slice(0, 4).forEach((a) => out.push(String(a)));
+  return out.slice(0, 7);
 }
 
 function describeCancellation(cp) {
@@ -170,16 +219,31 @@ function mockHotel(id) {
   };
 }
 function mockRooms() {
-  const mk = (offerId, name, board, marketMinor, refundable) => price({
+  const shots = [
+    'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=1200&q=70&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=1200&q=70&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=1200&q=70&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=1200&q=70&auto=format&fit=crop'
+  ];
+  let k = -1;
+  const mk = (offerId, name, board, marketMinor, refundable, desc, bed, sqm) => price({
     offerId, rateId: 'rate_' + offerId, name, board, maxOccupancy: 2, nights: 5,
+    bedType: bed, sizeSqm: sqm, description: desc,
+    images: [shots[++k % shots.length], shots[(k + 1) % shots.length], shots[(k + 2) % shots.length]],
+    inclusions: [board, refundable ? 'Free cancellation before the deadline' : 'Non refundable rate',
+      'Sleeps up to 2', 'Taxes and fees included in the price shown'],
     costMinor: Math.round(marketMinor * 0.82), marketMinor, currency: 'EUR',
     refundable,
     cancellationNote: refundable ? 'Free cancellation until 10 Sep 2026' : 'Non refundable. This rate cannot be cancelled or repriced.'
   });
   return [
-    mk('offer_deluxe', 'Deluxe Room, courtyard view', 'Breakfast included', 298000, true),
-    mk('offer_junior', 'Junior Suite', 'Breakfast included', 356000, true),
-    mk('offer_suite', 'Suite, king bed', 'Room only', 318000, false),
-    mk('offer_grand', 'Grand Suite, terrace', 'Breakfast included', 512000, true)
+    mk('offer_deluxe', 'Deluxe Room, courtyard view', 'Breakfast included', 298000, true,
+       'First floor rooms facing the cloister, away from the street, with a marble bath and a writing desk under the window.', 'King bed', 34),
+    mk('offer_junior', 'Junior Suite', 'Breakfast included', 356000, true,
+       'A separate sitting area and double aspect windows over the courtyard. Quietest rooms in the building.', 'King bed', 48),
+    mk('offer_suite', 'Suite, king bed', 'Room only', 318000, false,
+       'Corner suite on the third floor with the original vaulted ceiling retained during the restoration.', 'King bed', 55),
+    mk('offer_grand', 'Grand Suite, terrace', 'Breakfast included', 512000, true,
+       'The only room with a private terrace over the courtyard. Sleeps four with the sofa bed made up.', '2 King beds', 78)
   ];
 }

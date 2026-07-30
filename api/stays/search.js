@@ -196,7 +196,15 @@ async function liteapi(destination, checkIn, checkOut, guests) {
     const id = String(h.id || h.hotelId || '');
     if (!id) return;
     ids.push(id);
-    nameById[id] = { name: String(h.name || 'Property'), address: String(h.address || h.city || city) };
+    nameById[id] = {
+      name: String(h.name || 'Property'),
+      address: String(h.address || h.city || city),
+      // The property's own lead photo. /hotels/rates does not return imagery,
+      // so this is the only place in the flow it is available.
+      image: firstImage(h),
+      stars: Number(h.stars || h.starRating || 0) || null,
+      rating: Number(h.rating || 0) || null
+    };
   });
 
   // Step 2. Live rates for those ids.
@@ -232,6 +240,9 @@ async function liteapi(destination, checkIn, checkOut, guests) {
       offerId: String(rt.offerId || offer.rateId || ''),
       name: meta.name || String(h.name || 'Property'),
       location: meta.address || city,
+      image: meta.image || firstImage(h) || '',
+      stars: meta.stars || null,
+      rating: meta.rating || null,
       roomDescription: String(rt.roomTypeName || offer.name || 'Room'),
       nights: n,
       costMinor: cost.minor,
@@ -247,6 +258,31 @@ async function liteapi(destination, checkIn, checkOut, guests) {
 
   if (!out.length) throw new Error('LiteAPI returned hotels but no bookable rates for those dates');
   return out.slice(0, 12);
+}
+
+// Suppliers name the lead photo half a dozen different ways. Take the first
+// usable one rather than assuming a single field exists.
+function firstImage(h) {
+  if (!h) return '';
+  // Check every candidate in order. Do not let one bad field discard a good
+  // one: some suppliers put a placeholder in main_photo but a real thumbnail.
+  const candidates = [h.main_photo, h.mainPhoto, h.thumbnail, h.image, h.photo]
+    .concat([].concat(h.hotelImages || h.images || [])
+      .map((i) => (typeof i === 'string' ? i : (i && (i.urlHd || i.url || i.hd || i.thumbnail)))));
+  for (const c of candidates) {
+    const u = normaliseUrl(c);
+    if (u) return u;
+  }
+  return '';
+}
+
+function normaliseUrl(u) {
+  if (typeof u !== 'string') return '';
+  const t = u.trim();
+  if (/^https?:\/\//i.test(t)) return t;
+  // Protocol relative, which several image CDNs still return.
+  if (/^\/\/[^/]/.test(t)) return 'https:' + t;
+  return '';
 }
 
 // Supplier price fields arrive as either an object or an array of objects.
@@ -265,8 +301,15 @@ function pickAmount(a, b) {
 
 function fixtures(destination, checkIn, checkOut) {
   const n = nights(checkIn, checkOut);
+  const shots = [
+    'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=600&q=70&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=70&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=600&q=70&auto=format&fit=crop'
+  ];
+  let shot = -1;
   const mk = (id, name, room, marketMinor, refundable) => ({
     id, offerId: 'offer_' + id, name, location: destination,
+    image: shots[++shot % shots.length], stars: 5, rating: 9.1,
     roomDescription: room, nights: n,
     costMinor: Math.round(marketMinor * 0.82),
     marketMinor, publicMinor: marketMinor, currency: 'EUR',
