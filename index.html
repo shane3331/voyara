@@ -849,6 +849,28 @@ img{display:block}
           </div>
         </div>
 
+        <div class="hsec">
+          <div class="hh">
+            <div><h2 class="disp">Join the first hundred</h2><div class="hsub">Founding members . commission returned from your first booking</div></div>
+          </div>
+        </div>
+        <div class="pad" style="padding-top:14px">
+          <div class="card" style="margin-top:0">
+            <div class="cardhead"><h3>Founding membership</h3><span class="label" id="wlcount">Opening 2026</span></div>
+            <div style="padding:20px;display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap">
+              <div style="flex:1;min-width:240px">
+                <div class="label" style="margin-bottom:8px">Email address</div>
+                <input id="wlemail" type="email" autocomplete="email" placeholder="you@example.com"
+                  style="width:100%;background:var(--ink);border:1px solid var(--rule);border-radius:var(--r-sm);padding:13px 14px;font-size:15px;font-weight:300;color:var(--text);outline:none">
+              </div>
+              <button class="btn primary" id="wlgo" style="padding:14px 24px">Request an invitation</button>
+            </div>
+            <div id="wlmsg" style="padding:0 20px 18px;font-size:12px;color:var(--mute);line-height:1.55">
+              We return the supplier commission on every booking. Your membership is what pays for the platform, so the hotel does not have to.
+            </div>
+          </div>
+        </div>
+
         <div id="proofstrip">
           <div class="ps1">
             <h3 class="disp">Everything above runs on the proof layer</h3>
@@ -1372,6 +1394,53 @@ function askNavi(q) {
   setTimeout(function () { sendUser(q); }, 220);
 }
 
+function wireWaitlist() {
+  var btn = $('#wlgo'), input = $('#wlemail'), msg = $('#wlmsg'), cnt = $('#wlcount');
+  if (!btn || !input) return;
+
+  fetch('/api/waitlist').then(function (r) { return r.json(); }).then(function (j) {
+    if (cnt && j && typeof j.count === 'number' && j.count > 0) {
+      cnt.textContent = j.count + ' already on the list';
+    }
+  }).catch(function () {});
+
+  function submit() {
+    var email = (input.value || '').trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      msg.innerHTML = '<span style="color:var(--warn)">That does not look like an email address.</span>';
+      input.focus();
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = 'Sending';
+    fetch('/api/waitlist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email, source: 'home' })
+    }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (out) {
+        if (out.j && out.j.saved) {
+          msg.innerHTML = '<span style="color:var(--live)">You are on the list. We will be in touch before the first bookings open.</span>';
+          input.value = '';
+          audit('waitlist.joined', { source: 'home' }, 'traveler');
+          emit('waitlist.joined.v1', 'core-api');
+        } else if (out.j && out.j.mode === 'mock') {
+          msg.innerHTML = '<span style="color:var(--warn)">Not stored. The database is not connected yet.</span>';
+        } else {
+          msg.innerHTML = '<span style="color:var(--halt)">' + ((out.j && (out.j.error || out.j.detail)) || 'Something went wrong.') + '</span>';
+        }
+      }).catch(function () {
+        msg.innerHTML = '<span style="color:var(--halt)">Could not reach the server. Try again.</span>';
+      }).then(function () {
+        btn.disabled = false;
+        btn.textContent = 'Request an invitation';
+      });
+  }
+
+  btn.addEventListener('click', submit);
+  input.addEventListener('keydown', function (e) { if (e.key === 'Enter') submit(); });
+}
+
 function bootHome() {
   renderHomeGrids();
   $$('.cat').forEach(function (c) { c.addEventListener('click', function () { setCat(c.getAttribute('data-cat')); }); });
@@ -1385,6 +1454,7 @@ function bootHome() {
     var el = $('#askinput');
     if (el && !el.value && document.activeElement !== el) { pi = (pi + 1) % ph.length; el.placeholder = ph[pi]; }
   }, 3600);
+  wireWaitlist();
   $('#proofstripbtn').addEventListener('click', openRail);
   $('#proofscenario').addEventListener('click', runAll);
 }
