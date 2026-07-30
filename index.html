@@ -234,6 +234,27 @@ img{display:block}
 #proofstrip h3{font-weight:300;font-size:22px;letter-spacing:-.02em}
 #proofstrip p{font-size:12.5px;color:var(--mute);margin-top:7px;line-height:1.55;max-width:56ch}
 
+/* ============ VILLAS ============ */
+.vgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:6px 0 8px}
+.vcard{position:relative;border-radius:var(--r);overflow:hidden;text-align:left;background:var(--raised);isolation:isolate;transition:.24s;display:flex;flex-direction:column}
+.vcard .vimg{position:relative;aspect-ratio:4/3;overflow:hidden}
+.vcard .vimg img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .7s cubic-bezier(.2,.6,.2,1);filter:saturate(.86) contrast(1.02)}
+.vcard:hover .vimg img{transform:scale(1.05)}
+.vcard .vtag{position:absolute;top:10px;left:10px;padding:5px 10px;border-radius:99px;background:rgba(10,12,15,.62);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.14);font-family:var(--mono);font-size:7.5px;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+.vcard .vbody{padding:14px 15px 15px;border:1px solid var(--rule);border-top:none;border-radius:0 0 var(--r) var(--r);flex:1;display:flex;flex-direction:column}
+.vcard .vname{font-size:18px;font-weight:300;letter-spacing:-.015em;color:var(--text)}
+.vcard .vloc{font-family:var(--mono);font-size:8px;letter-spacing:.13em;text-transform:uppercase;color:var(--faint);margin-top:5px}
+.vcard .vsum{font-size:12px;color:var(--mute);line-height:1.5;margin-top:9px;flex:1}
+.vcard .vmeta{display:flex;gap:10px;margin-top:11px;flex-wrap:wrap}
+.vcard .vprice{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-top:13px;padding-top:12px;border-top:1px solid var(--rule-soft)}
+.vcard .vprice .pn{font-family:var(--mono);font-size:16px;color:#fff}
+.vcard .vprice .pn s{color:var(--faint);font-size:11px;margin-right:7px}
+.vcard .vprice .pk{font-family:var(--mono);font-size:8px;letter-spacing:.11em;text-transform:uppercase;color:var(--live)}
+.vcard .vreq{margin-top:12px;width:100%;padding:11px;border:1px solid var(--rule);border-radius:99px;font-family:var(--mono);font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:var(--text-dim);transition:.16s}
+.vcard .vreq:hover{background:var(--text);color:var(--ink);border-color:var(--text)}
+@media (max-width:1240px){.vgrid{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:640px){.vgrid{grid-template-columns:1fr}}
+
 /* ============ SHARED ============ */
 .pad{padding:22px 26px}
 .vhead{padding:26px 26px 18px;display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap}
@@ -776,6 +797,7 @@ img{display:block}
             <button class="cat on" data-cat="navi"><span class="cg">&#10022;</span><span class="cl2">Navi<sup>Live</sup></span></button>
             <button class="cat" data-cat="hotels"><span class="cg">&#8962;</span><span class="cl2">Hotels</span></button>
             <button class="cat" data-cat="flights"><span class="cg">&#9992;</span><span class="cl2">Flights</span></button>
+            <button class="cat" data-cat="villas"><span class="cg">&#9962;</span><span class="cl2">Villas</span></button>
             <button class="cat" data-cat="experiences"><span class="cg">&#10038;</span><span class="cl2">Experiences</span></button>
           </div>
 
@@ -810,6 +832,12 @@ img{display:block}
               <div class="sfield"><span class="fk">When</span><span class="fv">12 Sep <span class="arr">&#8594;</span> 18 Sep</span></div>
               <div class="sfield"><span class="fk">Travelers</span><span class="fv">1</span></div>
               <button class="sgo" data-search="flights">Search</button>
+            </div>
+            <div class="glass sform" id="sf-villas">
+              <div class="sfield" style="flex:1.5"><span class="fk">Where</span><input id="vq" placeholder="Amalfi, Mykonos, Como, Provence"></div>
+              <div class="sfield"><span class="fk">Sleeps</span><span class="fv">Any</span></div>
+              <div class="sfield"><span class="fk">Held by</span><span class="fv">Voyara directly</span></div>
+              <button class="sgo" data-search="villas">Show the collection</button>
             </div>
             <div class="glass sform" id="sf-experiences">
               <div class="sfield" style="flex:1.6"><span class="fk">What are you after</span><input id="xq" placeholder="A table, a boat, a vineyard, a court"></div>
@@ -864,6 +892,7 @@ img{display:block}
                   style="width:100%;background:var(--ink);border:1px solid var(--rule);border-radius:var(--r-sm);padding:13px 14px;font-size:15px;font-weight:300;color:var(--text);outline:none">
               </div>
               <button class="btn primary" id="wlgo" style="padding:14px 24px">Request an invitation</button>
+              <button class="btn" id="joinnow" style="padding:14px 24px">Become a founding member</button>
             </div>
             <div id="wlmsg" style="padding:0 20px 18px;font-size:12px;color:var(--mute);line-height:1.55">
               We return the supplier commission on every booking. Your membership is what pays for the platform, so the hotel does not have to.
@@ -1388,6 +1417,114 @@ function renderResults(type) {
   if (rz.scrollIntoView) rz.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+var VILLAS = [];
+
+function renderVillas() {
+  var zone = $('#resultszone');
+  zone.innerHTML = '<div class="hsec" style="padding-top:26px"><div class="hh"><div>' +
+    '<h2 class="disp" style="font-size:24px">The collection</h2>' +
+    '<div class="hsub">Held directly by Voyara . not an aggregator feed . commission returned on every night</div>' +
+    '</div><button class="viewall" id="clearresults">Clear</button></div></div>' +
+    '<div class="pad" style="padding-top:0"><div class="vgrid" id="vgrid">' +
+    '<div class="empty">Loading the collection</div></div></div>';
+
+  var c = $('#clearresults');
+  if (c) c.addEventListener('click', function () { zone.innerHTML = ''; });
+
+  fetch('/api/villas').then(function (r) { return r.json(); }).then(function (j) {
+    VILLAS = j.villas || [];
+    var g = $('#vgrid');
+    if (!g) return;
+    if (!VILLAS.length) { g.innerHTML = '<div class="empty">No properties yet.</div>'; return; }
+    g.innerHTML = VILLAS.map(function (v, i) {
+      var p = v.pricing || {};
+      return '<div class="vcard">' +
+        '<div class="vimg"><img src="' + uimg(v.imageId, 800) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">' +
+        '<span class="vtag">' + (v.region || 'Collection') + '</span></div>' +
+        '<div class="vbody">' +
+        '<div class="vname">' + v.name + '</div>' +
+        '<div class="vloc">' + v.location + '</div>' +
+        '<div class="vsum">' + (v.summary || '') + '</div>' +
+        '<div class="vmeta"><span class="pill">' + (v.bedrooms || '?') + ' bedrooms</span>' +
+        '<span class="pill">Sleeps ' + (v.sleeps || '?') + '</span></div>' +
+        '<div class="vprice"><span class="pn"><s>' + (p.nightlyDisplay || '') + '</s>' + (p.netDisplay || '') + '</span>' +
+        '<span class="pk">' + (p.rebateDisplay || '') + ' back</span></div>' +
+        '<button class="vreq" data-villa="' + v.slug + '">Request these dates</button>' +
+        '</div></div>';
+    }).join('');
+    $$('[data-villa]').forEach(function (b) {
+      b.addEventListener('click', function () { openVillaRequest(b.getAttribute('data-villa')); });
+    });
+    audit('search.completed', { vertical: 'villas', results: VILLAS.length, adapter: j.mode }, 'traveler');
+    emit('search.villas_completed.v1', 'curation');
+  }).catch(function () {
+    var g = $('#vgrid');
+    if (g) g.innerHTML = '<div class="empty">Could not load the collection.</div>';
+  });
+
+  if (zone.scrollIntoView) zone.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function openVillaRequest(slug) {
+  var v = VILLAS.filter(function (x) { return x.slug === slug; })[0];
+  if (!v) return;
+  var p = v.pricing || {};
+  openModal('<div class="mhead"><h3 class="disp">' + v.name + '</h3><button class="x" data-close>&#10005;</button></div>' +
+    '<div class="mbody">' +
+    '<div class="label" style="margin-bottom:10px">' + v.location + '</div>' +
+    '<p style="font-size:13px;line-height:1.6;color:var(--text-dim)">' + (v.summary || '') + '</p>' +
+    '<div class="kv" style="margin-top:14px"><span class="k">Nightly, public</span><span class="v mono">' + (p.nightlyDisplay || '') + '</span></div>' +
+    '<div class="kv"><span class="k">Your nightly</span><span class="v mono" style="color:#fff">' + (p.netDisplay || '') + '</span></div>' +
+    '<div class="kv"><span class="k">Returned to you</span><span class="v mono" style="color:var(--live)">' + (p.rebateDisplay || '') + ' per night</span></div>' +
+    '<div style="margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
+    '<div><div class="label" style="margin-bottom:6px">Arrive</div><input id="vrA" type="date" style="width:100%;background:var(--ink);border:1px solid var(--rule);border-radius:var(--r-sm);padding:11px;color:var(--text);font-size:13px"></div>' +
+    '<div><div class="label" style="margin-bottom:6px">Depart</div><input id="vrD" type="date" style="width:100%;background:var(--ink);border:1px solid var(--rule);border-radius:var(--r-sm);padding:11px;color:var(--text);font-size:13px"></div>' +
+    '</div>' +
+    '<div style="margin-top:12px"><div class="label" style="margin-bottom:6px">Email</div>' +
+    '<input id="vrE" type="email" placeholder="you@example.com" style="width:100%;background:var(--ink);border:1px solid var(--rule);border-radius:var(--r-sm);padding:12px;color:var(--text);font-size:14px"></div>' +
+    '<div style="margin-top:12px"><div class="label" style="margin-bottom:6px">Anything we should know</div>' +
+    '<textarea id="vrN" rows="2" placeholder="Party size, flexibility on dates, anything else" style="width:100%;background:var(--ink);border:1px solid var(--rule);border-radius:var(--r-sm);padding:12px;color:var(--text);font-size:13px;resize:vertical"></textarea></div>' +
+    '<div id="vrMsg" style="margin-top:12px;font-size:11.5px;color:var(--mute);line-height:1.55">A request, not a booking. An operator confirms the property is free and comes back with a firm quote before anything is charged.</div>' +
+    '</div>' +
+    '<div class="mfoot"><button class="btn" data-close>Not now</button><button class="btn primary" id="vrGo">Send the request</button></div>');
+
+  $('#vrGo').addEventListener('click', function () {
+    var email = ($('#vrE').value || '').trim();
+    var msg = $('#vrMsg');
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      msg.innerHTML = '<span style="color:var(--warn)">We need an email to come back to.</span>';
+      return;
+    }
+    var btn = $('#vrGo');
+    btn.disabled = true; btn.textContent = 'Sending';
+    fetch('/api/villas', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        slug: slug, email: email,
+        arriveOn: ($('#vrA').value || '') || undefined,
+        departOn: ($('#vrD').value || '') || undefined,
+        notes: ($('#vrN').value || '') || undefined
+      })
+    }).then(function (r) { return r.json(); }).then(function (j) {
+      if (j && j.saved) {
+        msg.innerHTML = '<span style="color:var(--live)">Sent. An operator will confirm availability and come back with a firm quote.</span>';
+        audit('villa.requested', { villa: slug }, 'traveler');
+        emit('villa.requested.v1', 'core-api');
+        btn.textContent = 'Request sent';
+      } else if (j && j.mode === 'mock') {
+        msg.innerHTML = '<span style="color:var(--warn)">Not recorded. The database is not connected yet.</span>';
+        btn.disabled = false; btn.textContent = 'Send the request';
+      } else {
+        msg.innerHTML = '<span style="color:var(--halt)">' + ((j && (j.error || j.detail)) || 'Something went wrong.') + '</span>';
+        btn.disabled = false; btn.textContent = 'Send the request';
+      }
+    }).catch(function () {
+      msg.innerHTML = '<span style="color:var(--halt)">Could not reach the server.</span>';
+      btn.disabled = false; btn.textContent = 'Send the request';
+    });
+  });
+}
+
 function askNavi(q) {
   if (!q || !q.trim()) return;
   switchView('trip');
@@ -1439,12 +1576,48 @@ function wireWaitlist() {
 
   btn.addEventListener('click', submit);
   input.addEventListener('keydown', function (e) { if (e.key === 'Enter') submit(); });
+
+  var join = $('#joinnow');
+  if (join) join.addEventListener('click', function () {
+    var email = (input.value || '').trim();
+    join.disabled = true;
+    join.textContent = 'Opening checkout';
+    fetch('/api/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email || undefined, source: 'home' })
+    }).then(function (r) { return r.json(); }).then(function (j) {
+      if (j && j.url) { window.location.href = j.url; return; }
+      msg.innerHTML = j && j.mode === 'mock'
+        ? '<span style="color:var(--warn)">Payments are not connected yet. Set the Stripe keys to take a real membership.</span>'
+        : '<span style="color:var(--halt)">' + ((j && (j.detail || j.error)) || 'Checkout is unavailable.') + '</span>';
+    }).catch(function () {
+      msg.innerHTML = '<span style="color:var(--halt)">Could not reach the server.</span>';
+    }).then(function () {
+      join.disabled = false;
+      join.textContent = 'Become a founding member';
+    });
+  });
+
+  // Returning from Stripe
+  if (/[?&]membership=active/.test(window.location.search)) {
+    msg.innerHTML = '<span style="color:var(--live)">You are a founding member. Welcome. Your commission comes back on every booking from here.</span>';
+    audit('membership.activated', { tier: 'founding' }, 'traveler');
+  } else if (/[?&]membership=cancelled/.test(window.location.search)) {
+    msg.innerHTML = 'No charge was made. The waitlist is still open if you would rather wait.';
+  }
 }
 
 function bootHome() {
   renderHomeGrids();
   $$('.cat').forEach(function (c) { c.addEventListener('click', function () { setCat(c.getAttribute('data-cat')); }); });
-  $$('[data-search]').forEach(function (b) { b.addEventListener('click', function () { renderResults(b.getAttribute('data-search')); }); });
+  $$('[data-search]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var t = b.getAttribute('data-search');
+      if (t === 'villas') return renderVillas();
+      renderResults(t);
+    });
+  });
   $('#askgo').addEventListener('click', function () { askNavi($('#askinput').value); });
   $('#askinput').addEventListener('keydown', function (e) { if (e.key === 'Enter') askNavi($('#askinput').value); });
   $$('.ahint').forEach(function (b) { b.addEventListener('click', function () { askNavi(b.textContent); }); });

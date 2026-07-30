@@ -19,9 +19,15 @@ module.exports = async (req, res) => {
   let mode = 'mock';
   let offers;
   try {
+    // Hotelbeds first when available: net rates with no markup floor mean
+    // the retail price is genuinely yours to set, which is a stronger
+    // position than rebating a commission after the fact.
     if (process.env.HOTELBEDS_API_KEY && process.env.HOTELBEDS_SECRET) {
       offers = await hotelbeds(destination, checkIn, checkOut, guests);
       mode = 'live:hotelbeds';
+    } else if (process.env.LITEAPI_KEY) {
+      offers = await liteapi(destination, checkIn, checkOut, guests);
+      mode = 'live:liteapi';
     } else {
       offers = fixtures(destination, checkIn, checkOut);
     }
@@ -94,6 +100,63 @@ async function hotelbeds(destination, checkIn, checkOut, guests) {
       taxesIncluded: true
     };
   });
+}
+
+// LiteAPI (Nuitee). Self serve, free sandbox, no paperwork, and their
+// sandbox is the same surface as production, which makes it the fastest
+// way to get real hotel inventory on the page.
+//
+// VERIFY BEFORE TRUSTING: written to the documented shape but not executed
+// against their servers from the build environment. Run
+//   curl "$SITE/api/stays/search?destination=Milan&checkIn=...&checkOut=..."
+// and confirm mode reads live:liteapi with sane prices.
+async function liteapi(destination, checkIn, checkOut, guests) {
+  const headers = {
+    'X-API-Key': process.env.LITEAPI_KEY,
+    'Content-Type': 'application/json',
+    Accept: 'application/json'
+  };
+  const base = process.env.LITEAPI_BASE || 'https://api.liteapi.travel/v3.0';
+
+  const r = await fetch(base + '/hotels/rates', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      cityName: destination,
+      countryCode: process.env.LITEAPI_COUNTRY || 'IT',
+      checkin: checkIn,
+      checkout: checkOut,
+      currency: process.env.LITEAPI_CURRENCY || 'EUR',
+      guestNationality: process.env.LITEAPI_NATIONALITY || 'US',
+      occupancies: [{ adults: guests }],
+      limit: 12
+    })
+  });
+  if (!r.ok) throw new Error('LiteAPI ' + r.status + ' ' + (await r.text()).slice(0, 300));
+  const j = await r.json();
+  const list = (j && j.data) || [];
+  const n = nights(checkIn, checkOut);
+
+  return list.slice(0, 12).map((h, i) => {
+    const rooms = h.roomTypes || h.rooms || [];
+    const rt = rooms[0] || {};
+    const offer = (rt.rates || [])[0] || {};
+    const retail = (rt.offerRetailRate || offer.retailRate || {});
+    const amount = Number(retail.amount != null ? retail.amount : (rt.suggestedSellingPrice || 0));
+    const cancel = (offer.cancellationPolicies && offer.cancellationPolicies.refundableTag) || null;
+    return {
+      id: String(h.hotelId || h.id || i),
+      name: String(h.name || (h.hotelInfo && h.hotelInfo.name) || 'Property'),
+      location: String((h.hotelInfo && h.hotelInfo.address) || destination),
+      roomDescription: String(rt.roomTypeName || offer.name || 'Room'),
+      nights: n,
+      publicMinor: Math.round(amount * 100),
+      currency: String(retail.currency || process.env.LITEAPI_CURRENCY || 'EUR'),
+      freeCancellationUntil: cancel === 'RFN' ? 'refundable' : null,
+      payAtProperty: false,
+      taxesIncluded: true
+    };
+  }).filter((o) => o.publicMinor > 0);
 }
 
 function fixtures(destination, checkIn, checkOut) {
