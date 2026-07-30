@@ -14,6 +14,7 @@
 // That is a stronger claim than a rebate because it is arithmetic on real
 // supplier numbers rather than an assumed commission rate.
 const crypto = require('crypto');
+const SUPPORTED_CCY = ['USD','EUR','GBP','CHF','JPY','AUD','CAD','AED','SGD','MXN'];
 const MARKUP = num(process.env.VOYARA_MARKUP, 0.04);
 const ASSUMED_COMMISSION = num(process.env.RATE_HOTEL_COMMISSION, 0.15);
 
@@ -24,6 +25,9 @@ module.exports = async (req, res) => {
   const checkIn = String(q.checkIn || '');
   const checkOut = String(q.checkOut || '');
   const guests = Math.max(1, Number(q.guests) || 2);
+  const wanted = String(q.currency || '').toUpperCase();
+  const currencyPref = SUPPORTED_CCY.indexOf(wanted) >= 0
+    ? wanted : (process.env.LITEAPI_CURRENCY || 'USD');
 
   if (!destination || !checkIn || !checkOut) {
     return res.status(400).end(JSON.stringify({ error: 'destination, checkIn and checkOut are required' }));
@@ -47,10 +51,10 @@ module.exports = async (req, res) => {
       offers = await hotelbeds(destination, checkIn, checkOut, guests);
       mode = 'live:hotelbeds';
     } else if (process.env.LITEAPI_KEY) {
-      offers = await liteapi(destination, checkIn, checkOut, guests);
+      offers = await liteapi(destination, checkIn, checkOut, guests, currencyPref);
       mode = 'live:liteapi';
     } else {
-      offers = fixtures(destination, checkIn, checkOut);
+      offers = fixtures(destination, checkIn, checkOut, currencyPref);
     }
   } catch (e) {
     const msg = String(e && e.message ? e.message : e).slice(0, 500);
@@ -67,7 +71,7 @@ module.exports = async (req, res) => {
 
   const priced = offers.map(priceOffer);
 
-  res.status(200).end(JSON.stringify({ mode, count: priced.length, offers: priced }));
+  res.status(200).end(JSON.stringify({ mode, currency: currencyPref, count: priced.length, offers: priced }));
 };
 
 async function hotelbeds(destination, checkIn, checkOut, guests) {
@@ -163,10 +167,21 @@ function priceOffer(o) {
 }
 
 function money(minor, cur) {
-  const sym = cur === 'EUR' ? '\u20AC' : cur === 'GBP' ? '\u00A3' : '$';
-  const p = (Math.abs(minor) / 100).toFixed(2).split('.');
-  p[0] = p[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  return (minor < 0 ? '-' : '') + sym + p.join('.');
+  const c = String(cur || 'USD').toUpperCase();
+  // Currencies that do not use minor units in the wild. Amounts are still
+  // stored as hundredths internally so the arithmetic stays integer, they
+  // are just displayed without decimals.
+  const zeroDecimal = ['JPY', 'KRW', 'VND', 'CLP', 'ISK', 'HUF'].indexOf(c) >= 0;
+  const amount = minor / 100;
+  try {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency', currency: c,
+      minimumFractionDigits: zeroDecimal ? 0 : 2,
+      maximumFractionDigits: zeroDecimal ? 0 : 2
+    }).format(amount);
+  } catch (e) {
+    return c + ' ' + amount.toFixed(zeroDecimal ? 0 : 2);
+  }
 }
 function num(v, d) { const x = Number(v); return Number.isFinite(x) && v !== undefined && v !== '' ? x : d; }
 
@@ -284,10 +299,10 @@ function titleCase(s) {
   return String(s).split(' ').map(function (w) { return w.charAt(0).toUpperCase() + w.slice(1); }).join(' ');
 }
 
-async function liteapi(destination, checkIn, checkOut, guests) {
+async function liteapi(destination, checkIn, checkOut, guests, currencyPref) {
   const apiKey = process.env.LITEAPI_KEY;
   const base = process.env.LITEAPI_BASE || 'https://api.liteapi.travel/v3.0';
-  const currency = process.env.LITEAPI_CURRENCY || 'EUR';
+  const currency = currencyPref || process.env.LITEAPI_CURRENCY || 'USD';
   const nationality = process.env.LITEAPI_NATIONALITY || 'US';
   const headers = { 'X-API-Key': apiKey, Accept: 'application/json' };
 
@@ -438,7 +453,7 @@ function pickAmount(a, b) {
   return { minor: 0, currency: null };
 }
 
-function fixtures(destination, checkIn, checkOut) {
+function fixtures(destination, checkIn, checkOut, cur) {
   const n = nights(checkIn, checkOut);
   const shots = [
     'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=600&q=70&auto=format&fit=crop',
@@ -451,7 +466,7 @@ function fixtures(destination, checkIn, checkOut) {
     image: shots[++shot % shots.length], stars: 5, rating: 9.1,
     roomDescription: room, nights: n,
     costMinor: Math.round(marketMinor * 0.82),
-    marketMinor, publicMinor: marketMinor, currency: 'EUR',
+    marketMinor, publicMinor: marketMinor, currency: cur || 'USD',
     refundable, freeCancellationUntil: refundable ? 'refundable' : null,
     payAtProperty: false, taxesIncluded: true
   });
@@ -468,9 +483,3 @@ function nights(a, b) {
   return Math.round((d2 - d1) / 86400000);
 }
 function num(v, d) { const x = Number(v); return Number.isFinite(x) && v !== undefined && v !== '' ? x : d; }
-function money(minor, cur) {
-  const sym = cur === 'EUR' ? '\u20AC' : cur === 'GBP' ? '\u00A3' : '$';
-  const p = (Math.abs(minor) / 100).toFixed(2).split('.');
-  p[0] = p[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  return (minor < 0 ? '-' : '') + sym + p.join('.');
-}

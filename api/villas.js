@@ -132,10 +132,18 @@ const SEED = [
 
 function auth(key) { return { apikey: key, Authorization: 'Bearer ' + key }; }
 function money(minor, cur) {
-  const sym = cur === 'EUR' ? '\u20AC' : cur === 'GBP' ? '\u00A3' : '$';
-  const p = (Math.abs(minor) / 100).toFixed(2).split('.');
-  p[0] = p[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  return (minor < 0 ? '-' : '') + sym + p.join('.');
+  const c = String(cur || 'USD').toUpperCase();
+  const zeroDecimal = ['JPY', 'KRW', 'VND', 'CLP', 'ISK', 'HUF'].indexOf(c) >= 0;
+  const amount = minor / 100;
+  try {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency', currency: c,
+      minimumFractionDigits: zeroDecimal ? 0 : 2,
+      maximumFractionDigits: zeroDecimal ? 0 : 2
+    }).format(amount);
+  } catch (e) {
+    return c + ' ' + amount.toFixed(zeroDecimal ? 0 : 2);
+  }
 }
 function readJson(req) {
   return new Promise((resolve) => {

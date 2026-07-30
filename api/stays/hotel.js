@@ -2,6 +2,7 @@
 //
 // Everything needed for a property page: photos, description, amenities,
 // address, and every bookable room with honest pricing on each.
+const SUPPORTED_CCY = ['USD','EUR','GBP','CHF','JPY','AUD','CAD','AED','SGD','MXN'];
 const MARKUP = num(process.env.VOYARA_MARKUP, 0.04);
 const ASSUMED_COMMISSION = num(process.env.RATE_HOTEL_COMMISSION, 0.15);
 
@@ -12,6 +13,9 @@ module.exports = async (req, res) => {
   const checkIn = String(q.checkIn || '');
   const checkOut = String(q.checkOut || '');
   const guests = Math.max(1, Number(q.guests) || 2);
+  const wantedCcy = String(q.currency || '').toUpperCase();
+  const currency = SUPPORTED_CCY.indexOf(wantedCcy) >= 0
+    ? wantedCcy : (process.env.LITEAPI_CURRENCY || 'USD');
 
   if (!id) return res.status(400).end(JSON.stringify({ error: 'id is required' }));
   if (!/^[A-Za-z0-9_-]{1,64}$/.test(id)) {
@@ -24,11 +28,10 @@ module.exports = async (req, res) => {
   }
 
   if (!process.env.LITEAPI_KEY) {
-    return res.status(200).end(JSON.stringify({ mode: 'mock', hotel: mockHotel(id), rooms: mockRooms() }));
+    return res.status(200).end(JSON.stringify({ mode: 'mock', currency: currency, hotel: mockHotel(id), rooms: mockRooms(currency) }));
   }
 
   const base = process.env.LITEAPI_BASE || 'https://api.liteapi.travel/v3.0';
-  const currency = process.env.LITEAPI_CURRENCY || 'EUR';
   const headers = { 'X-API-Key': process.env.LITEAPI_KEY, Accept: 'application/json' };
 
   try {
@@ -106,7 +109,7 @@ module.exports = async (req, res) => {
       }
     }
 
-    res.status(200).end(JSON.stringify({ mode: 'live:liteapi', hotel, rooms }));
+    res.status(200).end(JSON.stringify({ mode: 'live:liteapi', currency: currency, hotel, rooms }));
   } catch (e) {
     res.status(502).end(JSON.stringify({ error: 'supplier_unavailable', detail: String(e.message).slice(0, 400) }));
   }
@@ -198,10 +201,21 @@ function nights(a, b) {
 }
 function num(v, d) { const x = Number(v); return Number.isFinite(x) && v !== undefined && v !== '' ? x : d; }
 function money(minor, cur) {
-  const sym = cur === 'EUR' ? '\u20AC' : cur === 'GBP' ? '\u00A3' : '$';
-  const p = (Math.abs(minor) / 100).toFixed(2).split('.');
-  p[0] = p[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  return (minor < 0 ? '-' : '') + sym + p.join('.');
+  const c = String(cur || 'USD').toUpperCase();
+  // Currencies that do not use minor units in the wild. Amounts are still
+  // stored as hundredths internally so the arithmetic stays integer, they
+  // are just displayed without decimals.
+  const zeroDecimal = ['JPY', 'KRW', 'VND', 'CLP', 'ISK', 'HUF'].indexOf(c) >= 0;
+  const amount = minor / 100;
+  try {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency', currency: c,
+      minimumFractionDigits: zeroDecimal ? 0 : 2,
+      maximumFractionDigits: zeroDecimal ? 0 : 2
+    }).format(amount);
+  } catch (e) {
+    return c + ' ' + amount.toFixed(zeroDecimal ? 0 : 2);
+  }
 }
 function mockHotel(id) {
   return {
@@ -218,7 +232,7 @@ function mockHotel(id) {
     amenities: ['Spa', 'Restaurant', 'Bar', 'Room service', 'Concierge', 'Air conditioning', 'Free wifi', 'Fitness centre']
   };
 }
-function mockRooms() {
+function mockRooms(cur) {
   const shots = [
     'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=1200&q=70&auto=format&fit=crop',
     'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=1200&q=70&auto=format&fit=crop',
@@ -232,7 +246,7 @@ function mockRooms() {
     images: [shots[++k % shots.length], shots[(k + 1) % shots.length], shots[(k + 2) % shots.length]],
     inclusions: [board, refundable ? 'Free cancellation before the deadline' : 'Non refundable rate',
       'Sleeps up to 2', 'Taxes and fees included in the price shown'],
-    costMinor: Math.round(marketMinor * 0.82), marketMinor, currency: 'EUR',
+    costMinor: Math.round(marketMinor * 0.82), marketMinor, currency: cur || 'USD',
     refundable,
     cancellationNote: refundable ? 'Free cancellation until 10 Sep 2026' : 'Non refundable. This rate cannot be cancelled or repriced.'
   });
