@@ -1,0 +1,186 @@
+// Voyara core data model, Release 1.
+// Mirrors sections 8 and 21 of the build spec. Not yet wired to the app:
+// the API routes are stateless today. This is the migration target when
+// persistence lands, so the shape is agreed before anyone writes queries.
+//
+// Provision Postgres in Vercel (Storage, then Postgres) and set DATABASE_URL.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Traveler {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  fullName      String
+  householdId   String?
+  membership    Membership?
+  trips         Trip[]
+  consents      Consent[]
+  ledgerEntries LedgerEntry[]
+  createdAt     DateTime       @default(now())
+}
+
+model Membership {
+  id                   String    @id @default(uuid())
+  traveler             Traveler  @relation(fields: [travelerId], references: [id])
+  travelerId           String    @unique
+  tier                 String
+  status               String
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  renewsAt             DateTime?
+  createdAt            DateTime  @default(now())
+}
+
+model Trip {
+  id           String        @id @default(uuid())
+  traveler     Traveler      @relation(fields: [travelerId], references: [id])
+  travelerId   String
+  title        String
+  startDate    DateTime?
+  endDate      DateTime?
+  status       String        @default("MONITORED")
+  reservations Reservation[]
+  disruptions  Disruption[]
+  proposals    ActionProposal[]
+  createdAt    DateTime      @default(now())
+
+  @@index([travelerId])
+}
+
+model Reservation {
+  id              String    @id @default(uuid())
+  trip            Trip      @relation(fields: [tripId], references: [id])
+  tripId          String
+  version         Int       @default(1)
+  type            String
+  supplier        String
+  confirmationRef String
+  status          String
+  publicMinor     Int
+  netMinor        Int
+  rebateMinor     Int
+  currency        String    @default("EUR")
+  policySnapshot  Json
+  importConfidence Float?
+  sourceMessageId String?
+  contentHash     String?
+  segments        Segment[]
+  createdAt       DateTime  @default(now())
+
+  @@unique([supplier, confirmationRef, version])
+  @@index([tripId])
+  @@index([contentHash])
+}
+
+model Segment {
+  id            String      @id @default(uuid())
+  reservation   Reservation @relation(fields: [reservationId], references: [id])
+  reservationId String
+  kind          String
+  marketingCode String?
+  originCode    String?
+  destCode      String?
+  startsAt      DateTime
+  endsAt        DateTime?
+  timezone      String
+  status        String      @default("CONFIRMED")
+
+  @@index([reservationId])
+  @@index([startsAt])
+}
+
+model Disruption {
+  id         String   @id @default(uuid())
+  trip       Trip     @relation(fields: [tripId], references: [id])
+  tripId     String
+  kind       String
+  state      String
+  detectedAt DateTime @default(now())
+  resolvedAt DateTime?
+
+  @@index([tripId])
+}
+
+model ActionProposal {
+  id             String   @id @default(uuid())
+  trip           Trip     @relation(fields: [tripId], references: [id])
+  tripId         String
+  type           String
+  riskClass      String
+  status         String   @default("PENDING")
+  amountMinor    Int      @default(0)
+  currency       String   @default("EUR")
+  approvalHash   String
+  quoteExpiresAt DateTime
+  policyVersion  String
+  consentVersion String
+  approvedAt     DateTime?
+  approvedBy     String?
+  idempotencyKey String   @unique
+  createdAt      DateTime @default(now())
+
+  @@index([tripId])
+  @@index([status])
+}
+
+model LedgerEntry {
+  id          String   @id @default(uuid())
+  traveler    Traveler @relation(fields: [travelerId], references: [id])
+  travelerId  String
+  description String
+  state       String
+  amountMinor Int
+  currency    String   @default("EUR")
+  // Double entry. Every posting has a matching counter posting.
+  counterpartyAccount String
+  occurredAt  DateTime @default(now())
+
+  @@index([travelerId])
+  @@index([state])
+}
+
+model Consent {
+  id         String   @id @default(uuid())
+  traveler   Traveler @relation(fields: [travelerId], references: [id])
+  travelerId String
+  kind       String
+  granted    Boolean
+  version    String
+  grantedAt  DateTime @default(now())
+
+  @@index([travelerId])
+}
+
+model AuditEvent {
+  id           String   @id @default(uuid())
+  seq          BigInt   @unique
+  type         String
+  actor        String
+  subjectType  String?
+  subjectId    String?
+  payload      Json
+  previousHash String
+  eventHash    String   @unique
+  occurredAt   DateTime @default(now())
+
+  @@index([subjectType, subjectId])
+  @@index([occurredAt])
+}
+
+model OutboxEvent {
+  id          String   @id @default(uuid())
+  type        String
+  version     String
+  payload     Json
+  publishedAt DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([publishedAt])
+}
