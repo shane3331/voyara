@@ -102,61 +102,95 @@ async function hotelbeds(destination, checkIn, checkOut, guests) {
   });
 }
 
-// LiteAPI (Nuitee). Self serve, free sandbox, no paperwork, and their
-// sandbox is the same surface as production, which makes it the fastest
-// way to get real hotel inventory on the page.
-//
-// VERIFY BEFORE TRUSTING: written to the documented shape but not executed
-// against their servers from the build environment. Run
-//   curl "$SITE/api/stays/search?destination=Milan&checkIn=...&checkOut=..."
-// and confirm mode reads live:liteapi with sane prices.
-async function liteapi(destination, checkIn, checkOut, guests) {
-  const headers = {
-    'X-API-Key': process.env.LITEAPI_KEY,
-    'Content-Type': 'application/json',
-    Accept: 'application/json'
-  };
-  const base = process.env.LITEAPI_BASE || 'https://api.liteapi.travel/v3.0';
+// LiteAPI (Nuitee). Self serve, free sandbox, no paperwork.
+// Two steps, which is what their v3.0 REST API actually wants:
+//   1. GET /data/hotels  -> hotel ids for a city
+//   2. POST /hotels/rates -> live rates for those ids
+// Names come from step one and are merged into the rates from step two.
+const CITY_COUNTRY = {
+  milan:'IT', rome:'IT', florence:'IT', venice:'IT', naples:'IT',
+  paris:'FR', nice:'FR', lyon:'FR', london:'GB', edinburgh:'GB',
+  madrid:'ES', barcelona:'ES', ibiza:'ES', lisbon:'PT', porto:'PT',
+  athens:'GR', mykonos:'GR', santorini:'GR', amsterdam:'NL', berlin:'DE',
+  munich:'DE', vienna:'AT', zurich:'CH', geneva:'CH', dubai:'AE',
+  'new york':'US', miami:'US', 'los angeles':'US', chicago:'US', boston:'US',
+  tokyo:'JP', kyoto:'JP', singapore:'SG', bangkok:'TH', bali:'ID',
+  sydney:'AU', toronto:'CA', 'mexico city':'MX', cancun:'MX'
+};
 
-  const r = await fetch(base + '/hotels/rates', {
+async function liteapi(destination, checkIn, checkOut, guests) {
+  const apiKey = process.env.LITEAPI_KEY;
+  const base = process.env.LITEAPI_BASE || 'https://api.liteapi.travel/v3.0';
+  const currency = process.env.LITEAPI_CURRENCY || 'EUR';
+  const nationality = process.env.LITEAPI_NATIONALITY || 'US';
+  const city = String(destination).trim();
+  const country = CITY_COUNTRY[city.toLowerCase()] || process.env.LITEAPI_COUNTRY || 'IT';
+  const headers = { 'X-API-Key': apiKey, Accept: 'application/json' };
+
+  // Step 1. Hotel ids and names for the city.
+  const listUrl = base + '/data/hotels?countryCode=' + encodeURIComponent(country) +
+    '&cityName=' + encodeURIComponent(city) + '&limit=20';
+  const lr = await fetch(listUrl, { headers });
+  if (!lr.ok) throw new Error('LiteAPI /data/hotels ' + lr.status + ' ' + (await lr.text()).slice(0, 300));
+  const lj = await lr.json();
+  const hotels = (lj && (lj.data || lj.hotels)) || [];
+  if (!hotels.length) throw new Error('LiteAPI returned no hotels for ' + city + ' (' + country + ')');
+
+  const nameById = {};
+  const ids = [];
+  hotels.slice(0, 20).forEach((h) => {
+    const id = String(h.id || h.hotelId || '');
+    if (!id) return;
+    ids.push(id);
+    nameById[id] = { name: String(h.name || 'Property'), address: String(h.address || h.city || city) };
+  });
+
+  // Step 2. Live rates for those ids.
+  const rr = await fetch(base + '/hotels/rates', {
     method: 'POST',
-    headers,
+    headers: Object.assign({ 'Content-Type': 'application/json' }, headers),
     body: JSON.stringify({
-      cityName: destination,
-      countryCode: process.env.LITEAPI_COUNTRY || 'IT',
+      hotelIds: ids,
       checkin: checkIn,
       checkout: checkOut,
-      currency: process.env.LITEAPI_CURRENCY || 'EUR',
-      guestNationality: process.env.LITEAPI_NATIONALITY || 'US',
-      occupancies: [{ adults: guests }],
-      limit: 12
+      currency,
+      guestNationality: nationality,
+      occupancies: [{ adults: Math.max(1, guests) }]
     })
   });
-  if (!r.ok) throw new Error('LiteAPI ' + r.status + ' ' + (await r.text()).slice(0, 300));
-  const j = await r.json();
-  const list = (j && j.data) || [];
+  if (!rr.ok) throw new Error('LiteAPI /hotels/rates ' + rr.status + ' ' + (await rr.text()).slice(0, 300));
+  const rj = await rr.json();
+  const rates = (rj && rj.data) || [];
   const n = nights(checkIn, checkOut);
 
-  return list.slice(0, 12).map((h, i) => {
-    const rooms = h.roomTypes || h.rooms || [];
-    const rt = rooms[0] || {};
+  const out = rates.map((h) => {
+    const id = String(h.hotelId || h.id || '');
+    const meta = nameById[id] || {};
+    const rt = (h.roomTypes || [])[0] || {};
     const offer = (rt.rates || [])[0] || {};
-    const retail = (rt.offerRetailRate || offer.retailRate || {});
-    const amount = Number(retail.amount != null ? retail.amount : (rt.suggestedSellingPrice || 0));
-    const cancel = (offer.cancellationPolicies && offer.cancellationPolicies.refundableTag) || null;
+    const retail = rt.offerRetailRate || offer.retailRate || {};
+    const amount = Number(
+      retail.amount != null ? retail.amount
+      : rt.suggestedSellingPrice != null ? rt.suggestedSellingPrice
+      : offer.retailRate && offer.retailRate.amount
+    );
+    const cancelTag = (offer.cancellationPolicies && offer.cancellationPolicies.refundableTag) || null;
     return {
-      id: String(h.hotelId || h.id || i),
-      name: String(h.name || (h.hotelInfo && h.hotelInfo.name) || 'Property'),
-      location: String((h.hotelInfo && h.hotelInfo.address) || destination),
+      id: id || String(Math.random()),
+      name: meta.name || String(h.name || 'Property'),
+      location: meta.address || city,
       roomDescription: String(rt.roomTypeName || offer.name || 'Room'),
       nights: n,
-      publicMinor: Math.round(amount * 100),
-      currency: String(retail.currency || process.env.LITEAPI_CURRENCY || 'EUR'),
-      freeCancellationUntil: cancel === 'RFN' ? 'refundable' : null,
+      publicMinor: Math.round((Number.isFinite(amount) ? amount : 0) * 100),
+      currency: String(retail.currency || currency),
+      freeCancellationUntil: cancelTag === 'RFN' ? 'refundable' : null,
       payAtProperty: false,
       taxesIncluded: true
     };
   }).filter((o) => o.publicMinor > 0);
+
+  if (!out.length) throw new Error('LiteAPI returned hotels but no bookable rates for those dates');
+  return out.slice(0, 12);
 }
 
 function fixtures(destination, checkIn, checkOut) {
