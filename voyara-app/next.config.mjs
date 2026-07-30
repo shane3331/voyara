@@ -1,14 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  async rewrites() {
-    return {
-      // The traveller app is a single static file in /public.
-      // Serving it at the root keeps it editable without a React rewrite.
-      beforeFiles: [{ source: '/', destination: '/app.html' }],
-      afterFiles: [],
-      fallback: []
-    };
-  },
+  // The traveller app is a static file in /public served through a real
+  // route at app/page.tsx. Do NOT reintroduce a rewrite from '/' here:
+  // rewrites to a public asset resolve under `next start` locally but not
+  // through Vercel's routing layer, which produces a 404 at the root.
   async headers() {
     return [{
       source: '/(.*)',
@@ -18,6 +13,11 @@ const nextConfig = {
         { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' }
       ]
     }];
+  },
+  // Ensures the traveller app is bundled into the serverless function that
+  // renders it, rather than left behind as an untraced asset.
+  outputFileTracingIncludes: {
+    '/': ['./public/app.html']
   }
 };
 export default nextConfig;
