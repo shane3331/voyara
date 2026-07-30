@@ -234,6 +234,58 @@ img{display:block}
 #proofstrip h3{font-weight:300;font-size:22px;letter-spacing:-.02em}
 #proofstrip p{font-size:12.5px;color:var(--mute);margin-top:7px;line-height:1.55;max-width:56ch}
 
+/* ============ PROPERTY SHEET ============ */
+#psheet{position:fixed;inset:0;z-index:220;display:none;background:rgba(4,6,9,.86);backdrop-filter:blur(6px);overflow-y:auto;padding:24px 16px}
+#psheet.on{display:block}
+#pinner{max-width:1080px;margin:0 auto;background:var(--surface);border:1px solid var(--rule);border-radius:calc(var(--r) + 4px);overflow:hidden;animation:mi .28s ease-out}
+#pgal{position:relative;display:grid;grid-template-columns:2fr 1fr 1fr;grid-template-rows:190px 190px;gap:3px;background:var(--ink)}
+#pgal .g0{grid-row:1 / span 2}
+#pgal figure{margin:0;overflow:hidden;position:relative;background:var(--raised)}
+#pgal img{width:100%;height:100%;object-fit:cover;transition:transform .6s cubic-bezier(.2,.6,.2,1)}
+#pgal figure:hover img{transform:scale(1.04)}
+#pclose{position:absolute;top:14px;right:14px;z-index:4;width:38px;height:38px;border-radius:50%;background:rgba(8,10,14,.72);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.16);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:14px}
+#pclose:hover{background:#fff;color:var(--ink)}
+#pmore{position:absolute;bottom:14px;right:14px;z-index:3;padding:8px 14px;border-radius:99px;background:rgba(8,10,14,.72);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.18);font-family:var(--mono);font-size:8.5px;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+#phead{padding:22px 26px 18px;border-bottom:1px solid var(--rule-soft)}
+#phead h2{font-weight:300;font-size:clamp(26px,3vw,36px);letter-spacing:-.03em;line-height:1.05}
+#phead .paddr{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-top:9px}
+#phead .pmeta{display:flex;gap:8px;margin-top:13px;flex-wrap:wrap}
+#pbody{display:grid;grid-template-columns:1.15fr .85fr;gap:0}
+#pleft{padding:22px 26px;border-right:1px solid var(--rule-soft)}
+#pleft p.pdesc{font-size:13.5px;line-height:1.7;color:var(--text-dim)}
+#pamen{display:flex;gap:6px;flex-wrap:wrap;margin-top:18px}
+#pright{padding:22px 26px}
+.roomcard{border:1px solid var(--rule);border-radius:var(--r-sm);padding:15px 16px;margin-bottom:10px;transition:.16s}
+.roomcard:hover{border-color:var(--faint)}
+.roomcard.pick{border-color:var(--live);background:rgba(87,214,169,.05)}
+.roomcard .rn{font-size:14.5px;font-weight:300;letter-spacing:-.01em}
+.roomcard .rb{font-family:var(--mono);font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-top:5px}
+.roomcard .rcx{font-size:11.5px;color:var(--mute);margin-top:8px;line-height:1.5}
+.roomcard .rp{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-top:12px;padding-top:11px;border-top:1px solid var(--rule-soft)}
+.roomcard .rp .mk{font-family:var(--mono);font-size:11px;color:var(--faint);text-decoration:line-through}
+.roomcard .rp .yr{font-family:var(--mono);font-size:19px;color:#fff}
+.roomcard .rp .sv{font-family:var(--mono);font-size:8.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--live)}
+.roomcard .rsel{margin-top:11px;width:100%;padding:11px;border:1px solid var(--rule);border-radius:99px;font-family:var(--mono);font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:var(--text-dim);transition:.16s}
+.roomcard .rsel:hover{background:var(--text);color:var(--ink);border-color:var(--text)}
+.roomcard.pick .rsel{background:var(--live);border-color:var(--live);color:#062B1F;font-weight:500}
+#pricebox{border:1px solid var(--rule);border-radius:var(--r-sm);padding:16px;background:var(--ink);margin-bottom:14px}
+#pricebox .prow2{display:flex;justify-content:space-between;gap:12px;padding:7px 0;font-size:12.5px;align-items:baseline}
+#pricebox .prow2 .k{color:var(--faint);font-family:var(--mono);font-size:8.5px;letter-spacing:.11em;text-transform:uppercase}
+#pricebox .prow2 .v{font-family:var(--mono);font-size:13px;color:var(--text-dim)}
+#pricebox .prow2.big .v{font-size:22px;color:#fff}
+#pricebox .prow2.save .v{color:var(--live)}
+#pricebox .pnote{font-size:10.5px;color:var(--faint);line-height:1.55;margin-top:10px;padding-top:10px;border-top:1px solid var(--rule-soft)}
+.pinput{width:100%;background:var(--ink);border:1px solid var(--rule);border-radius:var(--r-sm);padding:11px 12px;font-size:13.5px;color:var(--text);outline:none;margin-top:6px}
+.pinput:focus{border-color:var(--nav)}
+@media (max-width:900px){
+  #pbody{grid-template-columns:1fr}
+  #pleft{border-right:none;border-bottom:1px solid var(--rule-soft)}
+  #pgal{grid-template-columns:1fr 1fr;grid-template-rows:170px 120px}
+  #pgal .g0{grid-column:1 / span 2;grid-row:1}
+  #pgal .g3,#pgal .g4{display:none}
+  #psheet{padding:10px}
+}
+
 /* ============ VILLAS ============ */
 .vgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:6px 0 8px}
 .vcard{position:relative;border-radius:var(--r);overflow:hidden;text-align:left;background:var(--raised);isolation:isolate;transition:.24s;display:flex;flex-direction:column}
@@ -1073,6 +1125,8 @@ img{display:block}
 
 <button id="railtoggle"><span>Proof</span><span class="mono" id="rtcount2">6</span></button>
 
+<div id="psheet"><div id="pinner"></div></div>
+
 <div id="scrim"><div id="modal" class="modal"></div></div>
 
 <script>
@@ -1376,45 +1430,266 @@ function setCat(cat) {
   $$('.sform').forEach(function (f) { f.classList.toggle('on', f.id === 'sf-' + cat); });
 }
 
-function renderResults(type) {
-  var data = type === 'hotels' ? HOTEL_RESULTS : type === 'flights' ? FLIGHT_RESULTS : EXP_RESULTS;
-  var head = type === 'hotels' ? 'Hotel offers . Milan, 13 to 18 Sep'
-    : type === 'flights' ? 'Flight offers . JFK to Milan'
+// Search results now come from the live API. Falls back to fixtures only
+// if the server is unreachable, and says so when it does.
+function apiUrl(type) {
+  if (type === 'flights') return '/api/flights/search?origin=JFK&destination=MIL&departOn=2026-09-12&passengers=1';
+  if (type === 'hotels') return '/api/stays/search?destination=' +
+    encodeURIComponent(($('#hq') && $('#hq').value) || 'Milan') +
+    '&checkIn=2026-09-13&checkOut=2026-09-18&guests=2';
+  return null;
+}
+
+function offersToCards(type, json) {
+  return (json.offers || []).map(function (o) {
+    var pr = o.pricing || {};
+    if (type === 'flights') {
+      return {
+        n: (o.carrier ? o.carrier + ' . ' : '') + (o.segments || ''),
+        s: (o.carrierName || '') + ' . ' + (o.stops === 0 ? 'nonstop' : o.stops + ' stop') +
+           ' . market ' + (pr.publicDisplay || ''),
+        img: 'photo-1436491865332-7a61a109cc05',
+        p: pr.publicDisplay, net: pr.netDisplay, keep: pr.rebateDisplay,
+        tags: [o.bagIncluded ? 'Bag included' : 'Bag not included',
+               o.changeable ? 'Changeable' : 'No changes',
+               o.refundable ? 'Refundable' : 'Nonrefundable']
+      };
+    }
+    return {
+      n: o.name, hotelId: o.id,
+      s: (o.roomDescription || 'Room') + ' . ' + (o.nights || 5) + ' nights . ' + (o.location || ''),
+      img: 'photo-1582719508461-905c673771fd',
+      p: pr.marketDisplay || pr.publicDisplay,
+      net: pr.voyaraDisplay || pr.netDisplay,
+      keep: pr.savingDisplay || pr.rebateDisplay,
+      tags: [o.taxesIncluded ? 'Taxes included' : 'Taxes extra',
+             o.refundable ? 'Free cancellation' : 'Nonrefundable',
+             (pr.savingPct ? pr.savingPct + '% below market' : 'Net rate')]
+    };
+  });
+}
+
+function renderResults(type, live) {
+  var url = apiUrl(type);
+  if (url && !live) {
+    var zone = $('#resultszone');
+    zone.innerHTML = '<div class="hsec" style="padding-top:26px"><div class="hh"><div>' +
+      '<h2 class="disp" style="font-size:24px">Searching</h2>' +
+      '<div class="hsub">Live request to the supplier</div></div></div></div>';
+    fetch(url).then(function (r) { return r.json(); }).then(function (j) {
+      if (j && j.offers && j.offers.length) {
+        renderResults(type, { data: offersToCards(type, j), mode: j.mode });
+      } else {
+        renderResults(type, { data: null, mode: (j && j.error) ? 'supplier unavailable' : 'fixtures' });
+      }
+    }).catch(function () { renderResults(type, { data: null, mode: 'offline' }); });
+    return;
+  }
+
+  var srcMode = live && live.mode ? live.mode : 'fixtures';
+  var data = (live && live.data) ? live.data
+    : type === 'hotels' ? HOTEL_RESULTS : type === 'flights' ? FLIGHT_RESULTS : EXP_RESULTS;
+  var head = type === 'hotels' ? 'Hotels . Milan, 13 to 18 Sep'
+    : type === 'flights' ? 'Flights . JFK to Milan'
       : 'Experiences . while in Milan';
   var extraBtn = type === 'flights' ? '<button class="viewall" id="totalcostbtn" style="margin-right:8px">What it really costs</button>' : '';
   var h = '<div class="hsec" style="padding-top:26px"><div class="hh"><div>' +
     '<h2 class="disp" style="font-size:24px">' + head + '</h2>' +
-    '<div class="hsub">Quoted ' + hhmm(now()).slice(0, 5) + 'Z from the sandbox adapter . quotes expire . fees shown before you commit</div>' +
+    '<div class="hsub">' + srcMode + ' . priced server side . we pay net and add ' +
+    '4%, so the saving is arithmetic, not a discount</div>' +
     '</div><div style="display:flex;gap:0">' + extraBtn + '<button class="viewall" id="clearresults">Clear</button></div></div></div>';
   data.forEach(function (r) {
     h += '<div class="rescard">' +
       '<img class="rimg" src="' + uimg(r.img, 400) + '" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'">' +
       '<div class="rmain"><div class="rt2">' + r.n + (r.best ? ' <span class="pill nav" style="margin-left:6px"><span class="bd"></span>Navi pick</span>' : '') + '</div>' +
       '<div class="rs2">' + r.s + '</div>' +
-      '<div class="rtags">' + r.tags.map(function (t) { return '<span class="pill">' + t + '</span>'; }).join('') + '</div></div>' +
+      '<div class="rtags">' + (r.tags || []).map(function (t) { return '<span class="pill">' + t + '</span>'; }).join('') + '</div></div>' +
       '<div class="rprice"><div class="pp">' + (r.net || r.p) + '</div>' +
-      (r.net ? '<div class="pe" style="color:var(--live)">You keep ' + r.keep + '</div>' : '<div class="pe">Expires in 4:00</div>') + '</div>' +
-      '<button class="rbook">Request to book</button></div>';
+      (r.net ? '<div class="pe" style="color:var(--live)">You save ' + r.keep + '</div>' : '<div class="pe">Expires in 4:00</div>') + '</div>' +
+      '<button class="rbook"' + (r.hotelId ? ' data-hotel="' + r.hotelId + '"' : '') + '>' +
+      (r.hotelId ? 'View property' : 'Request to book') + '</button></div>';
   });
   $('#resultszone').innerHTML = h;
   emit('search.' + type + '_completed.v1', 'booking-gateway');
-  audit('search.completed', { vertical: type, results: data.length, adapter: 'sandbox' }, 'traveler');
+  audit('search.completed', { vertical: type, results: data.length, adapter: srcMode }, 'traveler');
+
   var c = $('#clearresults');
   if (c) c.addEventListener('click', function () { $('#resultszone').innerHTML = ''; });
   var tcb = $('#totalcostbtn');
   if (tcb) tcb.addEventListener('click', openTotalCost);
   $$('.rbook').forEach(function (b) {
     b.addEventListener('click', function () {
+      var hid = b.getAttribute('data-hotel');
+      if (hid) return openProperty(hid);
       openModal('<div class="mhead"><h3 class="disp">Booking is approval gated</h3><button class="x" data-close>&#10005;</button></div>' +
-        '<div class="mbody"><p style="font-size:13.5px;line-height:1.6">Nothing on Voyara books because you clicked a card. A request becomes a priced proposal, the proposal becomes a signed approval, the approval becomes an idempotent execution, and the execution gets verified against the supplier.</p>' +
-        '<p style="margin-top:12px;font-size:12px;color:var(--mute);line-height:1.55">The live Milan trip runs that whole path for real. Watch it happen.</p></div>' +
-        '<div class="mfoot"><button class="btn" data-close>Close</button><button class="btn primary" id="gotoscenario">Run the scenario</button></div>');
-      var g = $('#gotoscenario');
-      if (g) g.addEventListener('click', function () { closeModal(); runAll(); });
+        '<div class="mbody"><p style="font-size:13.5px;line-height:1.6">Nothing on Voyara books because you clicked a card. A request becomes a priced proposal, the proposal becomes a signed approval, the approval becomes an idempotent execution, and the execution gets verified against the supplier.</p></div>' +
+        '<div class="mfoot"><button class="btn" data-close>Close</button></div>');
     });
   });
   var rz = $('#resultszone');
   if (rz.scrollIntoView) rz.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* ============================================================
+   PROPERTY SHEET . photos, rooms, and the booking flow
+   ============================================================ */
+var PROP = { hotel: null, rooms: [], picked: null };
+
+function openProperty(hotelId) {
+  var sheet = $('#psheet'), inner = $('#pinner');
+  sheet.classList.add('on');
+  document.body.style.overflow = 'hidden';
+  inner.innerHTML = '<div class="empty" style="padding:80px 24px">Loading the property</div>';
+
+  fetch('/api/stays/hotel?id=' + encodeURIComponent(hotelId) +
+        '&checkIn=2026-09-13&checkOut=2026-09-18&guests=2')
+    .then(function (r) { return r.json(); })
+    .then(function (j) {
+      if (j.error) { inner.innerHTML = '<div class="empty" style="padding:70px 24px">Could not load this property.<br>' + (j.detail || j.error) + '</div>'; return; }
+      PROP.hotel = j.hotel; PROP.rooms = j.rooms || []; PROP.picked = null;
+      paintProperty(j.mode);
+    })
+    .catch(function () { inner.innerHTML = '<div class="empty" style="padding:70px 24px">Could not reach the server.</div>'; });
+}
+
+function closeProperty() {
+  $('#psheet').classList.remove('on');
+  document.body.style.overflow = '';
+}
+
+function paintProperty(mode) {
+  var h = PROP.hotel, imgs = (h.images || []);
+  var gal = '<div id="pgal"><button id="pclose" aria-label="Close">&#10005;</button>';
+  for (var i = 0; i < 5; i++) {
+    var src = imgs[i] || imgs[0];
+    gal += '<figure class="g' + i + '">' + (src ? '<img src="' + src + '" alt="" loading="' + (i ? 'lazy' : 'eager') + '" onerror="this.parentNode.style.background=\'var(--raised)\';this.remove()">' : '') + '</figure>';
+  }
+  if (imgs.length > 5) gal += '<span id="pmore">' + imgs.length + ' photos</span>';
+  gal += '</div>';
+
+  var stars = h.stars ? '<span class="pill">' + h.stars + ' star</span>' : '';
+  var rating = h.rating ? '<span class="pill live"><span class="bd"></span>' + h.rating + ' rated</span>' : '';
+  var times = (h.checkinTime || h.checkoutTime)
+    ? '<span class="pill">In ' + (h.checkinTime || '?') + ' . Out ' + (h.checkoutTime || '?') + '</span>' : '';
+
+  var rooms = PROP.rooms.length
+    ? PROP.rooms.map(function (r, i) {
+        var p = r.pricing;
+        return '<div class="roomcard" id="rc' + i + '">' +
+          '<div class="rn">' + r.name + '</div>' +
+          '<div class="rb">' + (r.board || 'Room only') + (r.maxOccupancy ? ' . sleeps ' + r.maxOccupancy : '') + '</div>' +
+          '<div class="rcx">' + (r.cancellationNote || '') + '</div>' +
+          '<div class="rp"><span class="mk">' + p.marketDisplay + '</span>' +
+          '<span class="yr">' + p.voyaraDisplay + '</span>' +
+          '<span class="sv">save ' + p.savingDisplay + '</span></div>' +
+          '<button class="rsel" data-room="' + i + '">Select this room</button></div>';
+      }).join('')
+    : '<div class="empty">No rooms available for these dates.</div>';
+
+  $('#pinner').innerHTML = gal +
+    '<div id="phead"><h2 class="disp">' + h.name + '</h2>' +
+    '<div class="paddr">' + [h.address, h.city, h.country].filter(Boolean).join(' . ') + '</div>' +
+    '<div class="pmeta">' + stars + rating + times +
+    '<span class="pill nav"><span class="bd"></span>' + mode + '</span></div></div>' +
+    '<div id="pbody">' +
+    '<div id="pleft">' +
+    (h.description ? '<p class="pdesc">' + h.description + '</p>' : '') +
+    (h.amenities && h.amenities.length
+      ? '<div class="label" style="margin-top:20px">Facilities</div><div id="pamen">' +
+        h.amenities.map(function (a) { return '<span class="pill">' + a + '</span>'; }).join('') + '</div>'
+      : '') +
+    '</div>' +
+    '<div id="pright"><div class="label" style="margin-bottom:11px">Rooms, 13 to 18 September</div>' + rooms + '</div>' +
+    '</div>';
+
+  $('#pclose').addEventListener('click', closeProperty);
+  $$('[data-room]').forEach(function (b) {
+    b.addEventListener('click', function () { pickRoom(parseInt(b.getAttribute('data-room'), 10)); });
+  });
+  $('#pinner').scrollTop = 0;
+  audit('property.viewed', { hotel: h.id, rooms: PROP.rooms.length }, 'traveler');
+}
+
+function pickRoom(i) {
+  PROP.picked = PROP.rooms[i];
+  $$('.roomcard').forEach(function (n, j) { n.classList.toggle('pick', j === i); });
+  var r = PROP.picked, p = r.pricing;
+
+  var box = document.createElement('div');
+  box.innerHTML =
+    '<div id="pricebox" style="margin-top:16px">' +
+    '<div class="prow2"><span class="k">Market rate</span><span class="v" style="text-decoration:line-through">' + p.marketDisplay + '</span></div>' +
+    '<div class="prow2"><span class="k">We pay the hotel</span><span class="v">' + (p.costMinor ? money(p.costMinor, p.currency) : '') + '</span></div>' +
+    '<div class="prow2"><span class="k">Voyara adds 4%</span><span class="v">' + money(p.voyaraMinor - p.costMinor, p.currency) + '</span></div>' +
+    '<div class="prow2 big"><span class="k">Your total</span><span class="v">' + p.voyaraDisplay + '</span></div>' +
+    '<div class="prow2 save"><span class="k">Below market by</span><span class="v">' + p.savingDisplay + ' (' + p.savingPct + '%)</span></div>' +
+    '<div class="pnote">' + (r.refundable
+      ? 'Free cancellation, so the repricing watcher keeps shopping this rate until the deadline and rebooks you if it drops.'
+      : 'Non refundable, so the repricing watcher cannot help on this rate. A refundable room can be watched.') + '</div></div>' +
+    '<div class="label" style="margin-top:16px">Who is staying</div>' +
+    '<input class="pinput" id="bkF" placeholder="First name">' +
+    '<input class="pinput" id="bkL" placeholder="Last name">' +
+    '<input class="pinput" id="bkE" type="email" placeholder="you@example.com">' +
+    '<div id="bkMsg" style="margin-top:11px;font-size:11px;color:var(--faint);line-height:1.55">' +
+    'The rate is revalidated with the hotel before anything is charged. If it moved, we stop and tell you.</div>' +
+    '<button class="btn primary" id="bkGo" style="width:100%;margin-top:12px;padding:14px">Book this room</button>';
+
+  var right = $('#pright');
+  var old = $('#pricebox');
+  if (old) { var w = old.parentNode; while (w.lastChild && w.lastChild !== old.previousSibling) w.removeChild(w.lastChild); }
+  right.appendChild(box);
+  right.scrollIntoView && box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  $('#bkGo').addEventListener('click', doBooking);
+}
+
+function doBooking() {
+  var msg = $('#bkMsg'), btn = $('#bkGo');
+  var first = ($('#bkF').value || '').trim();
+  var last = ($('#bkL').value || '').trim();
+  var email = ($('#bkE').value || '').trim();
+  if (!first || !last) { msg.innerHTML = '<span style="color:var(--warn)">We need the guest name as it appears on their ID.</span>'; return; }
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg.innerHTML = '<span style="color:var(--warn)">A valid email is required for the confirmation.</span>'; return; }
+
+  btn.disabled = true; btn.textContent = 'Revalidating the rate';
+  var key = 'bk_' + PROP.picked.offerId + '_' + Date.now();
+
+  fetch('/api/stays/book', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      offerId: PROP.picked.offerId, idempotencyKey: key,
+      guest: { firstName: first, lastName: last, email: email }
+    })
+  }).then(function (r) { return r.json().then(function (j) { return { code: r.status, j: j }; }); })
+    .then(function (out) {
+      var j = out.j;
+      if (j.booking) {
+        audit('action.execution_succeeded', { vertical: 'hotel', reference: j.booking.reference, verified: !!(j.verification && j.verification.verified) }, 'system');
+        emit('reservation.created.v1', 'booking-gateway');
+        $('#pright').innerHTML =
+          '<div style="border:1px solid var(--live);border-radius:var(--r-sm);padding:20px;text-align:center">' +
+          '<div class="label" style="color:var(--live);margin-bottom:10px">Booked and verified</div>' +
+          '<div style="font-size:22px;font-weight:300;letter-spacing:-.02em">' + (PROP.hotel.name) + '</div>' +
+          '<div class="mono" style="font-size:15px;margin-top:12px;letter-spacing:.06em">' + (j.booking.reference || j.booking.id) + '</div>' +
+          '<div style="font-size:12px;color:var(--mute);margin-top:14px;line-height:1.6">' +
+          'The booking was retrieved back from the supplier and compared to what you approved. ' +
+          'It is in the audit chain, and the trip is now monitored.</div>' +
+          '<div class="pill ' + (j.mode === 'live:liteapi' ? 'live' : '') + '" style="margin-top:14px"><span class="bd"></span>' + j.mode + '</div>' +
+          '</div>';
+      } else if (out.code === 409) {
+        msg.innerHTML = '<span style="color:var(--warn)">' + (j.detail || 'That rate is gone.') + '</span>';
+        btn.disabled = false; btn.textContent = 'Search again';
+      } else if (out.code === 202) {
+        msg.innerHTML = '<span style="color:var(--halt)">' + j.detail + ' An operator has been alerted.</span>';
+        btn.textContent = 'Escalated to an operator';
+      } else {
+        msg.innerHTML = '<span style="color:var(--halt)">' + (j.detail || j.error || 'Booking failed.') + '</span>';
+        btn.disabled = false; btn.textContent = 'Book this room';
+      }
+    }).catch(function () {
+      msg.innerHTML = '<span style="color:var(--halt)">Could not reach the server.</span>';
+      btn.disabled = false; btn.textContent = 'Book this room';
+    });
 }
 
 var VILLAS = [];
@@ -3122,7 +3397,8 @@ function boot() {
   $('#navcollections').addEventListener('click', function () { switchView('home'); setTimeout(function () { var a = $('#collanchor'); if (a && a.scrollIntoView) a.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 60); });
   bootHome();
   $('#scrim').addEventListener('click', function (e) { if (e.target === $('#scrim')) closeModal(); });
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeModal(); });
+  $('#psheet').addEventListener('click', function (e) { if (e.target === $('#psheet')) closeProperty(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closeModal(); closeProperty(); } });
   $('#sendbtn').addEventListener('click', function () { var v = $('#ta').value; $('#ta').value = ''; sendUser(v); });
   $('#ta').addEventListener('keydown', function (e) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); var v = $('#ta').value; $('#ta').value = ''; sendUser(v); }
