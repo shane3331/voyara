@@ -175,6 +175,9 @@ img{display:block}
 .sfield .fk{font-family:var(--mono);font-size:8px;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.5)}
 .sfield input{background:none;border:none;outline:none;font-size:14.5px;font-weight:300;color:#fff;width:100%}
 .sfield input::placeholder{color:rgba(255,255,255,.38)}
+.sfield input[type=date],.sfield input[type=number]{color-scheme:dark;font-family:var(--body);cursor:pointer}
+.sfield input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:.5;cursor:pointer}
+.sfield input[type=number]::-webkit-inner-spin-button{opacity:.4}
 .sfield .fv{font-size:14.5px;font-weight:300;color:#fff;white-space:nowrap}
 .sfield .fv .arr{color:rgba(255,255,255,.4);margin:0 7px;font-family:var(--mono);font-size:12px}
 .sgo{
@@ -948,10 +951,10 @@ img{display:block}
 
           <div id="searchforms" style="margin-top:12px">
             <div class="glass sform" id="sf-hotels">
-              <div class="sfield" style="flex:1.4"><span class="fk">Where to</span><input id="hq" placeholder="City, property, or coastline"></div>
-              <div class="sfield"><span class="fk">Check in</span><span class="fv">13 Sep</span></div>
-              <div class="sfield"><span class="fk">Check out</span><span class="fv">18 Sep</span></div>
-              <div class="sfield"><span class="fk">Guests</span><span class="fv">2</span></div>
+              <div class="sfield" style="flex:1.5"><span class="fk">Where to</span><input id="hq" placeholder="Milan, Mykonos, Tokyo, Spain" value="Milan" autocomplete="off"></div>
+              <div class="sfield"><span class="fk">Check in</span><input id="hin" type="date" value="2026-09-13"></div>
+              <div class="sfield"><span class="fk">Check out</span><span class="fk" style="display:none"></span><input id="hout" type="date" value="2026-09-18"></div>
+              <div class="sfield" style="flex:.6"><span class="fk">Guests</span><input id="hg" type="number" min="1" max="8" value="2"></div>
               <button class="sgo" data-search="hotels">Search</button>
             </div>
             <div class="glass sform" id="sf-flights">
@@ -1508,12 +1511,36 @@ function setCat(cat) {
 
 // Search results now come from the live API. Falls back to fixtures only
 // if the server is unreachable, and says so when it does.
+function stayQuery() {
+  var q = {
+    destination: (($('#hq') && $('#hq').value) || 'Milan').trim() || 'Milan',
+    checkIn: ($('#hin') && $('#hin').value) || '2026-09-13',
+    checkOut: ($('#hout') && $('#hout').value) || '2026-09-18',
+    guests: ($('#hg') && $('#hg').value) || '2'
+  };
+  if (new Date(q.checkOut) <= new Date(q.checkIn)) {
+    var d = new Date(q.checkIn);
+    d.setDate(d.getDate() + 5);
+    q.checkOut = d.toISOString().slice(0, 10);
+  }
+  return q;
+}
+
 function apiUrl(type) {
   if (type === 'flights') return '/api/flights/search?origin=JFK&destination=MIL&departOn=2026-09-12&passengers=1';
-  if (type === 'hotels') return '/api/stays/search?destination=' +
-    encodeURIComponent(($('#hq') && $('#hq').value) || 'Milan') +
-    '&checkIn=2026-09-13&checkOut=2026-09-18&guests=2';
+  if (type === 'hotels') {
+    var q = stayQuery();
+    return '/api/stays/search?destination=' + encodeURIComponent(q.destination) +
+      '&checkIn=' + q.checkIn + '&checkOut=' + q.checkOut + '&guests=' + encodeURIComponent(q.guests);
+  }
   return null;
+}
+
+function prettyDate(iso) {
+  var d = new Date(iso + 'T12:00:00Z');
+  if (isNaN(d.getTime())) return iso;
+  var m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return d.getUTCDate() + ' ' + m[d.getUTCMonth()];
 }
 
 function offersToCards(type, json) {
@@ -1547,6 +1574,32 @@ function offersToCards(type, json) {
   });
 }
 
+// An honest empty state. Showing built in sample hotels when a live search
+// fails would look like a working search and would be a lie in a demo.
+function emptyResults(type, message, heading) {
+  var q = stayQuery();
+  $('#resultszone').innerHTML =
+    '<div class="hsec" style="padding-top:26px"><div class="hh"><div>' +
+    '<h2 class="disp" style="font-size:24px">' + heading + '</h2>' +
+    '<div class="hsub">' + (type === 'hotels' ? q.destination + ' . ' + prettyDate(q.checkIn) + ' to ' + prettyDate(q.checkOut) : 'live search') + '</div>' +
+    '</div><button class="viewall" id="clearresults">Clear</button></div></div>' +
+    '<div class="pad" style="padding-top:0"><div class="card" style="margin-top:0;padding:28px 26px">' +
+    '<div style="font-size:14px;line-height:1.65;color:var(--text-dim);max-width:62ch">' + message + '</div>' +
+    '<div style="margin-top:16px;display:flex;gap:7px;flex-wrap:wrap">' +
+    ['Milan', 'Mykonos', 'Barcelona', 'Tokyo', 'New York'].map(function (c) {
+      return '<button class="sg" data-try="' + c + '">' + c + '</button>';
+    }).join('') + '</div></div></div>';
+  var c = $('#clearresults');
+  if (c) c.addEventListener('click', function () { $('#resultszone').innerHTML = ''; });
+  $$('[data-try]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      if ($('#hq')) $('#hq').value = b.getAttribute('data-try');
+      renderResults('hotels');
+    });
+  });
+  audit('search.no_results', { vertical: type, destination: q.destination }, 'traveler');
+}
+
 function renderResults(type, live) {
   var url = apiUrl(type);
   if (url && !live) {
@@ -1557,17 +1610,25 @@ function renderResults(type, live) {
     fetch(url).then(function (r) { return r.json(); }).then(function (j) {
       if (j && j.offers && j.offers.length) {
         renderResults(type, { data: offersToCards(type, j), mode: j.mode });
+      } else if (j && j.noResults) {
+        emptyResults(type, j.message || 'Nothing available for that search.', 'No properties');
+      } else if (j && j.error) {
+        emptyResults(type, j.detail || j.error, 'The supplier did not answer');
       } else {
-        renderResults(type, { data: null, mode: (j && j.error) ? 'supplier unavailable' : 'fixtures' });
+        emptyResults(type, 'The search returned nothing. Try another destination or different dates.', 'No results');
       }
-    }).catch(function () { renderResults(type, { data: null, mode: 'offline' }); });
+    }).catch(function () {
+      emptyResults(type, 'Could not reach the server. Check the connection and try again.', 'Offline');
+    });
     return;
   }
 
   var srcMode = live && live.mode ? live.mode : 'fixtures';
   var data = (live && live.data) ? live.data
     : type === 'hotels' ? HOTEL_RESULTS : type === 'flights' ? FLIGHT_RESULTS : EXP_RESULTS;
-  var head = type === 'hotels' ? 'Hotels . Milan, 13 to 18 Sep'
+  var sq = stayQuery();
+  var head = type === 'hotels'
+    ? 'Hotels . ' + sq.destination + ', ' + prettyDate(sq.checkIn) + ' to ' + prettyDate(sq.checkOut)
     : type === 'flights' ? 'Flights . JFK to Milan'
       : 'Experiences . while in Milan';
   var extraBtn = type === 'flights' ? '<button class="viewall" id="totalcostbtn" style="margin-right:8px">What it really costs</button>' : '';
@@ -1970,6 +2031,10 @@ function wireWaitlist() {
 function bootHome() {
   renderHomeGrids();
   $$('.cat').forEach(function (c) { c.addEventListener('click', function () { setCat(c.getAttribute('data-cat')); }); });
+  ['#hq', '#hin', '#hout', '#hg'].forEach(function (sel) {
+    var el = $(sel);
+    if (el) el.addEventListener('keydown', function (e) { if (e.key === 'Enter') renderResults('hotels'); });
+  });
   $$('[data-search]').forEach(function (b) {
     b.addEventListener('click', function () {
       var t = b.getAttribute('data-search');

@@ -28,6 +28,14 @@ module.exports = async (req, res) => {
   if (!destination || !checkIn || !checkOut) {
     return res.status(400).end(JSON.stringify({ error: 'destination, checkIn and checkOut are required' }));
   }
+  for (const [d, label] of [[checkIn, 'checkIn'], [checkOut, 'checkOut']]) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) {
+      return res.status(400).end(JSON.stringify({ error: label + ' must be YYYY-MM-DD' }));
+    }
+  }
+  if (new Date(checkOut) <= new Date(checkIn)) {
+    return res.status(400).end(JSON.stringify({ error: 'checkOut must be after checkIn' }));
+  }
 
   let mode = 'mock';
   let offers;
@@ -45,10 +53,16 @@ module.exports = async (req, res) => {
       offers = fixtures(destination, checkIn, checkOut);
     }
   } catch (e) {
-    return res.status(502).end(JSON.stringify({
-      error: 'supplier_unavailable',
-      detail: String(e && e.message ? e.message : e).slice(0, 500)
-    }));
+    const msg = String(e && e.message ? e.message : e).slice(0, 500);
+    // A place with no inventory is not a supplier outage. Say which it is,
+    // because falling back to fixtures and calling it a search is worse
+    // than showing nothing.
+    if (e && e.noResults) {
+      return res.status(200).end(JSON.stringify({
+        mode: mode, count: 0, offers: [], noResults: true, message: msg
+      }));
+    }
+    return res.status(502).end(JSON.stringify({ error: 'supplier_unavailable', detail: msg }));
   }
 
   const priced = offers.map(priceOffer);
@@ -162,33 +176,153 @@ function num(v, d) { const x = Number(v); return Number.isFinite(x) && v !== und
 //   2. POST /hotels/rates -> live rates for those ids
 // Names come from step one and are merged into the rates from step two.
 const CITY_COUNTRY = {
-  milan:'IT', rome:'IT', florence:'IT', venice:'IT', naples:'IT',
-  paris:'FR', nice:'FR', lyon:'FR', london:'GB', edinburgh:'GB',
-  madrid:'ES', barcelona:'ES', ibiza:'ES', lisbon:'PT', porto:'PT',
-  athens:'GR', mykonos:'GR', santorini:'GR', amsterdam:'NL', berlin:'DE',
-  munich:'DE', vienna:'AT', zurich:'CH', geneva:'CH', dubai:'AE',
-  'new york':'US', miami:'US', 'los angeles':'US', chicago:'US', boston:'US',
-  tokyo:'JP', kyoto:'JP', singapore:'SG', bangkok:'TH', bali:'ID',
-  sydney:'AU', toronto:'CA', 'mexico city':'MX', cancun:'MX'
+  // Italy
+  milan:'IT', milano:'IT', rome:'IT', roma:'IT', florence:'IT', firenze:'IT', venice:'IT',
+  venezia:'IT', naples:'IT', napoli:'IT', turin:'IT', bologna:'IT', verona:'IT', capri:'IT',
+  positano:'IT', amalfi:'IT', sorrento:'IT', portofino:'IT', como:'IT', siena:'IT', taormina:'IT',
+  // France
+  paris:'FR', nice:'FR', cannes:'FR', lyon:'FR', marseille:'FR', bordeaux:'FR', 'saint tropez':'FR',
+  // Spain
+  madrid:'ES', barcelona:'ES', ibiza:'ES', seville:'ES', sevilla:'ES', valencia:'ES', malaga:'ES',
+  marbella:'ES', palma:'ES', 'san sebastian':'ES', granada:'ES',
+  // Portugal
+  lisbon:'PT', lisboa:'PT', porto:'PT', faro:'PT', madeira:'PT',
+  // Greece
+  athens:'GR', mykonos:'GR', santorini:'GR', crete:'GR', corfu:'GR', rhodes:'GR', paros:'GR',
+  // UK and Ireland
+  london:'GB', edinburgh:'GB', bath:'GB', oxford:'GB', manchester:'GB', dublin:'IE',
+  // Rest of Europe
+  amsterdam:'NL', berlin:'DE', munich:'DE', hamburg:'DE', vienna:'AT', salzburg:'AT',
+  zurich:'CH', geneva:'CH', zermatt:'CH', copenhagen:'DK', stockholm:'SE', oslo:'NO',
+  reykjavik:'IS', prague:'CZ', budapest:'HU', warsaw:'PL', brussels:'BE', dubrovnik:'HR',
+  split:'HR', istanbul:'TR', 'st moritz':'CH', courchevel:'FR',
+  // Middle East
+  dubai:'AE', 'abu dhabi':'AE', doha:'QA', 'tel aviv':'IL', muscat:'OM', riyadh:'SA',
+  // Americas
+  'new york':'US', 'new york city':'US', nyc:'US', miami:'US', 'los angeles':'US', la:'US',
+  chicago:'US', boston:'US', 'san francisco':'US', aspen:'US', 'las vegas':'US', seattle:'US',
+  austin:'US', 'new orleans':'US', charleston:'US', nashville:'US', honolulu:'US', maui:'US',
+  toronto:'CA', vancouver:'CA', montreal:'CA', 'mexico city':'MX', cancun:'MX', tulum:'MX',
+  'cabo san lucas':'MX', 'san jose del cabo':'MX', 'buenos aires':'AR', 'rio de janeiro':'BR',
+  'sao paulo':'BR', lima:'PE', cartagena:'CO', bogota:'CO', santiago:'CL',
+  // Asia Pacific
+  tokyo:'JP', kyoto:'JP', osaka:'JP', singapore:'SG', bangkok:'TH', phuket:'TH', 'koh samui':'TH',
+  bali:'ID', denpasar:'ID', jakarta:'ID', 'hong kong':'HK', seoul:'KR', taipei:'TW',
+  'kuala lumpur':'MY', hanoi:'VN', 'ho chi minh city':'VN', male:'MV', colombo:'LK',
+  mumbai:'IN', delhi:'IN', jaipur:'IN', udaipur:'IN', goa:'IN',
+  sydney:'AU', melbourne:'AU', auckland:'NZ', queenstown:'NZ',
+  // Africa
+  marrakech:'MA', marrakesh:'MA', casablanca:'MA', fez:'MA', 'cape town':'ZA', johannesburg:'ZA',
+  cairo:'EG', nairobi:'KE', zanzibar:'TZ', 'port louis':'MU'
 };
+
+// Country names, so someone typing "spain" gets Spain rather than nothing.
+const COUNTRY_NAMES = {
+  italy:'IT', italia:'IT', france:'FR', spain:'ES', espana:'ES', portugal:'PT', greece:'GR',
+  'united kingdom':'GB', uk:'GB', england:'GB', scotland:'GB', britain:'GB', ireland:'IE',
+  netherlands:'NL', holland:'NL', germany:'DE', austria:'AT', switzerland:'CH', denmark:'DK',
+  sweden:'SE', norway:'NO', iceland:'IS', 'czech republic':'CZ', czechia:'CZ', hungary:'HU',
+  poland:'PL', belgium:'BE', croatia:'HR', turkey:'TR', morocco:'MA',
+  'united arab emirates':'AE', uae:'AE', qatar:'QA', israel:'IL', oman:'OM', 'saudi arabia':'SA',
+  'united states':'US', usa:'US', us:'US', america:'US', canada:'CA', mexico:'MX',
+  argentina:'AR', brazil:'BR', peru:'PE', colombia:'CO', chile:'CL',
+  japan:'JP', singapore:'SG', thailand:'TH', indonesia:'ID', 'hong kong':'HK',
+  'south korea':'KR', korea:'KR', taiwan:'TW', malaysia:'MY', vietnam:'VN', maldives:'MV',
+  'sri lanka':'LK', india:'IN', australia:'AU', 'new zealand':'NZ',
+  'south africa':'ZA', egypt:'EG', kenya:'KE', tanzania:'TZ', mauritius:'MU'
+};
+
+// A sensible city per country, used when someone names a country. Better to
+// show a real city's inventory than to show nothing.
+const COUNTRY_DEFAULT_CITY = {
+  IT:'Rome', FR:'Paris', ES:'Barcelona', PT:'Lisbon', GR:'Athens', GB:'London', IE:'Dublin',
+  NL:'Amsterdam', DE:'Berlin', AT:'Vienna', CH:'Zurich', DK:'Copenhagen', SE:'Stockholm',
+  NO:'Oslo', IS:'Reykjavik', CZ:'Prague', HU:'Budapest', PL:'Warsaw', BE:'Brussels',
+  HR:'Dubrovnik', TR:'Istanbul', MA:'Marrakech', AE:'Dubai', QA:'Doha', IL:'Tel Aviv',
+  OM:'Muscat', SA:'Riyadh', US:'New York', CA:'Toronto', MX:'Cancun', AR:'Buenos Aires',
+  BR:'Rio de Janeiro', PE:'Lima', CO:'Cartagena', CL:'Santiago', JP:'Tokyo', SG:'Singapore',
+  TH:'Bangkok', ID:'Bali', HK:'Hong Kong', KR:'Seoul', TW:'Taipei', MY:'Kuala Lumpur',
+  VN:'Hanoi', MV:'Male', LK:'Colombo', IN:'Mumbai', AU:'Sydney', NZ:'Auckland',
+  ZA:'Cape Town', EG:'Cairo', KE:'Nairobi', TZ:'Zanzibar', MU:'Port Louis'
+};
+
+// Turns whatever someone typed into a city and a country code.
+// Handles "Milan", "milan, italy", "Spain", and "Amalfi Coast".
+function resolvePlace(input) {
+  const raw = String(input || '').trim();
+  if (!raw) return { ok: false, reason: 'empty' };
+  const parts = raw.split(',').map((x) => x.trim().toLowerCase()).filter(Boolean);
+
+  // "City, Country"
+  if (parts.length > 1) {
+    const cc = COUNTRY_NAMES[parts[parts.length - 1]] || String(parts[parts.length - 1]).toUpperCase();
+    if (/^[A-Z]{2}$/.test(cc)) {
+      return { ok: true, cityName: titleCase(parts[0]), countryCode: cc, label: titleCase(parts[0]) };
+    }
+  }
+
+  const one = parts[0];
+  if (CITY_COUNTRY[one]) {
+    return { ok: true, cityName: titleCase(one), countryCode: CITY_COUNTRY[one], label: titleCase(one) };
+  }
+  if (COUNTRY_NAMES[one]) {
+    const cc = COUNTRY_NAMES[one];
+    return {
+      ok: true, cityName: COUNTRY_DEFAULT_CITY[cc] || '', countryCode: cc,
+      label: titleCase(one), wasCountry: true
+    };
+  }
+  // Unknown word. Try it as a city inside the configured default country and
+  // say so plainly if nothing comes back.
+  return {
+    ok: true, cityName: titleCase(one),
+    countryCode: process.env.LITEAPI_COUNTRY || 'IT', guessed: true, label: titleCase(one)
+  };
+}
+
+function titleCase(s) {
+  return String(s).split(' ').map(function (w) { return w.charAt(0).toUpperCase() + w.slice(1); }).join(' ');
+}
 
 async function liteapi(destination, checkIn, checkOut, guests) {
   const apiKey = process.env.LITEAPI_KEY;
   const base = process.env.LITEAPI_BASE || 'https://api.liteapi.travel/v3.0';
   const currency = process.env.LITEAPI_CURRENCY || 'EUR';
   const nationality = process.env.LITEAPI_NATIONALITY || 'US';
-  const city = String(destination).trim();
-  const country = CITY_COUNTRY[city.toLowerCase()] || process.env.LITEAPI_COUNTRY || 'IT';
   const headers = { 'X-API-Key': apiKey, Accept: 'application/json' };
 
-  // Step 1. Hotel ids and names for the city.
-  const listUrl = base + '/data/hotels?countryCode=' + encodeURIComponent(country) +
-    '&cityName=' + encodeURIComponent(city) + '&limit=20';
-  const lr = await fetch(listUrl, { headers });
-  if (!lr.ok) throw new Error('LiteAPI /data/hotels ' + lr.status + ' ' + (await lr.text()).slice(0, 300));
-  const lj = await lr.json();
-  const hotels = (lj && (lj.data || lj.hotels)) || [];
-  if (!hotels.length) throw new Error('LiteAPI returned no hotels for ' + city + ' (' + country + ')');
+  const place = resolvePlace(destination);
+  const city = place.cityName || '';
+  const country = place.countryCode;
+
+  // Step 1. Hotel ids and names. Try city first, then the whole country,
+  // so a search for a country or an unfamiliar town still returns something.
+  async function lookup(cityName) {
+    const u = base + '/data/hotels?countryCode=' + encodeURIComponent(country) +
+      (cityName ? '&cityName=' + encodeURIComponent(cityName) : '') + '&limit=20';
+    const res = await fetch(u, { headers });
+    if (!res.ok) throw new Error('LiteAPI /data/hotels ' + res.status + ' ' + (await res.text()).slice(0, 250));
+    const jj = await res.json();
+    return (jj && (jj.data || jj.hotels)) || [];
+  }
+
+  let hotels = await lookup(city);
+  let resolvedAs = city ? city + ', ' + country : country;
+
+  if (!hotels.length && city) {
+    // The city did not match. Fall back to the country.
+    hotels = await lookup('');
+    resolvedAs = country;
+  }
+  if (!hotels.length && COUNTRY_DEFAULT_CITY[country]) {
+    hotels = await lookup(COUNTRY_DEFAULT_CITY[country]);
+    resolvedAs = COUNTRY_DEFAULT_CITY[country] + ', ' + country;
+  }
+  if (!hotels.length) {
+    const e = new Error('No properties found for "' + destination + '". Try a city such as Milan, Barcelona, Tokyo or New York.');
+    e.noResults = true;
+    throw e;
+  }
 
   const nameById = {};
   const ids = [];
@@ -239,7 +373,7 @@ async function liteapi(destination, checkIn, checkOut, guests) {
       id: id || String(Math.random()),
       offerId: String(rt.offerId || offer.rateId || ''),
       name: meta.name || String(h.name || 'Property'),
-      location: meta.address || city,
+      location: meta.address || place.label || city,
       image: meta.image || firstImage(h) || '',
       stars: meta.stars || null,
       rating: meta.rating || null,
@@ -256,7 +390,12 @@ async function liteapi(destination, checkIn, checkOut, guests) {
     };
   }).filter((o) => o.costMinor > 0 || o.marketMinor > 0);
 
-  if (!out.length) throw new Error('LiteAPI returned hotels but no bookable rates for those dates');
+  if (!out.length) {
+    const e = new Error('Properties exist in ' + resolvedAs + ' but none are bookable for those dates. Try different dates.');
+    e.noResults = true;
+    throw e;
+  }
+  out.resolvedAs = resolvedAs;
   return out.slice(0, 12);
 }
 
