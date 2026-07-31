@@ -7,9 +7,25 @@
 <meta name="description" content="Voyara is a transaction-aware travel operations platform. Navi proposes, the platform validates, you approve, the workflow executes, the audit log proves.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Cormorant+Garamond:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <link href="https://fonts.cdnfonts.com/css/bdo-grotesk" rel="stylesheet">
 <style>
+/* Bookish Light. A real lighter cut, made by eroding the outlines of Bookish
+   Book rather than letting the browser fake a weight it does not have. Both
+   files sit at the repository root. */
+@font-face{
+  font-family:'Bookish';
+  src:url('/Bookish-Light.woff2') format('woff2'),
+      url('/Bookish-Light.ttf') format('truetype');
+  font-weight:300;font-style:normal;font-display:swap;
+}
+@font-face{
+  font-family:'Bookish';
+  src:url('/Bookish-ExtraLight.woff2') format('woff2'),
+      url('/Bookish-ExtraLight.ttf') format('truetype');
+  font-weight:200;font-style:normal;font-display:swap;
+}
+
 :root{
   /* Warm paper rather than white. A pure white ground reads as software;
      the slight warmth is most of what makes a page feel like a brochure. */
@@ -50,7 +66,7 @@
   --gold:#9A7B3C;
 
   --body:'BDO Grotesk','Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-  --serif:'Cormorant Garamond',Georgia,'Times New Roman',serif;
+  --serif:'Bookish',Georgia,'Times New Roman',serif;
   --mono:'DM Mono','SFMono-Regular',Menlo,monospace;
   --side:236px;
   --topbar:74px;
@@ -84,7 +100,7 @@ img{display:block}
 
 .mono{font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em}
 .label{font-family:var(--mono);text-transform:uppercase;letter-spacing:.14em;font-size:9.5px;color:var(--mute);font-weight:400}
-.disp{font-family:var(--serif);font-weight:300;letter-spacing:-.008em;line-height:1.08}
+.disp{font-family:var(--serif);font-weight:300;letter-spacing:-.004em;line-height:1.1}
 .disp em,.disp .thin{font-style:normal;color:var(--mute)}
 
 /* ============ SHELL ============ */
@@ -110,7 +126,7 @@ img{display:block}
   display:flex;align-items:center;justify-content:center;color:var(--mute);
   font-family:var(--mono);font-size:14px;transition:.16s}
 #sideclose:hover{background:var(--raised2);color:var(--text)}
-#sidemark{font-family:var(--serif);font-size:23px;font-weight:300;letter-spacing:.2em;
+#sidemark{font-family:var(--serif);font-size:21px;font-weight:300;letter-spacing:.22em;
   text-transform:uppercase;color:var(--text);padding:2px 0 30px}
 #sideme{display:flex;align-items:center;gap:11px;padding:0 0 22px;margin-bottom:20px;
   border-bottom:1px solid var(--rule-soft)}
@@ -176,8 +192,8 @@ img{display:block}
 /* The wordmark is centred on the page, not on whatever space is left beside
    the controls, which is why it is taken out of the flow. */
 #tbmark{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-  font-family:var(--serif);font-size:clamp(19px,2vw,25px);font-weight:300;
-  letter-spacing:.24em;text-transform:uppercase;color:var(--text);white-space:nowrap;
+  font-family:var(--serif);font-size:clamp(17px,1.85vw,23px);font-weight:300;
+  letter-spacing:.26em;text-transform:uppercase;color:var(--text);white-space:nowrap;
   pointer-events:none}
 #whoami{display:flex;align-items:center;gap:10px;padding:6px 12px 6px 6px;border:1px solid var(--rule);border-radius:99px}
 #whoami .av2{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--nav),#5A79A6);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;color:#fff}
@@ -214,7 +230,7 @@ img{display:block}
 /* No scrim. The photograph carries itself, which means the type over it
    has to be dark rather than white. */
 #hero .hkick{font-family:var(--mono);font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:rgba(38,36,31,.62);margin-bottom:14px;text-shadow:0 1px 18px rgba(255,255,255,.7)}
-#hero h1{font-family:var(--serif);font-weight:300;font-size:clamp(42px,6.4vw,84px);letter-spacing:-.01em;line-height:1;text-align:center;color:var(--text);
+#hero h1{font-family:var(--serif);font-weight:300;font-size:clamp(38px,5.9vw,77px);letter-spacing:-.006em;line-height:1.02;text-align:center;color:var(--text);
   /* A soft light halo rather than a dark shadow. It lifts the letterforms off
      the sand without visibly altering the photograph underneath. */
   text-shadow:0 1px 30px rgba(255,255,255,.75),0 1px 3px rgba(255,255,255,.55)}
@@ -932,7 +948,7 @@ img{display:block}
 }
 @media (max-width:760px){
   #burger .bl{display:none}
-  #tbmark{font-size:17px;letter-spacing:.2em}
+  #tbmark{font-size:16px;letter-spacing:.22em}
   #topright .tstat{display:none}
 }
 @media (max-width:980px){
