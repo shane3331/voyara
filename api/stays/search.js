@@ -14,6 +14,18 @@
 // That is a stronger claim than a rebate because it is arithmetic on real
 // supplier numbers rather than an assumed commission rate.
 const crypto = require('crypto');
+// Quality tiers. Bedbank feeds skew mid market and, left alone, sort by
+// price, which buries the good properties. Every search now asks the
+// supplier for a floor and then re-sorts what comes back by quality.
+//
+// LiteAPI distinguishes starRating (the building and its facilities) from
+// rating (what guests scored it). Both matter and they are not the same.
+const TIERS = {
+  any:     { stars: [],        minRating: 0,   minReviews: 0,   label: 'Everything' },
+  premium: { stars: [4, 5],    minRating: 8.0, minReviews: 25,  label: 'Four star and above' },
+  luxury:  { stars: [5],       minRating: 8.5, minReviews: 40,  label: 'Five star only' }
+};
+
 const SUPPORTED_CCY = ['USD','EUR','GBP','CHF','JPY','AUD','CAD','AED','SGD','MXN'];
 const MARKUP = num(process.env.VOYARA_MARKUP, 0.04);
 const ASSUMED_COMMISSION = num(process.env.RATE_HOTEL_COMMISSION, 0.15);
@@ -25,6 +37,8 @@ module.exports = async (req, res) => {
   const checkIn = String(q.checkIn || '');
   const checkOut = String(q.checkOut || '');
   const guests = Math.max(1, Number(q.guests) || 2);
+  const tierKey = TIERS[String(q.quality || 'premium')] ? String(q.quality || 'premium') : 'premium';
+  const tier = TIERS[tierKey];
   const wanted = String(q.currency || '').toUpperCase();
   const currencyPref = SUPPORTED_CCY.indexOf(wanted) >= 0
     ? wanted : (process.env.LITEAPI_CURRENCY || 'USD');
@@ -51,7 +65,7 @@ module.exports = async (req, res) => {
       offers = await hotelbeds(destination, checkIn, checkOut, guests);
       mode = 'live:hotelbeds';
     } else if (process.env.LITEAPI_KEY) {
-      offers = await liteapi(destination, checkIn, checkOut, guests, currencyPref);
+      offers = await liteapi(destination, checkIn, checkOut, guests, currencyPref, tier);
       mode = 'live:liteapi';
     } else {
       offers = fixtures(destination, checkIn, checkOut, currencyPref);
@@ -71,7 +85,7 @@ module.exports = async (req, res) => {
 
   const priced = offers.map(priceOffer);
 
-  res.status(200).end(JSON.stringify({ mode, currency: currencyPref, count: priced.length, offers: priced }));
+  res.status(200).end(JSON.stringify({ mode, currency: currencyPref, quality: tierKey, qualityLabel: tier.label, count: priced.length, offers: priced }));
 };
 
 async function hotelbeds(destination, checkIn, checkOut, guests) {
@@ -299,7 +313,7 @@ function titleCase(s) {
   return String(s).split(' ').map(function (w) { return w.charAt(0).toUpperCase() + w.slice(1); }).join(' ');
 }
 
-async function liteapi(destination, checkIn, checkOut, guests, currencyPref) {
+async function liteapi(destination, checkIn, checkOut, guests, currencyPref, tier) {
   const apiKey = process.env.LITEAPI_KEY;
   const base = process.env.LITEAPI_BASE || 'https://api.liteapi.travel/v3.0';
   const currency = currencyPref || process.env.LITEAPI_CURRENCY || 'USD';
@@ -314,7 +328,11 @@ async function liteapi(destination, checkIn, checkOut, guests, currencyPref) {
   // so a search for a country or an unfamiliar town still returns something.
   async function lookup(cityName) {
     const u = base + '/data/hotels?countryCode=' + encodeURIComponent(country) +
-      (cityName ? '&cityName=' + encodeURIComponent(cityName) : '') + '&limit=20';
+      (cityName ? '&cityName=' + encodeURIComponent(cityName) : '') +
+      (tier.stars.length ? '&starRating=' + tier.stars.join(',') : '') +
+      (tier.minRating ? '&minRating=' + tier.minRating : '') +
+      (tier.minReviews ? '&minReviewsCount=' + tier.minReviews : '') +
+      '&limit=40';
     const res = await fetch(u, { headers });
     if (!res.ok) throw new Error('LiteAPI /data/hotels ' + res.status + ' ' + (await res.text()).slice(0, 250));
     const jj = await res.json();
@@ -360,14 +378,18 @@ async function liteapi(destination, checkIn, checkOut, guests, currencyPref) {
   const rr = await fetch(base + '/hotels/rates', {
     method: 'POST',
     headers: Object.assign({ 'Content-Type': 'application/json' }, headers),
-    body: JSON.stringify({
+    body: JSON.stringify(Object.assign({
       hotelIds: ids,
       checkin: checkIn,
       checkout: checkOut,
       currency,
       guestNationality: nationality,
       occupancies: [{ adults: Math.max(1, guests) }]
-    })
+    }, tier.stars.length ? {
+      starRating: tier.stars,
+      minRating: tier.minRating,
+      minReviewsCount: tier.minReviews
+    } : {}))
   });
   if (!rr.ok) throw new Error('LiteAPI /hotels/rates ' + rr.status + ' ' + (await rr.text()).slice(0, 300));
   const rj = await rr.json();
@@ -405,13 +427,33 @@ async function liteapi(destination, checkIn, checkOut, guests, currencyPref) {
     };
   }).filter((o) => o.costMinor > 0 || o.marketMinor > 0);
 
-  if (!out.length) {
+  // Backstop. If the supplier ignores a filter, enforce it here rather than
+  // showing a two star motel in a luxury search.
+  let kept = out;
+  if (tier.stars.length) {
+    const strict = out.filter((o) =>
+      (!o.stars || tier.stars.indexOf(o.stars) >= 0) &&
+      (!o.rating || o.rating >= tier.minRating));
+    // Only apply the floor if it leaves a usable set. An empty page is worse
+    // than a slightly looser one, so long as we say which happened.
+    if (strict.length >= 3) kept = strict;
+    else if (strict.length) { kept = strict; kept.relaxed = false; }
+    else { kept = out; kept.relaxed = true; }
+  }
+
+  // Sort by quality, not price. A five star at 8.0 outranks a four star at
+  // 9.4, but not by much, so a strong boutique still surfaces.
+  kept.sort((a, b) => qualityScore(b) - qualityScore(a));
+
+  if (!kept.length) {
     const e = new Error('Properties exist in ' + resolvedAs + ' but none are bookable for those dates. Try different dates.');
     e.noResults = true;
     throw e;
   }
-  out.resolvedAs = resolvedAs;
-  return out.slice(0, 12);
+  const result = kept.slice(0, 12);
+  result.resolvedAs = resolvedAs;
+  result.relaxed = Boolean(kept.relaxed);
+  return result;
 }
 
 // Suppliers name the lead photo half a dozen different ways. Take the first
@@ -440,6 +482,17 @@ function normaliseUrl(u) {
 }
 
 // Supplier price fields arrive as either an object or an array of objects.
+// Ranking. Stars lead, because a five star property is a different category
+// of building. But a property guests actively dislike is a worn out property
+// whatever its plaque says, so anything under 7.5 takes a steep penalty and
+// drops below a well run four star.
+function qualityScore(o) {
+  const stars = Number(o.stars) || 0;
+  const rating = Number(o.rating) || 0;
+  const penalty = rating > 0 && rating < 7.5 ? (7.5 - rating) * 3 : 0;
+  return (stars * 1.6) + (rating / 2) - penalty;
+}
+
 function pickAmount(a, b) {
   for (const src of [a, b]) {
     if (!src) continue;
@@ -461,9 +514,9 @@ function fixtures(destination, checkIn, checkOut, cur) {
     'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=600&q=70&auto=format&fit=crop'
   ];
   let shot = -1;
-  const mk = (id, name, room, marketMinor, refundable) => ({
+  const mk = (id, name, room, marketMinor, refundable, stars, rating) => ({
     id, offerId: 'offer_' + id, name, location: destination,
-    image: shots[++shot % shots.length], stars: 5, rating: 9.1,
+    image: shots[++shot % shots.length], stars: stars || 5, rating: rating || 9.1,
     roomDescription: room, nights: n,
     costMinor: Math.round(marketMinor * 0.82),
     marketMinor, publicMinor: marketMinor, currency: cur || 'USD',
@@ -471,9 +524,9 @@ function fixtures(destination, checkIn, checkOut, cur) {
     payAtProperty: false, taxesIncluded: true
   });
   return [
-    mk('mock_portrait', 'Portrait Milano', 'Suite, king bed', 318000, true),
-    mk('mock_grand', 'Grand Hotel et de Milan', 'Deluxe room', 294000, true),
-    mk('mock_bulgari', 'Bulgari Hotel Milano', 'Premium, garden view', 445000, false)
+    mk('mock_bulgari', 'Bulgari Hotel Milano', 'Premium, garden view', 445000, false, 5, 9.4),
+    mk('mock_portrait', 'Portrait Milano', 'Suite, king bed', 318000, true, 5, 9.2),
+    mk('mock_grand', 'Grand Hotel et de Milan', 'Deluxe room', 294000, true, 5, 8.9)
   ];
 }
 

@@ -177,6 +177,8 @@ img{display:block}
 .sfield input::placeholder{color:rgba(255,255,255,.38)}
 .sfield input[type=date],.sfield input[type=number]{color-scheme:dark;font-family:var(--body);cursor:pointer}
 .sfield input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:.5;cursor:pointer}
+.sfield select{background:none;border:none;outline:none;font-family:var(--body);font-size:14.5px;font-weight:300;color:#fff;width:100%;cursor:pointer;appearance:none}
+.sfield select option{background:var(--surface);color:var(--text)}
 .sfield input[type=number]::-webkit-inner-spin-button{opacity:.4}
 .sfield .fv{font-size:14.5px;font-weight:300;color:#fff;white-space:nowrap}
 .sfield .fv .arr{color:rgba(255,255,255,.4);margin:0 7px;font-family:var(--mono);font-size:12px}
@@ -1026,7 +1028,14 @@ img{display:block}
               <div class="sfield" style="flex:1.5"><span class="fk">Where to</span><input id="hq" placeholder="Milan, Mykonos, Tokyo, Spain" value="Milan" autocomplete="off"></div>
               <div class="sfield"><span class="fk">Check in</span><input id="hin" type="date" value="2026-09-13"></div>
               <div class="sfield"><span class="fk">Check out</span><span class="fk" style="display:none"></span><input id="hout" type="date" value="2026-09-18"></div>
-              <div class="sfield" style="flex:.6"><span class="fk">Guests</span><input id="hg" type="number" min="1" max="8" value="2"></div>
+              <div class="sfield" style="flex:.5"><span class="fk">Guests</span><input id="hg" type="number" min="1" max="8" value="2"></div>
+              <div class="sfield" style="flex:.9"><span class="fk">Standard</span>
+                <select id="hql">
+                  <option value="luxury">Five star only</option>
+                  <option value="premium" selected>Four star and above</option>
+                  <option value="any">Everything</option>
+                </select>
+              </div>
               <button class="sgo" data-search="hotels">Search</button>
             </div>
             <div class="glass sform" id="sf-flights">
@@ -1769,7 +1778,8 @@ function stayQuery() {
     destination: (($('#hq') && $('#hq').value) || 'Milan').trim() || 'Milan',
     checkIn: ($('#hin') && $('#hin').value) || '2026-09-13',
     checkOut: ($('#hout') && $('#hout').value) || '2026-09-18',
-    guests: ($('#hg') && $('#hg').value) || '2'
+    guests: ($('#hg') && $('#hg').value) || '2',
+    quality: ($('#hql') && $('#hql').value) || 'premium'
   };
   if (new Date(q.checkOut) <= new Date(q.checkIn)) {
     var d = new Date(q.checkIn);
@@ -1785,7 +1795,7 @@ function apiUrl(type) {
     var q = stayQuery();
     return '/api/stays/search?destination=' + encodeURIComponent(q.destination) +
       '&checkIn=' + q.checkIn + '&checkOut=' + q.checkOut + '&guests=' + encodeURIComponent(q.guests) +
-      '&currency=' + encodeURIComponent(CCY.current);
+      '&currency=' + encodeURIComponent(CCY.current) + '&quality=' + encodeURIComponent(q.quality);
   }
   return null;
 }
@@ -1871,7 +1881,10 @@ function renderResults(type, live) {
       '<div class="hsub">Live request to the supplier</div></div></div></div>';
     fetch(url).then(function (r) { return r.json(); }).then(function (j) {
       if (j && j.offers && j.offers.length) {
-        renderResults(type, { data: offersToCards(type, j), mode: j.mode });
+        renderResults(type, {
+          data: offersToCards(type, j), mode: j.mode,
+          qualityLabel: j.qualityLabel, relaxed: j.relaxed
+        });
       } else if (j && j.noResults) {
         emptyResults(type, j.message || 'Nothing available for that search.', 'No properties');
       } else if (j && j.error) {
@@ -1896,8 +1909,11 @@ function renderResults(type, live) {
   var extraBtn = type === 'flights' ? '<button class="viewall" id="totalcostbtn" style="margin-right:8px">What it really costs</button>' : '';
   var h = '<div class="hsec" style="padding-top:26px"><div class="hh"><div>' +
     '<h2 class="disp" style="font-size:24px">' + head + '</h2>' +
-    '<div class="hsub">' + srcMode + ' . priced server side . we pay net and add ' +
-    '4%, so the saving is arithmetic, not a discount</div>' +
+    '<div class="hsub">' + srcMode + ' . ' + (live && live.qualityLabel ? live.qualityLabel : 'four star and above') +
+    ' . sorted by quality, not price</div>' +
+    (live && live.relaxed
+      ? '<div class="hsub" style="color:var(--warn)">Not enough properties met that standard here, so the floor was relaxed. Every result is still shown with its rating.</div>'
+      : '') +
     '</div><div style="display:flex;gap:0">' + extraBtn + '<button class="viewall" id="clearresults">Clear</button></div></div></div>';
   data.forEach(function (r) {
     h += '<div class="rescard">' +
@@ -2307,6 +2323,10 @@ function wireWaitlist() {
 function bootHome() {
   renderHomeGrids();
   $$('.cat').forEach(function (c) { c.addEventListener('click', function () { setCat(c.getAttribute('data-cat')); }); });
+  var ql = $('#hql');
+  if (ql) ql.addEventListener('change', function () {
+    if ($('#resultszone') && $('#resultszone').innerHTML.trim()) renderResults('hotels');
+  });
   ['#hq', '#hin', '#hout', '#hg'].forEach(function (sel) {
     var el = $(sel);
     if (el) el.addEventListener('keydown', function (e) { if (e.key === 'Enter') renderResults('hotels'); });
