@@ -277,6 +277,39 @@ img{display:block}
 #proofstrip h3{font-weight:300;font-size:22px;letter-spacing:-.02em}
 #proofstrip p{font-size:12.5px;color:var(--mute);margin-top:7px;line-height:1.55;max-width:56ch}
 
+/* ============ FARE WATCH ============ */
+.fwhead{display:flex;align-items:center;gap:13px;padding:15px 16px;border-bottom:1px solid var(--rule-soft);flex-wrap:wrap}
+.fwhead .fwdot{width:7px;height:7px;border-radius:50%;background:var(--live);box-shadow:0 0 10px var(--live);animation:wp 2.4s infinite;flex:0 0 7px}
+.fwhead .fwt{flex:1;min-width:190px;font-size:13px;color:var(--text-dim)}
+.fwhead .fwt small{display:block;font-size:11px;color:var(--faint);margin-top:3px;line-height:1.5}
+.fwhead .fwn{font-family:var(--mono);font-size:15px;color:var(--text)}
+.fwrow{display:flex;align-items:center;gap:13px;padding:13px 16px;border-bottom:1px solid var(--rule-soft);flex-wrap:wrap}
+.fwrow:last-child{border-bottom:none}
+.fwrow .fwleg{font-family:var(--mono);font-size:11px;letter-spacing:.05em;color:var(--text-dim);min-width:118px}
+.fwrow .fwmid{flex:1;min-width:190px;font-size:12px;color:var(--mute);line-height:1.5}
+.fwrow .fwamt{font-family:var(--mono);font-size:13px;text-align:right;min-width:96px}
+.fwrow .fwamt s{color:var(--faint)}
+.fwrow.hit{background:rgba(87,214,169,.05)}
+.fwrow.hit .fwamt{color:var(--live)}
+.fwwin{font-family:var(--mono);font-size:7.5px;letter-spacing:.12em;text-transform:uppercase;padding:3px 8px;border-radius:99px;border:1px solid var(--rule);color:var(--faint)}
+.fwwin.void{border-color:rgba(87,214,169,.45);color:var(--live)}
+.fwwin.credit{border-color:rgba(232,163,61,.45);color:var(--warn)}
+
+/* ============ COLLECTION BAND ============ */
+#collband{position:relative;border-radius:var(--r);overflow:hidden;isolation:isolate;margin:0 26px 4px;min-height:300px;display:flex;flex-direction:column;justify-content:flex-end;padding:30px 32px 28px}
+#collband .cbimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;filter:saturate(.85) brightness(.72)}
+#collband:before{content:'';position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(8,9,11,.22) 0%,rgba(8,9,11,.4) 45%,rgba(8,9,11,.88) 100%)}
+#collband .cbkick{font-family:var(--mono);font-size:8.5px;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.66)}
+#collband h2{font-weight:300;font-size:clamp(30px,4vw,50px);letter-spacing:-.03em;line-height:1.02;color:#fff;margin-top:12px}
+#collband .cbnar{font-size:14px;line-height:1.7;color:rgba(255,255,255,.82);margin-top:14px;max-width:60ch;font-weight:300}
+#collband .cbmeta{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap;align-items:center}
+#collband .cbclose{position:absolute;top:16px;right:16px;z-index:3;width:36px;height:36px;border-radius:50%;background:rgba(8,10,14,.6);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.18);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:13px}
+#collband .cbclose:hover{background:#fff;color:var(--ink)}
+@media (max-width:820px){
+  #collband{margin:0 14px 4px;padding:24px 20px 22px;min-height:250px}
+  #collband .cbnar{font-size:13px}
+}
+
 /* ============ PROPERTY SHEET ============ */
 #psheet{position:fixed;inset:0;z-index:220;display:none;background:rgba(4,6,9,.9);backdrop-filter:blur(8px);overflow-y:auto;padding:22px 16px 40px}
 #psheet.on{display:block}
@@ -1116,6 +1149,11 @@ img{display:block}
             <div id="rateengine"></div>
           </div>
 
+          <div class="card" style="margin-top:12px">
+            <div class="cardhead"><h3>Fare watch</h3><span class="label" id="fwsummary">Scanning every two hours</span></div>
+            <div id="farewatch"></div>
+          </div>
+
           <div class="tripbelow grid2">
             <div class="card" style="margin-top:0">
               <div class="cardhead"><h3>Reservation vault</h3><span class="label">Policy snapshots at import</span></div>
@@ -1320,6 +1358,70 @@ function renderRateEngine() {
   var rb = $('#rulesbtn'); if (rb) rb.addEventListener('click', openRules);
 }
 
+function renderFareWatch() {
+  var el = $('#farewatch');
+  if (!el) return;
+  el.innerHTML = '<div class="empty" style="padding:26px">Loading fare watch</div>';
+  safeFetchJson('/api/watch/orders', function (j) {
+    var list = (j && j.watched) || [];
+    if (!list.length) {
+      el.innerHTML = '<div class="empty" style="padding:26px">No flights being watched yet.</div>';
+      return;
+    }
+    var w = list[0];
+    var checks = w.recentChecks || [];
+    var best = w.bestSeenMinor && w.bestSeenMinor < w.paidMinor ? w.paidMinor - w.bestSeenMinor : 0;
+
+    var h = '<div class="fwhead"><span class="fwdot"></span>' +
+      '<span class="fwt">' + (best > 0
+        ? 'This fare has dropped ' + money(best, w.currency) + ' since you booked.'
+        : 'Watching this fare. Nothing cheaper has appeared yet.') +
+      '<small>We re-price the exact same flights, same cabin, same baggage. A cheaper itinerary that is not your flights does not count.</small></span>' +
+      '<span class="fwn">' + w.checksRun + ' checks</span></div>';
+
+    h += '<div class="fwrow"><span class="fwleg">' + w.origin + ' to ' + w.destination + '</span>' +
+      '<span class="fwmid">' + (w.flightNumbers || []).join(' . ') + ' . departs ' + w.departOn + '</span>' +
+      '<span class="fwamt">' + money(w.paidMinor, w.currency) + '</span></div>';
+
+    checks.forEach(function (c) {
+      var drop = Number(c.delta_minor) || 0;
+      var win = String(c.window_type || '').toLowerCase();
+      h += '<div class="fwrow' + (c.actionable ? ' hit' : '') + '">' +
+        '<span class="fwleg">' + new Date(c.checked_at).toISOString().slice(5, 16).replace('T', ' ') + '</span>' +
+        '<span class="fwmid">' + (c.reason || '') + '</span>' +
+        '<span class="fwwin ' + (win === 'void_window' ? 'void' : win === 'credit' ? 'credit' : '') + '">' +
+        (win === 'void_window' ? 'Refundable' : win === 'credit' ? 'Credit only' : win || 'check') + '</span>' +
+        '<span class="fwamt">' + (drop > 0 ? '-' + money(drop, w.currency) : money(c.best_minor || w.paidMinor, w.currency)) + '</span></div>';
+    });
+
+    h += '<div style="padding:14px 16px;border-top:1px solid var(--rule);display:flex;gap:14px;align-items:center;flex-wrap:wrap">' +
+      '<div><div class="label">Recovered so far</div>' +
+      '<div style="font-family:var(--mono);font-size:20px;color:var(--live);margin-top:6px">' + money(w.savedMinor || 0, w.currency) + '</div></div>' +
+      '<div style="max-width:44ch;font-size:11.5px;color:var(--mute);line-height:1.55">Inside 24 hours of booking a drop is refundable outright. After that an airline returns the difference as credit, not cash, so we bring it to you as a decision rather than acting on it.</div>' +
+      '<button class="btn" id="fwrules">How this works</button></div>';
+
+    el.innerHTML = h;
+    var b = $('#fwrules');
+    if (b) b.addEventListener('click', openFareWatchRules);
+    var sum = $('#fwsummary');
+    if (sum) sum.textContent = w.checksRun + ' checks . ' + (best > 0 ? money(best, w.currency) + ' available' : 'no drop yet');
+  });
+}
+
+function openFareWatchRules() {
+  openModal('<div class="mhead"><h3 class="disp">How fare watch works</h3><button class="x" data-close>&#10005;</button></div>' +
+    '<div class="mbody">' +
+    '<p style="font-size:13px;line-height:1.65;color:var(--text-dim)">Airlines do not refund a fare drop in cash. Anyone promising that is describing hotels. There are three windows where a drop can actually be captured, and we tell you which one you are in.</p>' +
+    '<div class="csline" style="margin-top:16px"><span class="k">Inside 24 hours</span><span class="v" style="color:var(--live)">Full refund</span></div>' +
+    '<p style="font-size:12px;color:var(--mute);line-height:1.6;margin-bottom:12px">US rules require a full refund on a ticket cancelled within 24 hours of booking, if departure is seven or more days away. We rebook and you get cash back.</p>' +
+    '<div class="csline"><span class="k">After 24 hours</span><span class="v" style="color:var(--warn)">Airline credit</span></div>' +
+    '<p style="font-size:12px;color:var(--mute);line-height:1.6;margin-bottom:12px">The difference comes back as credit with that airline, not money. We show you the amount and let you decide, because credit you may never spend is not the same as cash.</p>' +
+    '<div class="csline"><span class="k">Schedule change</span><span class="v">Rebooking rights</span></div>' +
+    '<p style="font-size:12px;color:var(--mute);line-height:1.6">If the airline moves your flight materially, you gain rights regardless of fare rules. We watch for that too.</p>' +
+    '<p style="margin-top:16px;font-size:12px;color:var(--faint);line-height:1.6">We only ever compare your exact flights, cabin and baggage. A cheaper connection through a different city at 6am is not a better trip, and we will not present it as one.</p>' +
+    '</div><div class="mfoot"><button class="btn" data-close>Close</button></div>');
+}
+
 function openRules() {
   var h = '<div class="mhead"><h3 class="disp">Standing rules</h3><button class="x" data-close>&#10005;</button></div>' +
     '<div class="mbody" style="padding:0"><p style="padding:16px 20px;font-size:12.5px;color:var(--mute);line-height:1.55;border-bottom:1px solid var(--rule)">' +
@@ -1514,14 +1616,11 @@ var EXP_RESULTS = [
   { n: 'Last Supper, first entry', s: 'Santa Maria delle Grazie . timed entry, guided', img: 'photo-1520440229-6469a149ac59', p: '\u20AC190.00', tags: ['Nonrefundable', 'Timed ticket'] }
 ];
 
+var COLLS = [];
+
 function renderHomeGrids() {
-  $('#collgrid').innerHTML = COLLECTIONS.map(function (c) {
-    return '<button class="ccard">' +
-      '<img src="' + uimg(c.img) + '" alt="" loading="lazy" onerror="this.remove()">' +
-      '<span class="chip">' + c.chip + '</span>' +
-      '<span class="cin"><span class="ct disp">' + c.t + '</span><br>' +
-      '<span class="cloc">' + c.loc + '<span class="ga">&#8594;</span></span></span></button>';
-  }).join('');
+  // Paint everything synchronous first. A network call must never be able to
+  // leave the page half built, so the fetch comes last and is guarded.
   $('#tripsgrid').innerHTML = FEATTRIPS.map(function (t, i) {
     return '<button class="ccard" data-feattrip="' + i + '">' +
       '<img src="' + uimg(t.img) + '" alt="" loading="lazy" onerror="this.remove()">' +
@@ -1537,9 +1636,124 @@ function renderHomeGrids() {
       else toast('This build carries one live trip. Milan is the real one.', 'live');
     });
   });
-  $$('#collgrid .ccard').forEach(function (b) {
-    b.addEventListener('click', function () { toast('Collections open into the same approval gated booking flow.', 'live'); });
+
+  // Seed collections render instantly, then upgrade to whatever the API has.
+  paintCollections(COLLECTIONS.map(function (c) {
+    return { slug: '', title: c.t, subtitle: c.loc, imageId: c.img, chip: c.chip };
+  }));
+
+  loadCollections();
+}
+
+function loadCollections() {
+  safeFetchJson('/api/collections', function (j) {
+    if (j && j.collections && j.collections.length) {
+      COLLS = j.collections;
+      paintCollections(COLLS);
+    }
   });
+}
+
+function paintCollections(list) {
+  $('#collgrid').innerHTML = list.map(function (c, i) {
+    var chip = c.chip || (c.nights ? c.nights + ' nights' : 'Collection');
+    return '<button class="ccard"' + (c.slug ? ' data-coll="' + c.slug + '"' : '') + '>' +
+      '<img src="' + collImg(c.imageId) + '" alt="" loading="lazy" onerror="this.remove()">' +
+      '<span class="chip">' + chip + '</span>' +
+      '<span class="cin"><span class="ct disp">' + c.title + '</span><br>' +
+      '<span class="cloc">' + (c.subtitle || '') + '<span class="ga">&#8594;</span></span></span></button>';
+  }).join('');
+  $$('.ccard[data-coll]').forEach(function (b) {
+    b.addEventListener('click', function () { openCollection(b.getAttribute('data-coll')); });
+  });
+  $$('#collgrid .ccard:not([data-coll])').forEach(function (b) {
+    b.addEventListener('click', function () { toast('Loading collections. Try again in a moment.', 'live'); });
+  });
+}
+
+// Collections store either an Unsplash id or a full url.
+function collImg(v) {
+  if (!v) return uimg('photo-1520440229-6469a149ac59');
+  return /^https?:\/\//.test(v) ? v : uimg(v, 1200);
+}
+
+// Opening a collection sets the search to its destination and dates, then
+// runs a real search. Curated framing, live rates.
+function openCollection(slug) {
+  var c = COLLS.filter(function (x) { return x.slug === slug; })[0];
+  if (!c) return;
+
+  if ($('#hq')) $('#hq').value = c.destination;
+  if ($('#hin')) $('#hin').value = c.checkIn;
+  if ($('#hout')) $('#hout').value = c.checkOut;
+  setCat('hotels');
+
+  $('#resultszone').innerHTML =
+    '<div class="pad" style="padding-bottom:0"><div id="collband">' +
+    '<img class="cbimg" src="' + collImg(c.imageId) + '" alt="" onerror="this.remove()">' +
+    '<button class="cbclose" id="cbclose" aria-label="Close">&#10005;</button>' +
+    '<span class="cbkick">Collection . curated by Voyara operators</span>' +
+    '<h2 class="disp">' + c.title + '</h2>' +
+    (c.narrative ? '<p class="cbnar">' + c.narrative + '</p>' : '') +
+    '<div class="cbmeta">' +
+    '<span class="pill">' + (c.subtitle || c.destination) + '</span>' +
+    '<span class="pill">' + c.nights + ' nights</span>' +
+    '<span class="pill">' + prettyDate(c.checkIn) + ' to ' + prettyDate(c.checkOut) + '</span>' +
+    '<span class="pill live"><span class="bd"></span>Live rates</span>' +
+    '</div></div></div>' +
+    '<div id="collresults"><div class="empty" style="padding:50px 24px">Pricing this collection</div></div>';
+
+  var x = $('#cbclose');
+  if (x) x.addEventListener('click', function () { $('#resultszone').innerHTML = ''; });
+
+  audit('collection.opened', { collection: slug, destination: c.destination }, 'traveler');
+  emit('collection.opened.v1', 'curation');
+
+  var band = $('#collband');
+  if (band && band.scrollIntoView) band.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // Live search for this destination, rendered beneath the band.
+  fetch(apiUrl('hotels')).then(function (r) { return r.json(); }).then(function (j) {
+    if (j && j.offers && j.offers.length) {
+      renderCollectionResults(offersToCards('hotels', j), j.mode, c);
+    } else {
+      $('#collresults').innerHTML = '<div class="pad" style="padding-top:14px"><div class="card" style="margin-top:0;padding:26px">' +
+        '<div style="font-size:14px;line-height:1.6;color:var(--text-dim)">' +
+        ((j && (j.message || j.detail)) || 'Nothing available for these dates.') + '</div></div></div>';
+    }
+  }).catch(function () {
+    $('#collresults').innerHTML = '<div class="pad"><div class="card" style="margin-top:0;padding:26px">Could not reach the server.</div></div>';
+  });
+}
+
+function renderCollectionResults(data, mode, c) {
+  var h = '<div class="hsec" style="padding-top:22px"><div class="hh"><div>' +
+    '<h2 class="disp" style="font-size:22px">Where to stay</h2>' +
+    '<div class="hsub">' + mode + ' . ' + c.destination + ' . priced server side</div>' +
+    '</div><button class="viewall" id="clearresults">Clear</button></div></div>';
+  data.forEach(function (r) {
+    h += '<div class="rescard">' +
+      (r.imgUrl
+        ? '<div class="rimgwrap"><img class="rimg" src="' + r.imgUrl + '" alt="" loading="lazy" ' +
+          'onerror="this.parentNode.classList.add(\'noimg\');this.remove()"></div>'
+        : '<div class="rimgwrap noimg"></div>') +
+      '<div class="rmain"><div class="rt2">' + r.n + '</div>' +
+      '<div class="rs2">' + r.s + '</div>' +
+      '<div class="rtags">' +
+      (r.stars ? '<span class="pill">' + r.stars + ' star</span>' : '') +
+      (r.rating ? '<span class="pill live"><span class="bd"></span>' + r.rating + '</span>' : '') +
+      (r.tags || []).map(function (t) { return '<span class="pill">' + t + '</span>'; }).join('') + '</div></div>' +
+      '<div class="rprice"><div><div class="pp">' + (r.net || r.p) + '</div>' +
+      (r.net ? '<div class="pe" style="color:var(--live)">You save ' + r.keep + '</div>' : '') + '</div>' +
+      '<button class="rbook"' + (r.hotelId ? ' data-hotel="' + r.hotelId + '"' : '') + '>View property</button></div></div>';
+  });
+  $('#collresults').innerHTML = '<div class="pad" style="padding-top:0">' + h + '</div>';
+  $$('#collresults [data-hotel]').forEach(function (b) {
+    b.addEventListener('click', function () { openProperty(b.getAttribute('data-hotel')); });
+  });
+  var cl = $('#clearresults');
+  if (cl) cl.addEventListener('click', function () { $('#resultszone').innerHTML = ''; });
+  audit('search.completed', { vertical: 'collection', results: data.length, adapter: mode }, 'traveler');
 }
 
 function setCat(cat) {
@@ -2003,15 +2217,25 @@ function askNavi(q) {
   setTimeout(function () { sendUser(q); }, 220);
 }
 
+// Fire and forget lookups on boot. None of them may throw synchronously,
+// because anything after the call in the same function would never run.
+function safeFetchJson(url, onOk) {
+  try {
+    fetch(url).then(function (r) { return r.json(); }).then(function (j) {
+      try { onOk(j); } catch (e) { /* rendering is optional here */ }
+    }).catch(function () { /* offline is fine, the page is already built */ });
+  } catch (e) { /* no fetch available */ }
+}
+
 function wireWaitlist() {
   var btn = $('#wlgo'), input = $('#wlemail'), msg = $('#wlmsg'), cnt = $('#wlcount');
   if (!btn || !input) return;
 
-  fetch('/api/waitlist').then(function (r) { return r.json(); }).then(function (j) {
+  safeFetchJson('/api/waitlist', function (j) {
     if (cnt && j && typeof j.count === 'number' && j.count > 0) {
       cnt.textContent = j.count + ' already on the list';
     }
-  }).catch(function () {});
+  });
 
   function submit() {
     var email = (input.value || '').trim();
@@ -3620,7 +3844,7 @@ function switchView(v) {
   var c = $('#crumb'); if (c) c.textContent = crumbs[v] || '';
   if (v === 'platform') { renderMetrics(); renderEvents(); renderSM(); }
   if (v === 'operator') { renderQueue(); renderCase(); renderAgentBoard(); }
-  if (v === 'trip') { renderRateEngine(); }
+  if (v === 'trip') { renderRateEngine(); renderFareWatch(); }
 }
 
 function tickClocks() {
@@ -3655,7 +3879,7 @@ function boot() {
   renderTimeline(); renderVault(); renderCash(); renderConsents(); renderAlerts();
   renderMetrics(); renderEvents(); renderPolicy(); renderScope(); renderArch(); renderSM();
   renderQueue(); renderCase(); renderSteps(); renderSugg(); syncFlagUi(); initCurrency();
-  renderRateEngine(); renderHomeRate(); renderModels(); renderAgentBoard();
+  renderRateEngine(); renderHomeRate(); renderModels(); renderAgentBoard(); renderFareWatch();
   setInterval(tickClocks, 1000); tickClocks();
 
   $$('.stab').forEach(function (b) { b.addEventListener('click', function () { switchView(b.getAttribute('data-view')); }); });
