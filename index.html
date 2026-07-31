@@ -53,7 +53,7 @@
   --serif:'Cormorant Garamond',Georgia,'Times New Roman',serif;
   --mono:'DM Mono','SFMono-Regular',Menlo,monospace;
   --side:236px;
-  --topbar:60px;
+  --topbar:74px;
   --demobar:58px;
   --r:16px;
   --r-sm:10px;
@@ -84,16 +84,40 @@ img{display:block}
 #shell{display:flex;height:100%}
 
 /* ---- sidebar ---- */
+/* The drawer is closed by default at every size. An always open sidebar reads
+   as a dashboard; a closed drawer under a centred wordmark reads as a brand,
+   and it gives the content the full width of the page. */
 #side{
-  width:var(--side);flex:0 0 var(--side);
-  border-right:1px solid var(--rule);background:var(--raised2);
-  display:flex;flex-direction:column;padding:22px 14px 14px;gap:2px;z-index:70;
+  position:fixed;top:0;left:0;bottom:0;width:min(348px,88vw);
+  transform:translateX(-102%);transition:transform .4s cubic-bezier(.4,0,.2,1);
+  border-right:1px solid var(--rule);background:var(--surface);
+  box-shadow:26px 0 80px rgba(38,36,31,.13);
+  display:flex;flex-direction:column;padding:26px 26px 20px;gap:2px;z-index:180;
+  overflow-y:auto;
 }
-#side .wm{display:flex;align-items:center;padding:2px 10px 24px}
+#side.open{transform:none}
+#sidescrim{position:fixed;inset:0;background:rgba(38,36,31,.34);z-index:170;
+  opacity:0;pointer-events:none;transition:opacity .34s;backdrop-filter:blur(2px)}
+#sidescrim.on{opacity:1;pointer-events:auto}
+#sideclose{position:absolute;top:22px;right:22px;width:34px;height:34px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;color:var(--mute);
+  font-family:var(--mono);font-size:14px;transition:.16s}
+#sideclose:hover{background:var(--raised2);color:var(--text)}
+#sidemark{font-family:var(--serif);font-size:23px;font-weight:300;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--text);padding:2px 0 30px}
+#sideme{display:flex;align-items:center;gap:11px;padding:0 0 22px;margin-bottom:20px;
+  border-bottom:1px solid var(--rule-soft)}
+#sideme .sav{width:34px;height:34px;border-radius:50%;flex:0 0 34px;display:flex;
+  align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;
+  background:var(--text);color:var(--surface)}
+#sideme .sn{font-size:14.5px;color:var(--text);line-height:1.3}
+#sideme .sn small{display:block;font-family:var(--mono);font-size:8px;letter-spacing:.15em;
+  text-transform:uppercase;color:var(--faint);margin-top:4px}
+#side .wm{display:none}
 #side .wm .nm{font-weight:300;font-size:20px;letter-spacing:.17em;text-transform:uppercase;color:var(--text)}
 .sitem{
-  display:flex;align-items:center;gap:11px;padding:10px 11px;border-radius:var(--r-sm);
-  font-size:13.5px;color:var(--text-dim);transition:.16s;text-align:left;width:100%;
+  display:flex;align-items:center;gap:13px;padding:13px 2px;border-radius:var(--r-sm);
+  font-size:19px;font-weight:300;color:var(--text-dim);transition:.16s;text-align:left;width:100%;
 }
 .sitem:hover{background:var(--raised);color:var(--text)}
 .sitem.on{background:var(--raised);color:var(--text)}
@@ -129,17 +153,31 @@ img{display:block}
 /* ---- main column ---- */
 #maincol{flex:1 1 auto;min-width:0;display:flex;flex-direction:column}
 #topbar{
-  height:var(--topbar);flex:0 0 auto;display:flex;align-items:center;gap:12px;
-  padding:0 18px;border-bottom:1px solid var(--rule-soft);background:rgba(250,249,246,.86);
-  backdrop-filter:blur(12px);position:relative;z-index:60;
+  height:var(--topbar);flex:0 0 auto;display:flex;align-items:center;gap:14px;
+  padding:0 clamp(16px,3vw,34px);border-bottom:1px solid var(--rule-soft);
+  background:rgba(250,249,246,.9);backdrop-filter:blur(14px);position:relative;z-index:60;
 }
-#burger{display:none;width:34px;height:34px;border:1px solid var(--rule);border-radius:9px;align-items:center;justify-content:center;color:var(--mute)}
+/* Always visible now, and labelled, because an unlabelled icon is a puzzle. */
+#burger{display:flex;align-items:center;gap:10px;padding:8px 4px;color:var(--text-dim);
+  transition:color .16s;background:none;border:none}
+#burger:hover{color:var(--text)}
+#burger .bl{font-size:14px;font-weight:300;letter-spacing:.01em}
+#burger .bi{display:flex;flex-direction:column;gap:3.5px;width:17px}
+#burger .bi i{height:1px;background:currentColor;border-radius:1px;transition:.2s}
+#burger:hover .bi i:nth-child(2){transform:scaleX(.66);transform-origin:left}
+
+/* The wordmark is centred on the page, not on whatever space is left beside
+   the controls, which is why it is taken out of the flow. */
+#tbmark{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  font-family:var(--serif);font-size:clamp(19px,2vw,25px);font-weight:300;
+  letter-spacing:.24em;text-transform:uppercase;color:var(--text);white-space:nowrap;
+  pointer-events:none}
 #whoami{display:flex;align-items:center;gap:10px;padding:6px 12px 6px 6px;border:1px solid var(--rule);border-radius:99px}
 #whoami .av2{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--nav),#5A79A6);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;color:#fff}
 #whoami .wn{font-size:12.5px;line-height:1.15}
 #whoami .wn small{display:block;font-family:var(--mono);font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
 #crumb{font-family:var(--mono);font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--faint)}
-#topright{margin-left:auto;display:flex;align-items:center;gap:9px}
+#topright{margin-left:auto;display:flex;align-items:center;gap:7px}
 .tstat{display:flex;flex-direction:column;align-items:flex-end;padding:0 10px}
 .tstat .k{font-family:var(--mono);font-size:7.5px;letter-spacing:.15em;color:var(--faint);text-transform:uppercase}
 .tstat .v{font-family:var(--mono);font-size:11px;letter-spacing:.05em;color:var(--text)}
@@ -156,6 +194,10 @@ img{display:block}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
 #stage{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;position:relative;background:var(--ink)}
+/* The page is centred and capped now that nothing sits beside it. A measure
+   this wide left uncapped is the difference between a brochure and an admin
+   panel. */
+#stage > .view{max-width:1460px;margin:0 auto;width:100%}
 .view{display:none}
 .view.on{display:block}
 
@@ -881,19 +923,16 @@ img{display:block}
   .cgrid,.tgrid{grid-template-columns:repeat(3,1fr)}
   .mgrid{grid-template-columns:repeat(2,1fr)}
 }
+@media (max-width:760px){
+  #burger .bl{display:none}
+  #tbmark{font-size:17px;letter-spacing:.2em}
+  #topright .tstat{display:none}
+}
 @media (max-width:980px){
   body{overflow:auto}
   #shell{height:auto;min-height:100%;flex-direction:column}
-  #side{
-    position:fixed;top:0;left:0;bottom:0;width:min(300px,84vw);
-    transform:translateX(-103%);transition:transform .3s cubic-bezier(.4,0,.2,1);
-    background:var(--ink);box-shadow:20px 0 60px rgba(38,36,31,.16);border-right:1px solid var(--rule);
-    z-index:180;overflow-y:auto;
-  }
-  #side.open{transform:translateX(0)}
-  #sidescrim{position:fixed;inset:0;background:rgba(4,6,9,.55);z-index:170;opacity:0;pointer-events:none;transition:.3s}
-  #sidescrim.on{opacity:1;pointer-events:auto}
-  #burger{display:flex}
+  #stage{overflow:visible}
+  #maincol{flex:none}
   #maincol{flex:none}
   #stage{overflow:visible}
   #hero{margin:10px 10px 0;min-height:520px;border-radius:18px}
@@ -1037,8 +1076,13 @@ img{display:block}
 <body>
 <div id="shell">
 
-  <aside id="side">
-    <div class="wm"><span class="nm">Voyara</span></div>
+  <aside id="side" aria-hidden="true">
+    <button id="sideclose" aria-label="Close menu">&#10005;</button>
+    <div id="sidemark">Voyara</div>
+    <div id="sideme">
+      <span class="sav">EM</span>
+      <span class="sn">Elena Marchetti<small>Signature member</small></span>
+    </div>
     <button class="sitem stab on" data-view="home"><span class="si">&#9670;</span>Book travel</button>
     <button class="sitem" id="navcollections"><span class="si">&#9633;</span>Collections</button>
     <div class="sdiv">Your trips</div>
@@ -1062,12 +1106,7 @@ img{display:block}
 
   <div id="maincol">
     <header id="topbar">
-      <button id="burger" aria-label="Menu"><span class="mono">&#9776;</span></button>
-      <div id="whoami">
-        <span class="av2">EM</span>
-        <span class="wn">Elena Marchetti<small>Signature member</small></span>
-      </div>
-      <span id="crumb">Travel, operated</span>
+      <button id="burger" aria-label="Open menu" aria-expanded="false"><span class="bi"><i></i><i></i><i></i></span><span class="bl">Menu</span></button><a id="tbmark" href="#" data-view="home">Voyara</a>
       <div id="topright">
         <div class="tstat"><span class="k">Departure in</span><span class="v warn" id="ttd">2:14:00</span></div>
         <div class="tstat"><span class="k">Workflows</span><span class="v live" id="wfcount">3 running</span></div>
@@ -4403,8 +4442,8 @@ function switchView(v) {
   $$('.stab').forEach(function (n) { n.classList.toggle('on', n.getAttribute('data-view') === v); });
   $('#stage').scrollTop = 0;
   if (window.scrollTo) { try { window.scrollTo(0, 0); } catch (e) {} }
-  $('#side').classList.remove('open');
-  $('#sidescrim').classList.remove('on');
+  if (window.setMenu) window.setMenu(false);
+  else { $('#side').classList.remove('open'); $('#sidescrim').classList.remove('on'); }
   var crumbs = { home: 'Travel, operated', trip: 'Trip . Milan, September', operator: 'Operator console', platform: 'Proof layer' };
   var c = $('#crumb'); if (c) c.textContent = crumbs[v] || '';
   if (v === 'platform') { renderMetrics(); renderEvents(); renderSM(); }
@@ -4462,14 +4501,36 @@ function boot() {
   $('#proofbtn').addEventListener('click', function () { $('#railwrap').classList.contains('open') ? closeRail() : openRail(); });
   $('#railtoggle').addEventListener('click', openRail);
   $('#railscrim').addEventListener('click', closeRail);
-  $('#burger').addEventListener('click', function () { $('#side').classList.add('open'); $('#sidescrim').classList.add('on'); });
-  $('#sidescrim').addEventListener('click', function () { $('#side').classList.remove('open'); $('#sidescrim').classList.remove('on'); });
+  // One place decides the drawer state, because a menu that can be opened
+  // three ways and closed two is how you end up with a stuck scrim.
+  function setMenu(open) {
+    $('#side').classList.toggle('open', open);
+    $('#sidescrim').classList.toggle('on', open);
+    $('#side').setAttribute('aria-hidden', String(!open));
+    $('#burger').setAttribute('aria-expanded', String(open));
+    document.body.style.overflow = open ? 'hidden' : '';
+    if (open) { var f = $('#sideclose'); if (f && f.focus) f.focus(); }
+  }
+  window.setMenu = setMenu;
+  $('#burger').addEventListener('click', function () { setMenu(true); });
+  $('#sidescrim').addEventListener('click', function () { setMenu(false); });
+  $('#sideclose').addEventListener('click', function () { setMenu(false); });
+  // Choosing anything from the menu closes it. Leaving it open over the thing
+  // you just asked for is the commonest drawer bug there is.
+  $$('#side .sitem, #side .stab, #side #tripcard').forEach(function (b) {
+    b.addEventListener('click', function () { setMenu(false); });
+  });
+  $('#tbmark').addEventListener('click', function (e) { e.preventDefault(); switchView('home'); });
   $('#navplan').addEventListener('click', function () { switchView('trip'); openImport(); });
   $('#navcollections').addEventListener('click', function () { switchView('home'); setTimeout(function () { var a = $('#collanchor'); if (a && a.scrollIntoView) a.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 60); });
   bootHome();
   $('#scrim').addEventListener('click', function (e) { if (e.target === $('#scrim')) closeModal(); });
   $('#psheet').addEventListener('click', function (e) { if (e.target === $('#psheet')) closeProperty(); });
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closeModal(); closeProperty(); } });
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    if ($('#side').classList.contains('open')) { setMenu(false); return; }
+    closeModal(); closeProperty();
+  });
   $('#sendbtn').addEventListener('click', function () { var v = $('#ta').value; $('#ta').value = ''; sendUser(v); });
   $('#ta').addEventListener('keydown', function (e) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); var v = $('#ta').value; $('#ta').value = ''; sendUser(v); }
