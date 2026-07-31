@@ -11,6 +11,7 @@
 //   3. Verify after write. Retrieve the booking and confirm it is cancelled.
 //   4. Ambiguity is never retried blindly.
 const crypto = require('crypto');
+const exec = require('../_exec');
 
 module.exports = async (req, res) => {
   res.setHeader('content-type', 'application/json');
@@ -80,6 +81,17 @@ module.exports = async (req, res) => {
     }));
   }
 
+  // Record the intent before cancelling, same reason as booking.
+  const run = await exec.begin('HOTEL_CANCEL', idem, {
+    bookingId, email, paidMinor: quote.paidMinor, currency: quote.currency
+  });
+  if (run.resumed && run.prior && run.prior.state === 'COMPLETE') {
+    return res.status(200).end(JSON.stringify({
+      mode: 'resumed', cancelled: true, quote,
+      note: 'This cancellation already completed. Nothing changed.'
+    }));
+  }
+
   // 2. Cancel.
   let ambiguous = false, result = null;
   try {
@@ -93,8 +105,9 @@ module.exports = async (req, res) => {
   } catch (e) { ambiguous = true; }
 
   if (ambiguous) {
+    await exec.finish(run, 'AMBIGUOUS', { bookingId });
     return res.status(202).end(JSON.stringify({
-      status: 'AMBIGUOUS',
+      status: 'AMBIGUOUS', durable: run.durable,
       detail: 'The cancellation call did not return a clear result. It may have succeeded. Retrying blindly could refund twice or leave the room held, so no second attempt was made.',
       nextStep: 'Retry with the SAME idempotencyKey (' + idem + ') or check the supplier dashboard.',
       idempotencyKey: idem, escalate: true
@@ -111,6 +124,10 @@ module.exports = async (req, res) => {
       verification = { verified: st === 'CANCELLED', status: st || null, checkedAt: new Date().toISOString() };
     } else verification = { verified: false, reason: 'retrieval returned ' + v.status };
   } catch (e) { verification = { verified: false, reason: String(e.message).slice(0, 180) }; }
+
+  await exec.finish(run, verification.verified ? 'COMPLETE' : 'AMBIGUOUS', {
+    bookingId, refundMinor: quote.refundMinor, verified: verification.verified
+  });
 
   await record(req, {
     booking_id: bookingId, vertical: 'HOTEL', email,

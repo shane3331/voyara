@@ -10,6 +10,7 @@
 //   4. Ambiguity is never retried blindly.
 //   5. Live bookings refused unless ALLOW_LIVE_BOOKING is explicitly true.
 const crypto = require('crypto');
+const exec = require('../_exec');
 
 module.exports = async (req, res) => {
   res.setHeader('content-type', 'application/json');
@@ -60,6 +61,25 @@ module.exports = async (req, res) => {
     'Idempotency-Key': idempotencyKey
   };
 
+  // 0. Record the intent BEFORE touching the supplier. If this function dies
+  // at any point after here, the record survives and /api/recover finishes it.
+  const run = await exec.begin('HOTEL_BOOK', idempotencyKey, {
+    offerId, email: String(g.email).toLowerCase(),
+    guest: g.firstName + ' ' + g.lastName,
+    hotelName: body.hotelName || null,
+    checkIn: body.checkIn || null, checkOut: body.checkOut || null,
+    amountMinor: body.amountMinor || null, currency: body.currency || null
+  });
+
+  // A resumed run that already completed must not book a second room.
+  if (run.resumed && run.prior && run.prior.state === 'COMPLETE') {
+    return res.status(200).end(JSON.stringify({
+      mode: 'resumed', booking: (run.prior.result && run.prior.result.booking) || { id: run.prior.supplier_ref },
+      verification: { verified: true, resumed: true },
+      note: 'This booking already completed. Nothing was booked twice.'
+    }));
+  }
+
   // 1. Prebook. Revalidates availability and firms the price.
   let prebook;
   try {
@@ -108,16 +128,21 @@ module.exports = async (req, res) => {
   } catch (e) { ambiguous = true; }
 
   if (ambiguous) {
+    await exec.finish(run, 'AMBIGUOUS', { prebookId, offerId });
     return res.status(202).end(JSON.stringify({
       status: 'AMBIGUOUS',
       detail: 'The booking call did not return a clear result. It may have succeeded. A second attempt could double book, so none was made.',
       nextStep: 'Retry with the SAME idempotencyKey (' + idempotencyKey + ') or check the LiteAPI dashboard.',
-      idempotencyKey, escalate: true
+      idempotencyKey, escalate: true, durable: run.durable,
+      reconciliation: run.durable
+        ? 'Recorded. The recovery pass will reconcile this with the supplier within the hour.'
+        : 'NOT recorded durably. Check the supplier dashboard manually.'
     }));
   }
 
   // 3. Verify after write.
   const bookingId = String(created.bookingId || created.id || '');
+  await exec.advance(run, 'SUPPLIER_CALLED', { supplier_ref: bookingId });
   let verification = { verified: false, reason: 'not attempted' };
   try {
     const vr = await fetch(base + '/bookings/' + encodeURIComponent(bookingId), { headers });
@@ -139,6 +164,11 @@ module.exports = async (req, res) => {
     verified: verification.verified
   };
   audit.eventHash = crypto.createHash('sha256').update(JSON.stringify(audit)).digest('hex');
+
+  await exec.finish(run, verification.verified ? 'COMPLETE' : 'AMBIGUOUS', {
+    booking: { id: bookingId, reference: created.supplierBookingId || created.bookingReference || bookingId },
+    verified: verification.verified
+  });
 
   // A verified booking becomes a monitored trip. Done here rather than in the
   // browser so a closed tab or a failed script cannot lose it.
@@ -165,7 +195,7 @@ module.exports = async (req, res) => {
       hotelName: created.hotel && created.hotel.name || null,
       checkin: created.checkin || null, checkout: created.checkout || null
     },
-    verification, audit, trip,
+    verification, audit, trip, durable: run.durable,
     warning: verification.verified ? null
       : 'The booking was created but could not be verified. Do not tell the traveller it is confirmed. Escalate to an operator.'
   }));
