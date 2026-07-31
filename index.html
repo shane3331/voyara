@@ -60,6 +60,13 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
+/* No global anchor rule existed, so any link inherited the browser's blue and
+   underline. The wordmark in the brand bar was the first one to show it. Links
+   that should look like links opt back in rather than the other way round. */
+a{color:inherit;text-decoration:none}
+a.link,.mbody a,.qa a{text-decoration:underline;text-underline-offset:3px;
+  text-decoration-thickness:1px;color:var(--nav)}
+a.link:hover,.mbody a:hover{color:var(--text)}
 body{
   background:var(--ink);color:var(--text);
   font-family:var(--body);font-weight:400;font-size:14px;line-height:1.5;
