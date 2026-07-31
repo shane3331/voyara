@@ -156,47 +156,52 @@ img{display:block}
 
 /* ============ HOME (consumer) ============ */
 #hero{position:relative;margin:16px 18px 0;border-radius:calc(var(--r) + 6px);overflow:hidden;min-height:560px;display:flex;flex-direction:column;align-items:center;justify-content:center;isolation:isolate}
-#hero .bgimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;filter:saturate(.82) contrast(1.04) brightness(.9)}
-#hero:before{content:'';position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(8,9,11,.42) 0%,rgba(8,9,11,.14) 34%,rgba(8,9,11,.22) 62%,rgba(8,9,11,.68) 100%)}
-#hero .hkick{font-family:var(--mono);font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:rgba(255,255,255,.72);margin-bottom:14px}
-#hero h1{font-family:var(--serif);font-weight:300;font-size:clamp(42px,6.4vw,84px);letter-spacing:-.01em;line-height:1;text-align:center;text-shadow:0 2px 40px rgba(0,0,0,.3)}
-#hero h1 .thin{color:rgba(255,255,255,.62)}
+#hero .bgimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2}
+/* No scrim. The photograph carries itself, which means the type over it
+   has to be dark rather than white. */
+#hero .hkick{font-family:var(--mono);font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:rgba(38,36,31,.62);margin-bottom:14px;text-shadow:0 1px 18px rgba(255,255,255,.7)}
+#hero h1{font-family:var(--serif);font-weight:300;font-size:clamp(42px,6.4vw,84px);letter-spacing:-.01em;line-height:1;text-align:center;color:var(--text);
+  /* A soft light halo rather than a dark shadow. It lifts the letterforms off
+     the sand without visibly altering the photograph underneath. */
+  text-shadow:0 1px 30px rgba(255,255,255,.75),0 1px 3px rgba(255,255,255,.55)}
+#hero h1 .thin{color:var(--mute)}
 
-#cats{display:flex;gap:2px;margin:30px 0 22px;padding:5px;border-radius:99px;background:rgba(10,12,15,.5);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.09)}
-.cat{display:flex;flex-direction:column;align-items:center;gap:6px;padding:11px 22px 10px;border-radius:99px;transition:.2s;color:rgba(255,255,255,.66)}
+#cats{display:flex;gap:2px;margin:30px 0 22px;padding:5px;border-radius:99px;background:rgba(251,250,247,.7);backdrop-filter:blur(20px) saturate(1.2);-webkit-backdrop-filter:blur(20px) saturate(1.2);border:1px solid rgba(255,255,255,.7);box-shadow:0 10px 34px rgba(38,36,31,.13)}
+.cat{display:flex;flex-direction:column;align-items:center;gap:6px;padding:11px 22px 10px;border-radius:99px;transition:.2s;color:var(--mute)}
 .cat .cg{font-family:var(--mono);font-size:13px;line-height:1}
 .cat .cl2{font-family:var(--mono);font-size:8px;letter-spacing:.16em;text-transform:uppercase}
 .cat .cl2 sup{font-size:6px;letter-spacing:.1em;color:var(--nav);margin-left:3px;text-transform:uppercase}
 .cat:hover{color:#fff}
-.cat.on{background:rgba(255,255,255,.13);color:#fff}
+.cat.on{background:var(--text);color:var(--surface)}
 
 #askwrap{width:min(680px,calc(100% - 40px))}
 .glass{
-  background:rgba(12,14,17,.52);backdrop-filter:blur(20px);
-  border:1px solid rgba(255,255,255,.12);border-radius:calc(var(--r) + 4px);
-  box-shadow:0 24px 70px rgba(0,0,0,.4);
+  background:rgba(251,250,247,.72);backdrop-filter:blur(24px) saturate(1.2);
+  -webkit-backdrop-filter:blur(24px) saturate(1.2);
+  border:1px solid rgba(255,255,255,.75);border-radius:calc(var(--r) + 4px);
+  box-shadow:0 20px 60px rgba(38,36,31,.16);
 }
 #askbox{padding:18px 18px 14px}
 #askline{display:flex;align-items:center;gap:10px}
-#askinput{flex:1;background:none;border:none;outline:none;font-size:16px;font-weight:300;color:#fff;min-width:0}
-#askinput::placeholder{color:rgba(255,255,255,.44)}
-#askgo{width:38px;height:38px;flex:0 0 38px;border-radius:50%;background:#fff;color:#0A0C0F;display:flex;align-items:center;justify-content:center;font-family:var(--mono);transition:.18s}
+#askinput{flex:1;background:none;border:none;outline:none;font-size:16px;font-weight:300;color:var(--text);min-width:0}
+#askinput::placeholder{color:var(--faint)}
+#askgo{width:38px;height:38px;flex:0 0 38px;border-radius:50%;background:var(--text);color:var(--surface);display:flex;align-items:center;justify-content:center;font-family:var(--mono);transition:.18s}
 #askgo:hover{transform:translateY(-1px)}
 #askmeta{display:flex;align-items:center;justify-content:space-between;margin-top:12px;gap:10px;flex-wrap:wrap}
 #askhints{display:flex;gap:6px;flex-wrap:wrap}
-.ahint{padding:6px 11px;border:1px solid rgba(255,255,255,.14);border-radius:99px;font-size:11.5px;color:rgba(255,255,255,.74);transition:.16s}
-.ahint:hover{background:rgba(255,255,255,.1);color:#fff}
-#askfoot{font-family:var(--mono);font-size:7.5px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.4)}
+.ahint{padding:6px 11px;border:1px solid var(--rule);border-radius:99px;font-size:11.5px;color:var(--text-dim);background:rgba(255,255,255,.5);transition:.16s}
+.ahint:hover{background:var(--text);color:var(--surface);border-color:var(--text)}
+#askfoot{font-family:var(--mono);font-size:7.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
 
 /* search forms per category */
 #searchforms{width:min(880px,calc(100% - 40px))}
 .sform{display:none;padding:8px}
 .sform.on{display:flex;align-items:stretch}
-.sfield{flex:1;min-width:0;padding:12px 18px;border-right:1px solid rgba(255,255,255,.09);display:flex;flex-direction:column;gap:4px;justify-content:center}
+.sfield{flex:1;min-width:0;padding:12px 18px;border-right:1px solid var(--rule);display:flex;flex-direction:column;gap:4px;justify-content:center}
 .sfield:last-of-type{border-right:none}
-.sfield .fk{font-family:var(--mono);font-size:8px;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.5)}
-.sfield input{background:none;border:none;outline:none;font-size:14.5px;font-weight:300;color:#fff;width:100%}
-.sfield input::placeholder{color:rgba(255,255,255,.38)}
+.sfield .fk{font-family:var(--mono);font-size:8px;letter-spacing:.16em;text-transform:uppercase;color:var(--mute)}
+.sfield input{background:none;border:none;outline:none;font-size:14.5px;font-weight:300;color:var(--text);width:100%}
+.sfield input::placeholder{color:var(--faint)}
 .sfield input[type=date],.sfield input[type=number]{color-scheme:dark;font-family:var(--body);cursor:pointer}
 .sfield input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:.5;cursor:pointer}
 .sfield select{background:none;border:none;outline:none;font-family:var(--body);font-size:14.5px;font-weight:300;color:#fff;width:100%;cursor:pointer;appearance:none}
@@ -205,7 +210,7 @@ img{display:block}
 .sfield .fv{font-size:14.5px;font-weight:300;color:#fff;white-space:nowrap}
 .sfield .fv .arr{color:rgba(255,255,255,.4);margin:0 7px;font-family:var(--mono);font-size:12px}
 .sgo{
-  flex:0 0 auto;align-self:center;margin:0 8px;padding:13px 26px;border-radius:99px;background:#fff;color:#0A0C0F;
+  flex:0 0 auto;align-self:center;margin:0 8px;padding:13px 26px;border-radius:99px;background:var(--text);color:var(--surface);
   font-family:var(--mono);font-size:9.5px;letter-spacing:.15em;text-transform:uppercase;font-weight:500;transition:.18s;
 }
 .sgo:hover{transform:translateY(-1px)}
@@ -890,7 +895,7 @@ img{display:block}
   #cats{flex-wrap:wrap;justify-content:center;border-radius:22px}
   .cat{padding:10px 16px 9px}
   .sform.on{flex-direction:column}
-  .sfield{border-right:none;border-bottom:1px solid rgba(255,255,255,.09);padding:13px 16px}
+  .sfield{border-right:none;border-bottom:1px solid var(--rule);padding:13px 16px}
   .sgo{margin:10px 12px 8px;align-self:stretch;text-align:center}
   .hsec{padding:34px 14px 4px}
   .cgrid,.tgrid{grid-template-columns:repeat(2,1fr);gap:10px;padding:14px 14px 6px}
