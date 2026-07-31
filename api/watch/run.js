@@ -76,12 +76,16 @@ async function scanOne(url, key, w) {
     return { order: w.order_id, actionable: false, reason: 'departed or departing' };
   }
 
+  // Status first. A delayed flight matters more than a cheaper one, and a
+  // schedule change opens rebooking rights the fare rules would not.
+  const status = await checkStatus(url, key, w);
+
   const quote = await bestComparable(w);
   const delta = quote.found ? w.paid_minor - quote.minor : 0;
 
   const windowType =
     (hoursSinceBooking <= VOID_HOURS && daysToDeparture >= VOID_MIN_LEAD_DAYS) ? 'VOID_WINDOW'
-      : quote.scheduleChanged ? 'SCHEDULE' : 'CREDIT';
+      : (status.disrupted || quote.scheduleChanged) ? 'SCHEDULE' : 'CREDIT';
 
   // Auto action is allowed only in the void window, and only on the exact
   // same flights. Anything else is a proposal.
@@ -112,12 +116,88 @@ async function scanOne(url, key, w) {
       : w.best_seen_minor
   });
 
-  if (!strictlyBetter) return { order: w.order_id, actionable: false, reason };
+  if (!strictlyBetter) {
+    return { order: w.order_id, actionable: false, reason, status: status.summary };
+  }
 
   const action = await propose(url, key, w, quote, delta, windowType, canAutoAct);
   return {
     order: w.order_id, actionable: true, windowType, benefit_minor: delta,
-    status: action.status, reason
+    action: action.status, reason, status: status.summary
+  };
+}
+
+// Flight status. Records every observation so a delay is a fact with a
+// timestamp rather than a screenshot, and opens a disruption when the delay
+// crosses the threshold that actually threatens a connection.
+const DISRUPT_MINUTES = num(process.env.WATCH_DISRUPT_MINUTES, 45);
+
+async function checkStatus(url, key, w) {
+  const ident = (w.flight_numbers || [])[0];
+  if (!ident) return { summary: 'no flight number on file', disrupted: false };
+
+  let obs;
+  if (!process.env.AEROAPI_KEY) {
+    return { summary: 'status not connected', disrupted: false };
+  }
+  try {
+    const r = await fetch(
+      'https://aeroapi.flightaware.com/aeroapi/flights/' + encodeURIComponent(ident),
+      { headers: { 'x-apikey': process.env.AEROAPI_KEY, Accept: 'application/json' } }
+    );
+    if (!r.ok) throw new Error('AeroAPI ' + r.status);
+    const f = ((await r.json()).flights || [])[0] || {};
+    obs = {
+      ident, status: String(f.status || 'Unknown'),
+      scheduled_out: f.scheduled_out || null,
+      estimated_out: f.estimated_out || null,
+      delay_minutes: Math.round(Number(f.departure_delay || 0) / 60),
+      gate: f.gate_origin || null, terminal: f.terminal_origin || null
+    };
+  } catch (e) {
+    return { summary: 'status unavailable', disrupted: false };
+  }
+
+  try {
+    await fetch(url + '/rest/v1/flight_observations', {
+      method: 'POST',
+      headers: Object.assign(auth(key), { 'Content-Type': 'application/json', Prefer: 'return=minimal' }),
+      body: JSON.stringify(obs)
+    });
+  } catch (e) { /* a lost observation must not stop the scan */ }
+
+  const disrupted = obs.delay_minutes >= DISRUPT_MINUTES ||
+    /cancel/i.test(obs.status) || /divert/i.test(obs.status);
+
+  if (disrupted) {
+    // One open disruption per flight. A delay that keeps growing is the same
+    // event, not a new one every two hours.
+    try {
+      const open = await fetch(
+        url + '/rest/v1/disruptions?select=id&ident=eq.' + encodeURIComponent(ident) +
+        '&state=neq.RESOLVED&limit=1', { headers: auth(key) });
+      const existing = open.ok ? await open.json() : [];
+      if (!existing.length) {
+        await fetch(url + '/rest/v1/disruptions', {
+          method: 'POST',
+          headers: Object.assign(auth(key), { 'Content-Type': 'application/json', Prefer: 'return=minimal' }),
+          body: JSON.stringify({
+            watched_id: w.id, ident,
+            kind: /cancel/i.test(obs.status) ? 'CANCELLED' : 'DELAY',
+            state: 'DETECTED', delay_minutes: obs.delay_minutes,
+            detail: obs.status + ', ' + obs.delay_minutes + ' minutes'
+          })
+        });
+        await audit(url, key, 'flight.delayed', {
+          ident, delay_minutes: obs.delay_minutes, status: obs.status
+        }, 'watched_order', w.order_id);
+      }
+    } catch (e) { /* the observation is already recorded */ }
+  }
+
+  return {
+    summary: obs.status + (obs.delay_minutes ? ', ' + obs.delay_minutes + ' min late' : ', on time'),
+    disrupted, delayMinutes: obs.delay_minutes
   };
 }
 

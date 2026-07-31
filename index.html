@@ -1023,6 +1023,8 @@ img{display:block}
         <div class="tstat"><span class="k">Departure in</span><span class="v warn" id="ttd">2:14:00</span></div>
         <div class="tstat"><span class="k">Workflows</span><span class="v live" id="wfcount">3 running</span></div>
         <button class="tbtn" id="flagbtn"><span class="fdot"></span><span id="flagtxt">Controls</span></button>
+        <button class="tbtn" id="cashbtn" style="display:none"><span class="chc" id="cashnow">$0</span><span>Cash</span></button>
+        <button class="tbtn" id="authbtn"><span class="chc" id="authwho">&#9711;</span><span id="authlbl">Sign in</span></button>
         <button class="tbtn" id="ccybtn"><span class="chc" id="ccynow">USD</span><span>Currency</span></button>
         <button class="tbtn" id="proofbtn"><span class="chc" id="rtcount">6</span><span>Proof</span></button>
       </div>
@@ -1696,7 +1698,7 @@ function renderHomeGrids() {
 // Trips booked through the platform, shown above the demo trip so the two
 // halves of the product visibly connect.
 function loadRealTrips() {
-  safeFetchJson('/api/trips', function (j) {
+  safeFetchJson('/api/trips' + (ME.email ? '?email=' + encodeURIComponent(ME.email) : ''), function (j) {
     var list = (j && j.trips) || [];
     var el = $('#realtrips');
     if (!el || !list.length) return;
@@ -1733,7 +1735,71 @@ function openRealTrip(t) {
     '<span class="pill live"><span class="bd"></span>Monitored</span>' +
     '<div style="margin-top:14px">' + (rows || '<div style="font-size:12px;color:var(--faint)">No reservations recorded.</div>') + '</div>' +
     '<p style="margin-top:16px;font-size:12px;color:var(--mute);line-height:1.6">This trip was created automatically when the booking was verified with the supplier. It is in the audit chain, and the repricing watcher is shopping any refundable rate on it until the cancellation deadline.</p>' +
-    '</div><div class="mfoot"><button class="btn" data-close>Close</button></div>');
+    '</div><div class="mfoot"><button class="btn" data-close>Close</button>' +
+    ((t.reservations || [])[0] && t.reservations[0].bookingId
+      ? '<button class="btn danger" id="cancelRes">Cancel this booking</button>' : '') +
+    '</div>');
+  var cb = $('#cancelRes');
+  if (cb) cb.addEventListener('click', function () { openCancel(t, t.reservations[0]); });
+}
+
+// Cancellation always previews first. A refund the traveller did not expect
+// is a complaint, whichever direction it goes in.
+function openCancel(trip, r) {
+  openModal('<div class="mhead"><h3 class="disp">Cancel</h3><button class="x" data-close>&#10005;</button></div>' +
+    '<div class="mbody"><div class="empty" style="padding:30px">Checking the cancellation terms</div></div>');
+
+  fetch('/api/stays/cancel', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ bookingId: r.bookingId, preview: true, paidMinor: r.amountMinor, currency: r.currency })
+  }).then(function (x) { return x.json(); }).then(function (j) {
+    var q = j.quote || {};
+    $('#modal').innerHTML = '<div class="mhead"><h3 class="disp">Cancel ' + (r.name || 'booking') + '</h3>' +
+      '<button class="x" data-close>&#10005;</button></div><div class="mbody">' +
+      '<div class="csline"><span class="k">Paid</span><span class="v">' + (q.paidDisplay || '') + '</span></div>' +
+      (q.penaltyMinor ? '<div class="csline"><span class="k">Penalty</span><span class="v" style="color:var(--halt)">' + q.penaltyDisplay + '</span></div>' : '') +
+      '<div class="csline total"><span class="k">Refunded to you</span><span class="v">' + (q.refundDisplay || '') + '</span></div>' +
+      '<p style="margin-top:14px;font-size:12.5px;color:var(--text-dim);line-height:1.6">' + (q.summary || '') + '</p>' +
+      '<p style="margin-top:12px;font-size:11.5px;color:var(--faint);line-height:1.55">Any Voyara Cash earned on this booking is reversed at the same time. Nothing is left behind.</p>' +
+      '<div id="cxMsg" style="margin-top:12px;font-size:11.5px;line-height:1.55"></div></div>' +
+      '<div class="mfoot"><button class="btn" data-close>Keep it</button>' +
+      '<button class="btn danger" id="cxGo">Cancel the booking</button></div>';
+    $$('[data-close]', $('#modal')).forEach(function (b) { b.addEventListener('click', closeModal); });
+    $('#cxGo').addEventListener('click', function () {
+      var btn = $('#cxGo'), msg = $('#cxMsg');
+      btn.disabled = true; btn.textContent = 'Cancelling';
+      fetch('/api/stays/cancel', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookingId: r.bookingId, idempotencyKey: 'cx_' + r.bookingId,
+          email: ME.email || 'guest@voyara.app',
+          paidMinor: r.amountMinor, currency: r.currency, reason: 'traveller request'
+        })
+      }).then(function (x) { return x.json().then(function (j2) { return { code: x.status, j: j2 }; }); })
+        .then(function (out) {
+          if (out.j.cancelled) {
+            msg.innerHTML = '<span style="color:var(--live)">Cancelled and verified with the supplier. ' +
+              (out.j.quote ? out.j.quote.refundDisplay + ' is on its way back.' : '') + '</span>';
+            btn.textContent = 'Cancelled';
+            audit('reservation.cancelled', { booking: r.bookingId, verified: true }, 'traveler');
+            loadRealTrips(); loadCash();
+          } else if (out.code === 202) {
+            msg.innerHTML = '<span style="color:var(--halt)">' + out.j.detail + '</span>';
+            btn.textContent = 'Escalated';
+          } else {
+            msg.innerHTML = '<span style="color:var(--halt)">' + (out.j.warning || out.j.detail || out.j.error || 'Could not cancel.') + '</span>';
+            btn.disabled = false; btn.textContent = 'Cancel the booking';
+          }
+        }).catch(function () {
+          msg.innerHTML = '<span style="color:var(--halt)">Could not reach the server.</span>';
+          btn.disabled = false; btn.textContent = 'Cancel the booking';
+        });
+    });
+  }).catch(function () {
+    $('#modal').innerHTML = '<div class="mhead"><h3 class="disp">Cancel</h3><button class="x" data-close>&#10005;</button></div>' +
+      '<div class="mbody"><div class="empty">Could not read the cancellation terms.</div></div>';
+    $$('[data-close]', $('#modal')).forEach(function (b) { b.addEventListener('click', closeModal); });
+  });
 }
 
 function loadCollections() {
@@ -2618,6 +2684,142 @@ var CCY = {
 };
 
 // Guess from the browser once, then remember whatever the traveller picks.
+/* ============================================================
+   SESSION . passwordless, six digit code by email
+   ============================================================ */
+var ME = { email: null };
+
+function initSession() {
+  try { ME.email = window.localStorage.getItem('voyara.email') || null; } catch (e) { ME.email = null; }
+  paintSession();
+  if (ME.email) { loadCash(); loadRealTrips(); }
+}
+
+function paintSession() {
+  var lbl = $('#authlbl'), who = $('#authwho');
+  if (!lbl) return;
+  if (ME.email) {
+    lbl.textContent = ME.email.split('@')[0].slice(0, 14);
+    who.textContent = ME.email.slice(0, 1).toUpperCase();
+  } else {
+    lbl.textContent = 'Sign in';
+    who.innerHTML = '&#9711;';
+  }
+}
+
+function setSession(email) {
+  ME.email = email ? String(email).toLowerCase() : null;
+  try {
+    if (ME.email) window.localStorage.setItem('voyara.email', ME.email);
+    else window.localStorage.removeItem('voyara.email');
+  } catch (e) { /* private mode */ }
+  paintSession();
+  loadCash();
+  loadRealTrips();
+}
+
+function openAuth() {
+  if (ME.email) {
+    openModal('<div class="mhead"><h3 class="disp">Signed in</h3><button class="x" data-close>&#10005;</button></div>' +
+      '<div class="mbody"><div class="csline"><span class="k">Email</span><span class="v">' + ME.email + '</span></div>' +
+      '<p style="margin-top:14px;font-size:12px;color:var(--mute);line-height:1.6">Your trips, your Voyara Cash and your fare watches are tied to this address.</p></div>' +
+      '<div class="mfoot"><button class="btn" data-close>Close</button><button class="btn danger" id="signout">Sign out</button></div>');
+    $('#signout').addEventListener('click', function () { setSession(null); closeModal(); });
+    return;
+  }
+  openModal('<div class="mhead"><h3 class="disp">Sign in</h3><button class="x" data-close>&#10005;</button></div>' +
+    '<div class="mbody"><p style="font-size:13px;line-height:1.6;color:var(--text-dim)">No password. We email a six digit code.</p>' +
+    '<input class="pinput" id="auE" type="email" placeholder="you@example.com" style="margin-top:14px">' +
+    '<div id="auCode" style="display:none;margin-top:10px"><input class="pinput" id="auT" inputmode="numeric" maxlength="6" placeholder="Six digit code"></div>' +
+    '<div id="auMsg" style="margin-top:12px;font-size:11.5px;color:var(--faint);line-height:1.55"></div></div>' +
+    '<div class="mfoot"><button class="btn" data-close>Not now</button><button class="btn primary" id="auGo">Email me a code</button></div>');
+
+  var stage = 'send';
+  $('#auGo').addEventListener('click', function () {
+    var email = ($('#auE').value || '').trim();
+    var msg = $('#auMsg'), btn = $('#auGo');
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      msg.innerHTML = '<span style="color:var(--warn)">That does not look like an email address.</span>';
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = stage === 'send' ? 'Sending' : 'Checking';
+    var body = stage === 'send'
+      ? { action: 'send', email: email }
+      : { action: 'verify', email: email, token: ($('#auT').value || '').trim() };
+    fetch('/api/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json().then(function (j) { return { code: r.status, j: j }; }); })
+      .then(function (out) {
+        var j = out.j;
+        if (stage === 'send') {
+          if (j.mode === 'mock') {
+            msg.innerHTML = '<span style="color:var(--warn)">Sign in is not connected yet. Set the Supabase keys and enable Email auth.</span>';
+            btn.disabled = false; btn.textContent = 'Email me a code';
+            return;
+          }
+          if (j.sent) {
+            stage = 'verify';
+            $('#auCode').style.display = '';
+            msg.innerHTML = '<span style="color:var(--live)">Code sent. Check your inbox.</span>';
+            btn.disabled = false; btn.textContent = 'Sign in';
+            return;
+          }
+          msg.innerHTML = '<span style="color:var(--halt)">' + (j.detail || j.error || 'Could not send that.') + '</span>';
+          btn.disabled = false; btn.textContent = 'Email me a code';
+          return;
+        }
+        if (j.session) {
+          setSession(j.session.email);
+          audit('auth.signed_in', { method: 'email_code' }, 'traveler');
+          closeModal();
+          toast('Signed in. Your trips and Cash are attached to this address.', 'live');
+          return;
+        }
+        msg.innerHTML = '<span style="color:var(--halt)">' + (j.detail || 'That code did not work.') + '</span>';
+        btn.disabled = false; btn.textContent = 'Sign in';
+      }).catch(function () {
+        msg.innerHTML = '<span style="color:var(--halt)">Could not reach the server.</span>';
+        btn.disabled = false; btn.textContent = stage === 'send' ? 'Email me a code' : 'Sign in';
+      });
+  });
+}
+
+/* ============================================================
+   VOYARA CASH . earned on flights, spent on stays
+   ============================================================ */
+var CASH = { availableMinor: 0, pendingMinor: 0, entries: [], rules: null };
+
+function loadCash() {
+  var q = ME.email ? '?email=' + encodeURIComponent(ME.email) : '';
+  safeFetchJson('/api/cash' + q, function (j) {
+    if (!j) return;
+    CASH = j;
+    var btn = $('#cashbtn'), now = $('#cashnow');
+    if (!btn) return;
+    if ((j.availableMinor || 0) > 0 || (j.pendingMinor || 0) > 0) {
+      btn.style.display = '';
+      now.textContent = money(j.availableMinor || 0, CCY.current);
+    } else btn.style.display = 'none';
+  });
+}
+
+function openCash() {
+  var r = CASH.rules || {};
+  var rows = (CASH.entries || []).slice(0, 10).map(function (e) {
+    return '<div class="csline"><span class="k">' + e.kind + ' . ' + (e.source || '') + '</span>' +
+      '<span class="v" style="color:' + (e.amountMinor > 0 ? 'var(--live)' : 'var(--mute)') + '">' +
+      money(e.amountMinor, e.currency || CCY.current) + '</span></div>';
+  }).join('');
+  openModal('<div class="mhead"><h3 class="disp">Voyara Cash</h3><button class="x" data-close>&#10005;</button></div>' +
+    '<div class="mbody">' +
+    '<div class="csline total"><span class="k">Available</span><span class="v">' + money(CASH.availableMinor || 0, CCY.current) + '</span></div>' +
+    (CASH.pendingMinor ? '<div class="csline"><span class="k">Pending until you travel</span><span class="v">' + money(CASH.pendingMinor, CCY.current) + '</span></div>' : '') +
+    '<p style="margin-top:14px;font-size:12.5px;color:var(--text-dim);line-height:1.65">' + (r.summary || '') + '</p>' +
+    '<p style="margin-top:12px;font-size:11.5px;color:var(--mute);line-height:1.6">Airlines pay us roughly one percent, so a flight reward cannot fund itself. It is funded by hotel margin, which is why Cash is earned on flights and spent on rooms. That is also why it covers part of a stay rather than all of it.</p>' +
+    (rows ? '<div class="label" style="margin-top:18px;margin-bottom:6px">Recent</div>' + rows : '') +
+    '</div><div class="mfoot"><button class="btn" data-close>Close</button></div>');
+}
+
 function initCurrency() {
   var saved = null;
   try { saved = window.localStorage.getItem('voyara.currency'); } catch (e) { saved = null; }
@@ -4125,6 +4327,7 @@ function boot() {
   renderMetrics(); renderEvents(); renderPolicy(); renderScope(); renderArch(); renderSM();
   renderQueue(); renderCase(); renderSteps(); renderSugg(); syncFlagUi(); initCurrency();
   renderRateEngine(); renderHomeRate(); renderModels(); renderAgentBoard(); renderFareWatch();
+  initSession(); loadCash();
   setInterval(tickClocks, 1000); tickClocks();
 
   $$('.stab').forEach(function (b) { b.addEventListener('click', function () { switchView(b.getAttribute('data-view')); }); });
@@ -4132,6 +4335,8 @@ function boot() {
   $('#voicebtn').addEventListener('click', openVoice);
   $('#flagbtn').addEventListener('click', openFlags);
   $('#ccybtn').addEventListener('click', openCurrency);
+  $('#authbtn').addEventListener('click', openAuth);
+  $('#cashbtn').addEventListener('click', openCash);
   $('#verifybtn').addEventListener('click', function () { verifyChain(); });
   $('#tamperbtn').addEventListener('click', tamperTest);
   $('#runall').addEventListener('click', runAll);
