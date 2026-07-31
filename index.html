@@ -79,6 +79,12 @@ img{display:block}
 .sitem .si{width:17px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--faint);flex:0 0 17px}
 .sitem.on .si{color:var(--nav)}
 .sitem .cnt{margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--warn)}
+.rtrip{margin:0 0 6px;padding:12px;border:1px solid var(--rule);border-radius:var(--r-sm);text-align:left;width:100%;background:var(--surface);transition:.18s}
+.rtrip:hover{border-color:var(--faint)}
+.rtrip .rt1{font-size:13.5px;color:var(--text);line-height:1.3}
+.rtrip .rt2{font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);margin-top:5px}
+.rtrip .rt3{display:flex;align-items:center;gap:6px;margin-top:8px;font-family:var(--mono);font-size:8px;letter-spacing:.11em;text-transform:uppercase;color:var(--live)}
+.rtrip .rt3 i{width:5px;height:5px;border-radius:50%;background:var(--live);box-shadow:0 0 8px var(--live)}
 .sdiv{margin:14px 11px 8px;font-family:var(--mono);font-size:8.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint)}
 #tripcard{
   margin:4px 0 0;padding:12px;border:1px solid var(--rule);border-radius:var(--r-sm);
@@ -987,6 +993,7 @@ img{display:block}
     <button class="sitem stab on" data-view="home"><span class="si">&#9670;</span>Book travel</button>
     <button class="sitem" id="navcollections"><span class="si">&#9633;</span>Collections</button>
     <div class="sdiv">Your trips</div>
+    <div id="realtrips"></div>
     <button id="tripcard" class="stab" data-view="trip">
       <div class="tt">Milan, September</div>
       <div class="td">12 . 18 Sep 2026 . 3 reservations</div>
@@ -1683,6 +1690,50 @@ function renderHomeGrids() {
   }));
 
   loadCollections();
+  loadRealTrips();
+}
+
+// Trips booked through the platform, shown above the demo trip so the two
+// halves of the product visibly connect.
+function loadRealTrips() {
+  safeFetchJson('/api/trips', function (j) {
+    var list = (j && j.trips) || [];
+    var el = $('#realtrips');
+    if (!el || !list.length) return;
+    el.innerHTML = list.slice(0, 4).map(function (t, i) {
+      return '<button class="rtrip" data-realtrip="' + i + '">' +
+        '<div class="rt1">' + t.title + '</div>' +
+        '<div class="rt2">' + (t.startsOn ? prettyDate(t.startsOn) : '') +
+        (t.endsOn ? ' to ' + prettyDate(t.endsOn) : '') +
+        ' . ' + t.reservationCount + ' reservation' + (t.reservationCount === 1 ? '' : 's') + '</div>' +
+        '<div class="rt3"><i></i><span>Monitored live</span></div></button>';
+    }).join('');
+    $$('[data-realtrip]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var t = list[parseInt(b.getAttribute('data-realtrip'), 10)];
+        openRealTrip(t);
+      });
+    });
+  });
+}
+
+function openRealTrip(t) {
+  var rows = (t.reservations || []).map(function (r) {
+    return '<div class="csline"><span class="k">' + (r.type || 'Reservation') + '</span>' +
+      '<span class="v">' + (r.name || '') + '</span></div>' +
+      '<div class="csline"><span class="k">Reference</span><span class="v mono">' + (r.reference || '') + '</span></div>' +
+      (r.checkIn ? '<div class="csline"><span class="k">Dates</span><span class="v">' +
+        prettyDate(r.checkIn) + ' to ' + prettyDate(r.checkOut) + '</span></div>' : '') +
+      (r.amountMinor ? '<div class="csline"><span class="k">Paid</span><span class="v mono">' +
+        money(r.amountMinor, r.currency || CCY.current) + '</span></div>' : '');
+  }).join('<div style="height:10px"></div>');
+
+  openModal('<div class="mhead"><h3 class="disp">' + t.title + '</h3><button class="x" data-close>&#10005;</button></div>' +
+    '<div class="mbody">' +
+    '<span class="pill live"><span class="bd"></span>Monitored</span>' +
+    '<div style="margin-top:14px">' + (rows || '<div style="font-size:12px;color:var(--faint)">No reservations recorded.</div>') + '</div>' +
+    '<p style="margin-top:16px;font-size:12px;color:var(--mute);line-height:1.6">This trip was created automatically when the booking was verified with the supplier. It is in the audit chain, and the repricing watcher is shopping any refundable rate on it until the cancellation deadline.</p>' +
+    '</div><div class="mfoot"><button class="btn" data-close>Close</button></div>');
 }
 
 function loadCollections() {
@@ -2346,7 +2397,7 @@ function stepConfirmed() {
     '<div class="cname disp">' + h.name + '</div>' +
     '<div class="cref">' + (b.reference || b.id || '') + '</div>' +
     '<div class="cnote">The booking was retrieved back from the supplier and compared to what you approved before we called it confirmed. ' +
-    'It is written into the audit chain, and the trip is now monitored.</div>' +
+    'It is written into the audit chain' + (b.tripFiled ? ', filed as a trip in your account,' : '') + ' and now monitored.</div>' +
     '<div style="margin-top:22px;display:flex;gap:9px;justify-content:center;flex-wrap:wrap">' +
     '<span class="pill">' + (PROP.mode || '') + '</span>' +
     '<span class="pill live"><span class="bd"></span>Verified against the supplier</span></div>' +
@@ -2380,7 +2431,9 @@ function doBooking() {
     .then(function (out) {
       var j = out.j;
       if (j.booking) {
-        PROP.booking = j.booking; PROP.step = 4; renderStep(); topOfSheet();
+        PROP.booking = Object.assign({}, j.booking, { tripFiled: Boolean(j.trip) });
+        PROP.step = 4; renderStep(); topOfSheet();
+        if (j.trip) loadRealTrips();
         audit('action.execution_succeeded', { vertical: 'hotel', reference: j.booking.reference, verified: !!(j.verification && j.verification.verified) }, 'system');
         emit('reservation.created.v1', 'booking-gateway');
       } else if (out.code === 409) {

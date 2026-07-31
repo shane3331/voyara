@@ -140,6 +140,22 @@ module.exports = async (req, res) => {
   };
   audit.eventHash = crypto.createHash('sha256').update(JSON.stringify(audit)).digest('hex');
 
+  // A verified booking becomes a monitored trip. Done here rather than in the
+  // browser so a closed tab or a failed script cannot lose it.
+  let trip = null;
+  if (verification.verified) {
+    trip = await recordTrip(req, {
+      email: String(g.email).toLowerCase(),
+      hotelName: (created.hotel && created.hotel.name) || body.hotelName || 'Your stay',
+      checkin: created.checkin || body.checkIn || null,
+      checkout: created.checkout || body.checkOut || null,
+      reference: created.supplierBookingId || created.bookingReference || bookingId,
+      bookingId, offerId,
+      amountMinor: Number(body.amountMinor) || null,
+      currency: body.currency || null
+    });
+  }
+
   res.status(verification.verified ? 200 : 502).end(JSON.stringify({
     mode: isSandbox ? 'sandbox:liteapi' : 'live:liteapi',
     booking: {
@@ -149,11 +165,52 @@ module.exports = async (req, res) => {
       hotelName: created.hotel && created.hotel.name || null,
       checkin: created.checkin || null, checkout: created.checkout || null
     },
-    verification, audit,
+    verification, audit, trip,
     warning: verification.verified ? null
       : 'The booking was created but could not be verified. Do not tell the traveller it is confirmed. Escalate to an operator.'
   }));
 };
+
+// Calls our own trips route rather than duplicating the upsert logic, so
+// there is exactly one place that decides what a trip is.
+async function recordTrip(req, d) {
+  try {
+    const host = req.headers['x-forwarded-host'] || req.headers.host;
+    if (!host) return null;
+    const proto = String(req.headers['x-forwarded-proto'] || 'https');
+    const r = await fetch(proto + '://' + host + '/api/trips', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: d.email,
+        title: d.hotelName,
+        startsOn: normDate(d.checkin),
+        endsOn: normDate(d.checkout),
+        source: 'hotel_booking',
+        reservation: {
+          type: 'HOTEL', supplier: 'liteapi', name: d.hotelName,
+          reference: d.reference, bookingId: d.bookingId, offerId: d.offerId,
+          checkIn: normDate(d.checkin), checkOut: normDate(d.checkout),
+          amountMinor: d.amountMinor, currency: d.currency,
+          status: 'CONFIRMED'
+        }
+      })
+    });
+    if (!r.ok) return null;
+    const j = await r.json();
+    return j && j.trip ? j.trip : null;
+  } catch (e) {
+    // The booking already succeeded. Failing to file it must not surface as
+    // a booking failure to the traveller.
+    return null;
+  }
+}
+
+function normDate(v) {
+  if (!v) return null;
+  const s = String(v).slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
+}
 
 function bad(res, msg) { return res.status(400).end(JSON.stringify({ error: msg })); }
 function readJson(req) {
