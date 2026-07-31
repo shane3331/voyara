@@ -7,30 +7,45 @@
 <meta name="description" content="Voyara is a transaction-aware travel operations platform. Navi proposes, the platform validates, you approve, the workflow executes, the audit log proves.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Cormorant+Garamond:wght@300;400;500&display=swap" rel="stylesheet">
 <link href="https://fonts.cdnfonts.com/css/bdo-grotesk" rel="stylesheet">
 <style>
 :root{
-  --ink:#08090B;
-  --surface:#0E1013;
-  --raised:#14171B;
-  --raised2:#1A1E23;
-  --rule:#22262C;
-  --rule-soft:#181C21;
-  --text:#EDEEF0;
-  --text-dim:#B4B9BF;
-  --mute:#84898F;
-  --faint:#54595F;
+  /* Warm paper rather than white. A pure white ground reads as software;
+     the slight warmth is most of what makes a page feel like a brochure. */
+  --ink:#F2F0EA;          /* the page */
+  --surface:#FBFAF7;      /* cards and panels */
+  --raised:#FFFFFF;
+  --raised2:#F6F4EE;
+  --rule:#DEDAD0;
+  --rule-soft:#E9E6DE;
+
+  --text:#26241F;         /* warm near black, never pure black */
+  --text-dim:#4E4A43;
+  --mute:#726D64;
+  --faint:#A29C91;
+
   --paper:#FBFAF7;
-  --paper-ink:#101215;
-  --paper-mute:#6B7280;
-  --paper-rule:#DAD5CB;
-  --live:#57D6A9;
-  --warn:#E8A33D;
-  --halt:#E5604D;
-  --nav:#8FB4E3;
-  --nav-dim:#1D2733;
+  --paper-ink:#26241F;
+  --paper-mute:#726D64;
+  --paper-rule:#DEDAD0;
+
+  /* Accents darkened for contrast on paper. The dark theme greens and ambers
+     were tuned to glow on black and are illegible on cream. */
+  --live:#2F7A5C;
+  --live-soft:#E4F0EA;
+  --warn:#9A6A1C;
+  --warn-soft:#F6EEDC;
+  --halt:#A83C29;
+  --halt-soft:#F7E7E3;
+  --nav:#3A5B84;
+  --nav-dim:#E6EBF2;
+
+  /* Ink used over photography, where white on dark is still correct. */
+  --on-photo:#FFFFFF;
+
   --body:'BDO Grotesk','Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --serif:'Cormorant Garamond',Georgia,'Times New Roman',serif;
   --mono:'DM Mono','SFMono-Regular',Menlo,monospace;
   --side:236px;
   --topbar:60px;
@@ -57,7 +72,8 @@ img{display:block}
 
 .mono{font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em}
 .label{font-family:var(--mono);text-transform:uppercase;letter-spacing:.14em;font-size:9.5px;color:var(--mute);font-weight:400}
-.disp{font-weight:300;letter-spacing:-.025em}
+.disp{font-family:var(--serif);font-weight:300;letter-spacing:-.008em;line-height:1.08}
+.disp em,.disp .thin{font-style:normal;color:var(--mute)}
 
 /* ============ SHELL ============ */
 #shell{display:flex;height:100%}
@@ -65,7 +81,7 @@ img{display:block}
 /* ---- sidebar ---- */
 #side{
   width:var(--side);flex:0 0 var(--side);
-  border-right:1px solid var(--rule-soft);background:var(--ink);
+  border-right:1px solid var(--rule);background:var(--raised2);
   display:flex;flex-direction:column;padding:22px 14px 14px;gap:2px;z-index:70;
 }
 #side .wm{display:flex;align-items:center;padding:2px 10px 24px}
@@ -109,12 +125,12 @@ img{display:block}
 #maincol{flex:1 1 auto;min-width:0;display:flex;flex-direction:column}
 #topbar{
   height:var(--topbar);flex:0 0 auto;display:flex;align-items:center;gap:12px;
-  padding:0 18px;border-bottom:1px solid var(--rule-soft);background:rgba(8,9,11,.8);
+  padding:0 18px;border-bottom:1px solid var(--rule-soft);background:rgba(250,249,246,.86);
   backdrop-filter:blur(12px);position:relative;z-index:60;
 }
 #burger{display:none;width:34px;height:34px;border:1px solid var(--rule);border-radius:9px;align-items:center;justify-content:center;color:var(--mute)}
 #whoami{display:flex;align-items:center;gap:10px;padding:6px 12px 6px 6px;border:1px solid var(--rule);border-radius:99px}
-#whoami .av2{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--nav),#5A79A6);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;color:#0A121C}
+#whoami .av2{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--nav),#5A79A6);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;color:#fff}
 #whoami .wn{font-size:12.5px;line-height:1.15}
 #whoami .wn small{display:block;font-family:var(--mono);font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
 #crumb{font-family:var(--mono);font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--faint)}
@@ -143,7 +159,7 @@ img{display:block}
 #hero .bgimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;filter:saturate(.82) contrast(1.04) brightness(.9)}
 #hero:before{content:'';position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(8,9,11,.42) 0%,rgba(8,9,11,.14) 34%,rgba(8,9,11,.22) 62%,rgba(8,9,11,.68) 100%)}
 #hero .hkick{font-family:var(--mono);font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:rgba(255,255,255,.72);margin-bottom:14px}
-#hero h1{font-weight:300;font-size:clamp(34px,4.6vw,58px);letter-spacing:-.03em;line-height:1.02;text-align:center;text-shadow:0 2px 30px rgba(0,0,0,.35)}
+#hero h1{font-family:var(--serif);font-weight:300;font-size:clamp(42px,6.4vw,84px);letter-spacing:-.01em;line-height:1;text-align:center;text-shadow:0 2px 40px rgba(0,0,0,.3)}
 #hero h1 .thin{color:rgba(255,255,255,.62)}
 
 #cats{display:flex;gap:2px;margin:30px 0 22px;padding:5px;border-radius:99px;background:rgba(10,12,15,.5);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.09)}
@@ -285,6 +301,29 @@ img{display:block}
 #proofstrip h3{font-weight:300;font-size:22px;letter-spacing:-.02em}
 #proofstrip p{font-size:12.5px;color:var(--mute);margin-top:7px;line-height:1.55;max-width:56ch}
 
+/* ============ MEMBER GATE ============
+   A signed out visitor sees the market rate and, beneath it, exactly what a
+   member would pay and exactly what they would keep. Showing the number
+   rather than describing it is the whole conversion. It also keeps the
+   discounted rate behind a login, which is what a closed user group means
+   and what keeps us out of rate parity trouble with suppliers. */
+.mgate{margin-top:10px;padding:10px 12px;border:1px solid var(--rule);border-radius:var(--r-sm);
+  background:var(--live-soft);text-align:right}
+.mgate .ml{font-family:var(--mono);font-size:7.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--live)}
+.mgate .mp{font-weight:400;font-size:19px;color:var(--text);margin-top:4px;letter-spacing:-.01em}
+.mgate .ms{font-family:var(--mono);font-size:9px;letter-spacing:.09em;color:var(--live);margin-top:3px}
+.mgate button{margin-top:9px;width:100%;padding:9px;border-radius:99px;background:var(--live);
+  color:#fff;font-family:var(--mono);font-size:8px;letter-spacing:.13em;text-transform:uppercase;
+  font-weight:500;transition:.16s}
+.mgate button:hover{filter:brightness(1.12)}
+.savebar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:0 26px 14px;padding:14px 18px;
+  border:1px solid var(--rule);border-radius:var(--r);background:var(--live-soft)}
+.savebar .sb1{flex:1;min-width:240px;font-size:14px;color:var(--text-dim);line-height:1.55}
+.savebar .sb1 b{color:var(--live);font-weight:500}
+.savebar button{padding:11px 20px;border-radius:99px;background:var(--live);color:#fff;
+  font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;font-weight:500}
+@media (max-width:820px){.savebar{margin:0 14px 12px}}
+
 /* ============ SIGNATURE ============ */
 .sigband{padding:0 26px 6px}
 .sighead{display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding:6px 0 14px;flex-wrap:wrap}
@@ -372,7 +411,7 @@ img{display:block}
 .pstp{display:flex;align-items:center;gap:9px;flex:0 0 auto;padding-right:14px}
 .pstp .num{width:22px;height:22px;border-radius:50%;border:1px solid var(--rule);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:9px;color:var(--faint);flex:0 0 22px}
 .pstp .lbl{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);white-space:nowrap}
-.pstp.done .num{background:var(--live);border-color:var(--live);color:#062B1F}
+.pstp.done .num{background:var(--live);border-color:var(--live);color:#fff}
 .pstp.done .lbl{color:var(--text-dim)}
 .pstp.cur .num{background:#fff;border-color:#fff;color:var(--ink);font-weight:500}
 .pstp.cur .lbl{color:#fff}
@@ -649,7 +688,7 @@ img{display:block}
 .pbtn:disabled{opacity:.3;cursor:not-allowed}
 .pc-note{padding:0 20px 16px;font-size:11px;color:var(--paper-mute);line-height:1.5}
 .pc-stamp{padding:14px 20px;text-align:center;font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;border-top:1px solid var(--paper-rule)}
-.pc-stamp.ok{color:#1F7A5C}
+.pc-stamp.ok{color:var(--live)}
 .pc-stamp.no{color:#B3402F}
 
 /* ============ MODAL ============ */
@@ -767,7 +806,7 @@ img{display:block}
   background:var(--surface);border-left:1px solid var(--rule);
   display:flex;flex-direction:column;transform:translateX(102%);
   transition:transform .32s cubic-bezier(.4,0,.2,1);pointer-events:auto;
-  box-shadow:-24px 0 60px rgba(0,0,0,.4);
+  box-shadow:-24px 0 60px rgba(38,36,31,.13);
 }
 #railwrap.open{pointer-events:auto}
 #railwrap.open #railscrim{opacity:1;pointer-events:auto}
@@ -803,7 +842,7 @@ img{display:block}
 /* ============ DEMO BAR ============ */
 #demobar{
   height:var(--demobar);flex:0 0 auto;border-top:1px solid var(--rule-soft);
-  background:rgba(8,9,11,.86);backdrop-filter:blur(12px);
+  background:rgba(250,249,246,.9);backdrop-filter:blur(12px);
   display:flex;align-items:center;padding:0 16px;gap:12px;position:relative;z-index:55;
 }
 #demobar .dlab{font-family:var(--mono);font-size:7.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);flex:0 0 auto;line-height:1.5}
@@ -820,7 +859,7 @@ img{display:block}
 .step.active .n{color:var(--nav)}
 #runall{flex:0 0 auto;padding:10px 20px;border-radius:99px;background:var(--text);color:var(--ink);font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;font-weight:500;transition:.2s}
 #runall:hover{background:#fff}
-#runall.running{background:var(--nav);color:#0A121C}
+#runall.running{background:var(--nav);color:#fff}
 #resetbtn{flex:0 0 auto;padding:10px 15px;border:1px solid var(--rule);border-radius:99px;font-family:var(--mono);font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:var(--mute)}
 #resetbtn:hover{color:var(--text);border-color:var(--faint)}
 
@@ -838,7 +877,7 @@ img{display:block}
   #side{
     position:fixed;top:0;left:0;bottom:0;width:min(300px,84vw);
     transform:translateX(-103%);transition:transform .3s cubic-bezier(.4,0,.2,1);
-    background:var(--ink);box-shadow:20px 0 60px rgba(0,0,0,.5);border-right:1px solid var(--rule);
+    background:var(--ink);box-shadow:20px 0 60px rgba(38,36,31,.16);border-right:1px solid var(--rule);
     z-index:180;overflow-y:auto;
   }
   #side.open{transform:translateX(0)}
@@ -882,7 +921,7 @@ img{display:block}
   .seg .bd2{padding:13px 14px 14px 12px}
   #railtoggle{
     display:flex;position:fixed;right:12px;bottom:calc(var(--demobar) + 46px);z-index:130;
-    align-items:center;gap:8px;padding:11px 15px;border-radius:99px;background:var(--nav);color:#08111C;
+    align-items:center;gap:8px;padding:11px 15px;border-radius:99px;background:var(--nav);color:#fff;
     font-family:var(--mono);font-size:9px;letter-spacing:.13em;text-transform:uppercase;font-weight:500;
     box-shadow:0 8px 26px rgba(0,0,0,.5);
   }
@@ -1035,9 +1074,10 @@ img{display:block}
       <!-- ==================== HOME ==================== -->
       <section class="view on" id="home">
         <div id="hero">
-          <img class="bgimg" src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=1800&q=70&auto=format&fit=crop" alt="" loading="eager" onerror="this.remove()">
+          <img class="bgimg" src="/hero.jpg" alt="" loading="eager"
+            onerror="this.src='https://images.unsplash.com/photo-1505142468610-359e7d316be0?w=2000&q=72&auto=format&fit=crop'">
           <div class="hkick">Travel, operated</div>
-          <h1 class="disp">Every trip, watched.<br><span class="thin">Every change, proven.</span></h1>
+          <h1 class="disp">Where to next?</h1>
           <div id="cats">
             <button class="cat on" data-cat="navi"><span class="cg">&#10022;</span><span class="cl2">Navi<sup>Live</sup></span></button>
             <button class="cat" data-cat="hotels"><span class="cg">&#8962;</span><span class="cl2">Hotels</span></button>
@@ -1996,6 +2036,44 @@ function offersToCards(type, json) {
 
 // An honest empty state. Showing built in sample hotels when a live search
 // fails would look like a working search and would be a lie in a demo.
+// The total across everything on screen, so the saving reads as a reason to
+// join rather than a detail on one card.
+function paintSaveBar(data) {
+  var cur = CCY.current, total = 0, n = 0;
+  data.forEach(function (r) {
+    var v = parseMoney(r.keep);
+    if (v > 0) { total += v; n++; }
+  });
+  if (!n) return;
+  var avg = Math.round(total / n);
+  var zone = $('#resultszone');
+  var anchor = zone.querySelector('.hsec');
+  var html = '<div class="savebar"><div class="sb1">Members pay less on every one of these. ' +
+    'On this search that is <b>' + money(avg, cur) + ' saved on an average stay</b>, ' +
+    'and <b>' + money(total, cur) + '</b> across all ' + n + '.</div>' +
+    '<button data-join="1">See member rates</button></div>';
+  if (anchor) anchor.insertAdjacentHTML('afterend', html);
+  else zone.insertAdjacentHTML('afterbegin', html);
+}
+
+// Reads a formatted amount back to minor units. Intl puts the symbol in
+// different places per currency and uses a non breaking space in some
+// locales, so strip everything that is not a digit or a separator.
+function parseMoney(str) {
+  if (!str) return 0;
+  var t = String(str).replace(/[^0-9.,-]/g, '');
+  if (!t) return 0;
+  var lastDot = t.lastIndexOf('.'), lastComma = t.lastIndexOf(',');
+  var dec = Math.max(lastDot, lastComma);
+  var whole, frac = '';
+  if (dec > -1 && t.length - dec <= 3) {
+    whole = t.slice(0, dec).replace(/[.,]/g, '');
+    frac = t.slice(dec + 1).replace(/[^0-9]/g, '');
+  } else whole = t.replace(/[.,]/g, '');
+  var n = Number(whole || '0') * 100 + Number((frac + '00').slice(0, 2) || '0');
+  return Number.isFinite(n) ? n : 0;
+}
+
 function emptyResults(type, message, heading) {
   var q = stayQuery();
   $('#resultszone').innerHTML =
@@ -2020,6 +2098,28 @@ function emptyResults(type, message, heading) {
   audit('search.no_results', { vertical: type, destination: q.destination }, 'traveler');
 }
 
+// What a card shows depends on whether anyone is signed in. A member sees
+// their price. A visitor sees the market price and, underneath, precisely
+// what joining is worth on this exact room.
+function priceBlock(r) {
+  var book = '<button class="rbook"' + (r.hotelId ? ' data-hotel="' + r.hotelId + '"' : '') + '>' +
+    (r.hotelId ? 'View property' : 'Request to book') + '</button>';
+
+  if (ME.email || !r.net || !r.keep) {
+    return '<div class="rprice"><div><div class="pp">' + (r.net || r.p) + '</div>' +
+      (r.net ? '<div class="pe" style="color:var(--live)">You save ' + r.keep + '</div>'
+             : '<div class="pe">Expires in 4:00</div>') + '</div>' + book + '</div>';
+  }
+
+  return '<div class="rprice"><div><div class="pp">' + r.p + '</div>' +
+    '<div class="pe">Market rate</div></div>' +
+    '<div class="mgate"><div class="ml">Members pay</div>' +
+    '<div class="mp">' + r.net + '</div>' +
+    '<div class="ms">you keep ' + r.keep + '</div>' +
+    '<button data-join="1">Join to unlock</button></div>' +
+    book + '</div>';
+}
+
 function renderResults(type, live) {
   var url = apiUrl(type);
   if (url && !live) {
@@ -2027,22 +2127,28 @@ function renderResults(type, live) {
     zone.innerHTML = '<div class="hsec" style="padding-top:26px"><div class="hh"><div>' +
       '<h2 class="disp" style="font-size:24px">Searching</h2>' +
       '<div class="hsub">Live request to the supplier</div></div></div></div>';
-    fetch(url).then(function (r) { return r.json(); }).then(function (j) {
-      if (j && j.offers && j.offers.length) {
-        renderResults(type, {
-          data: offersToCards(type, j), mode: j.mode,
-          qualityLabel: j.qualityLabel, relaxed: j.relaxed
-        });
-      } else if (j && j.noResults) {
-        emptyResults(type, j.message || 'Nothing available for that search.', 'No properties');
-      } else if (j && j.error) {
-        emptyResults(type, j.detail || j.error, 'The supplier did not answer');
-      } else {
-        emptyResults(type, 'The search returned nothing. Try another destination or different dates.', 'No results');
-      }
-    }).catch(function () {
+    // Guarded because this path is now reachable from signing in and out, not
+    // only from a click. A synchronous throw here would abort the caller.
+    try {
+      fetch(url).then(function (r) { return r.json(); }).then(function (j) {
+        if (j && j.offers && j.offers.length) {
+          renderResults(type, {
+            data: offersToCards(type, j), mode: j.mode,
+            qualityLabel: j.qualityLabel, relaxed: j.relaxed
+          });
+        } else if (j && j.noResults) {
+          emptyResults(type, j.message || 'Nothing available for that search.', 'No properties');
+        } else if (j && j.error) {
+          emptyResults(type, j.detail || j.error, 'The supplier did not answer');
+        } else {
+          emptyResults(type, 'The search returned nothing. Try another destination or different dates.', 'No results');
+        }
+      }).catch(function () {
+        emptyResults(type, 'Could not reach the server. Check the connection and try again.', 'Offline');
+      });
+    } catch (e) {
       emptyResults(type, 'Could not reach the server. Check the connection and try again.', 'Offline');
-    });
+    }
     return;
   }
 
@@ -2075,12 +2181,10 @@ function renderResults(type, live) {
       (r.stars ? '<span class="pill">' + r.stars + ' star</span>' : '') +
       (r.rating ? '<span class="pill live"><span class="bd"></span>' + r.rating + '</span>' : '') +
       (r.tags || []).map(function (t) { return '<span class="pill">' + t + '</span>'; }).join('') + '</div></div>' +
-      '<div class="rprice"><div><div class="pp">' + (r.net || r.p) + '</div>' +
-      (r.net ? '<div class="pe" style="color:var(--live)">You save ' + r.keep + '</div>' : '<div class="pe">Expires in 4:00</div>') + '</div>' +
-      '<button class="rbook"' + (r.hotelId ? ' data-hotel="' + r.hotelId + '"' : '') + '>' +
-      (r.hotelId ? 'View property' : 'Request to book') + '</button></div></div>';
+      priceBlock(r) + '</div>';
   });
   $('#resultszone').innerHTML = h;
+  if (!ME.email && type === 'hotels') paintSaveBar(data);
   emit('search.' + type + '_completed.v1', 'booking-gateway');
   audit('search.completed', { vertical: type, results: data.length, adapter: srcMode }, 'traveler');
 
@@ -2088,6 +2192,9 @@ function renderResults(type, live) {
   if (c) c.addEventListener('click', function () { $('#resultszone').innerHTML = ''; });
   var tcb = $('#totalcostbtn');
   if (tcb) tcb.addEventListener('click', openTotalCost);
+  $$('[data-join]').forEach(function (b) {
+    b.addEventListener('click', function (e) { e.stopPropagation(); openAuth(); });
+  });
   $$('.rbook').forEach(function (b) {
     b.addEventListener('click', function () {
       var hid = b.getAttribute('data-hotel');
@@ -2716,6 +2823,7 @@ function setSession(email) {
   paintSession();
   loadCash();
   loadRealTrips();
+  if ($('#resultszone') && $('#resultszone').innerHTML.trim()) renderResults('hotels');
 }
 
 function openAuth() {
