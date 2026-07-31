@@ -279,6 +279,37 @@ img{display:block}
 #proofstrip h3{font-weight:300;font-size:22px;letter-spacing:-.02em}
 #proofstrip p{font-size:12.5px;color:var(--mute);margin-top:7px;line-height:1.55;max-width:56ch}
 
+/* ============ SIGNATURE ============ */
+.sigband{padding:0 26px 6px}
+.sighead{display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding:6px 0 14px;flex-wrap:wrap}
+.sighead h3{font-weight:300;font-size:22px;letter-spacing:-.022em}
+.sighead .sh2{font-family:var(--mono);font-size:8.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--faint);margin-top:7px}
+.sigmark{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:99px;border:1px solid rgba(232,201,143,.45);background:rgba(232,201,143,.07);font-family:var(--mono);font-size:7.5px;letter-spacing:.14em;text-transform:uppercase;color:#E8C98F}
+.sigcard{display:flex;gap:0;border:1px solid var(--rule);border-radius:var(--r);background:var(--surface);margin-bottom:12px;overflow:hidden;align-items:stretch;transition:.18s}
+.sigcard:hover{border-color:rgba(232,201,143,.4)}
+.sigcard.onreq{border-style:dashed}
+.sigcard .sgimg{width:250px;flex:0 0 250px;position:relative;overflow:hidden;background:var(--raised);min-height:180px}
+.sigcard .sgimg img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .7s cubic-bezier(.2,.6,.2,1)}
+.sigcard:hover .sgimg img{transform:scale(1.045)}
+.sigcard .sgimg.noimg{background:linear-gradient(135deg,var(--raised2),var(--raised))}
+.sigcard .sgmain{flex:1;min-width:0;padding:20px 24px;display:flex;flex-direction:column;justify-content:center}
+.sigcard .sgname{font-size:21px;font-weight:300;letter-spacing:-.02em}
+.sigcard .sgbrand{font-family:var(--mono);font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-top:6px}
+.sigcard .sgnote{font-size:12.5px;color:var(--text-dim);line-height:1.6;margin-top:10px;max-width:54ch}
+.sigcard .sgside{width:220px;flex:0 0 220px;padding:20px 22px;border-left:1px solid var(--rule-soft);display:flex;flex-direction:column;justify-content:center;align-items:flex-end;text-align:right}
+.sigcard .sgside .amt{font-weight:300;font-size:26px;letter-spacing:-.025em;color:#fff}
+.sigcard .sgside .per{font-family:var(--mono);font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-top:6px}
+.sigcard .sgside .sv{font-family:var(--mono);font-size:8.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--live);margin-top:5px}
+.sigcard .sgside .noprice{font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);line-height:1.6}
+.sigcard .sgbtn{margin-top:14px;width:100%;padding:11px;border-radius:99px;border:1px solid var(--rule);font-family:var(--mono);font-size:8.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--text-dim);transition:.16s}
+.sigcard .sgbtn:hover{background:var(--text);color:var(--ink);border-color:var(--text)}
+@media (max-width:900px){
+  .sigband{padding:0 14px 6px}
+  .sigcard{flex-direction:column}
+  .sigcard .sgimg{width:100%;flex:none;min-height:180px}
+  .sigcard .sgside{width:100%;flex:none;border-left:none;border-top:1px solid var(--rule-soft);align-items:stretch;text-align:left}
+}
+
 /* ============ FARE WATCH ============ */
 .fwhead{display:flex;align-items:center;gap:13px;padding:15px 16px;border-bottom:1px solid var(--rule-soft);flex-wrap:wrap}
 .fwhead .fwdot{width:7px;height:7px;border-radius:50%;background:var(--live);box-shadow:0 0 10px var(--live);animation:wp 2.4s infinite;flex:0 0 7px}
@@ -1951,6 +1982,147 @@ function renderResults(type, live) {
   });
   var rz = $('#resultszone');
   if (rz.scrollIntoView) rz.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  if (type === 'hotels') loadSignature(live && live.data ? live.data : []);
+}
+
+/* ============================================================
+   SIGNATURE . the properties worth being known for
+   A hand written list per city. Anything present in the live feed is
+   pinned with real rates. Anything absent is offered on request and
+   sourced by an operator, which is how a luxury travel business has
+   always actually worked.
+   ============================================================ */
+var SIG = [];
+
+function normName(s) {
+  return String(s || '').toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/[^a-z0-9 ]+/g, ' ')
+    .replace(/\b(hotel|resort|the|a|and|spa|beach|by|at)\b/g, ' ')
+    .replace(/\s+/g, ' ').trim();
+}
+
+function matchesLive(sig, cards) {
+  var names = [sig.name].concat(sig.aliases || []).map(normName).filter(Boolean);
+  for (var i = 0; i < cards.length; i++) {
+    var live = normName(cards[i].n);
+    if (!live) continue;
+    for (var j = 0; j < names.length; j++) {
+      var want = names[j];
+      if (!want) continue;
+      if (live === want || live.indexOf(want) >= 0 || want.indexOf(live) >= 0) return cards[i];
+    }
+  }
+  return null;
+}
+
+function loadSignature(cards) {
+  var q = stayQuery();
+  safeFetchJson('/api/signature?destination=' + encodeURIComponent(q.destination), function (j) {
+    SIG = (j && j.hotels) || [];
+    if (!SIG.length) return;
+
+    var rows = SIG.map(function (h) { return { h: h, live: matchesLive(h, cards) }; });
+    var html = '<div class="sigband"><div class="sighead"><div>' +
+      '<h3 class="disp">Signature</h3>' +
+      '<div class="sh2">Chosen by hand . not what a feed happened to return</div></div>' +
+      '<span class="sigmark">' + rows.filter(function (r) { return r.live; }).length +
+      ' of ' + rows.length + ' bookable now</span></div>';
+
+    rows.forEach(function (r) {
+      var h = r.h, c = r.live;
+      html += '<div class="sigcard' + (c ? '' : ' onreq') + '">' +
+        (c && c.imgUrl
+          ? '<div class="sgimg"><img src="' + c.imgUrl + '" alt="" loading="lazy" onerror="this.parentNode.classList.add(\'noimg\');this.remove()"></div>'
+          : h.imageUrl
+            ? '<div class="sgimg"><img src="' + h.imageUrl + '" alt="" loading="lazy" onerror="this.parentNode.classList.add(\'noimg\');this.remove()"></div>'
+            : '<div class="sgimg noimg"></div>') +
+        '<div class="sgmain"><div class="sgname disp">' + h.name + '</div>' +
+        '<div class="sgbrand">' + (h.brand || '') + (c && c.stars ? ' . ' + c.stars + ' star' : '') + '</div>' +
+        (h.note ? '<div class="sgnote">' + h.note + '</div>' : '') + '</div>' +
+        '<div class="sgside">' +
+        (c
+          ? '<span class="amt">' + (c.net || c.p) + '</span>' +
+            '<span class="per">total, taxes included</span>' +
+            (c.keep ? '<span class="sv">you save ' + c.keep + '</span>' : '') +
+            '<button class="sgbtn" data-sighotel="' + c.hotelId + '">View property</button>'
+          : '<span class="noprice">Not in live inventory<br>for these dates</span>' +
+            '<button class="sgbtn" data-sigreq="' + h.slug + '">Request it</button>') +
+        '</div></div>';
+    });
+    html += '</div>';
+
+    var zone = $('#resultszone');
+    var anchor = zone.querySelector('.hsec');
+    if (anchor) anchor.insertAdjacentHTML('afterend', html);
+    else zone.insertAdjacentHTML('afterbegin', html);
+
+    $$('[data-sighotel]').forEach(function (b) {
+      b.addEventListener('click', function () { openProperty(b.getAttribute('data-sighotel')); });
+    });
+    $$('[data-sigreq]').forEach(function (b) {
+      b.addEventListener('click', function () { openSignatureRequest(b.getAttribute('data-sigreq')); });
+    });
+    audit('signature.shown', { destination: q.destination, curated: rows.length,
+      bookable: rows.filter(function (r) { return r.live; }).length }, 'traveler');
+  });
+}
+
+function openSignatureRequest(slug) {
+  var h = SIG.filter(function (x) { return x.slug === slug; })[0];
+  if (!h) return;
+  var q = stayQuery();
+  openModal('<div class="mhead"><h3 class="disp">' + h.name + '</h3><button class="x" data-close>&#10005;</button></div>' +
+    '<div class="mbody">' +
+    '<div class="label" style="margin-bottom:10px">' + (h.brand || '') + ' . ' + h.city + '</div>' +
+    (h.note ? '<p style="font-size:13px;line-height:1.65;color:var(--text-dim)">' + h.note + '</p>' : '') +
+    '<p style="margin-top:14px;font-size:12.5px;color:var(--mute);line-height:1.6">This property is not in our live inventory for these dates. An operator sources it directly with the hotel and comes back with a firm rate, usually within a few hours. Nothing is charged until you approve that rate.</p>' +
+    '<div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
+    '<div><div class="label" style="margin-bottom:6px">Arrive</div><input class="pinput" id="sgA" type="date" value="' + q.checkIn + '"></div>' +
+    '<div><div class="label" style="margin-bottom:6px">Depart</div><input class="pinput" id="sgD" type="date" value="' + q.checkOut + '"></div>' +
+    '</div>' +
+    '<div style="margin-top:12px"><div class="label" style="margin-bottom:6px">Email</div>' +
+    '<input class="pinput" id="sgE" type="email" placeholder="you@example.com"></div>' +
+    '<div style="margin-top:12px"><div class="label" style="margin-bottom:6px">Anything we should know</div>' +
+    '<textarea class="pinput" id="sgN" rows="2" placeholder="Room preference, occasion, flexibility on dates" style="resize:vertical"></textarea></div>' +
+    '<div id="sgMsg" style="margin-top:12px;font-size:11.5px;color:var(--faint);line-height:1.55"></div>' +
+    '</div><div class="mfoot"><button class="btn" data-close>Not now</button>' +
+    '<button class="btn primary" id="sgGo">Send the request</button></div>');
+
+  $('#sgGo').addEventListener('click', function () {
+    var email = ($('#sgE').value || '').trim();
+    var msg = $('#sgMsg'), btn = $('#sgGo');
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      msg.innerHTML = '<span style="color:var(--warn)">We need an email to come back to.</span>';
+      return;
+    }
+    btn.disabled = true; btn.textContent = 'Sending';
+    fetch('/api/signature', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        slug: slug, email: email,
+        arriveOn: $('#sgA').value || undefined, departOn: $('#sgD').value || undefined,
+        guests: Number(q.guests) || undefined,
+        notes: ($('#sgN').value || '').trim() || undefined
+      })
+    }).then(function (r) { return r.json(); }).then(function (j) {
+      if (j && j.saved) {
+        msg.innerHTML = '<span style="color:var(--live)">Sent. An operator will source this and come back with a firm rate.</span>';
+        btn.textContent = 'Request sent';
+        audit('signature.requested', { hotel: slug }, 'traveler');
+      } else if (j && j.mode === 'mock') {
+        msg.innerHTML = '<span style="color:var(--warn)">Not recorded. The database is not connected yet.</span>';
+        btn.disabled = false; btn.textContent = 'Send the request';
+      } else {
+        msg.innerHTML = '<span style="color:var(--halt)">' + ((j && (j.error || j.detail)) || 'Something went wrong.') + '</span>';
+        btn.disabled = false; btn.textContent = 'Send the request';
+      }
+    }).catch(function () {
+      msg.innerHTML = '<span style="color:var(--halt)">Could not reach the server.</span>';
+      btn.disabled = false; btn.textContent = 'Send the request';
+    });
+  });
 }
 
 /* ============================================================
