@@ -12,29 +12,23 @@
 <style>
 /* Bookish. A genuinely lighter cut, made by eroding the outlines of Bookish
    Book rather than letting the browser fake a weight the file does not have.
-   Both files sit at the repository root.
 
-   Two things here are deliberate. The weight RANGES mean iOS Safari will
-   match a face even when the requested weight is not an exact hit; it is far
-   stricter than desktop Chrome about this and will drop to Georgia rather
-   than substitute. And each face lists the other cut as a last resort source,
-   so if one file is missing the type degrades to the other Bookish weight
-   instead of falling out of the family entirely. */
+   Declared as ONE face at the normal weight on purpose. The previous version
+   split it across weights 200 and 300, and iOS Safari matches weights far
+   more strictly than desktop Chrome: where Chrome happily substitutes a
+   nearby face, Safari drops the whole family and falls through to Georgia.
+   With a single face at a single weight there is nothing left to match
+   wrongly. If the display file is missing the src chain falls back to the
+   light cut, which is still Bookish. */
 @font-face{
   font-family:'Bookish';
   src:url('/Bookish-Display.woff2') format('woff2'),
+      url('/Bookish-Light.woff2') format('woff2'),
       url('/Bookish-Display.ttf') format('truetype'),
-      url('/Bookish-Light.woff2') format('woff2');
-  font-weight:100 250;
-  font-style:normal;font-display:swap;
-}
-@font-face{
-  font-family:'Bookish';
-  src:url('/Bookish-Light.woff2') format('woff2'),
-      url('/Bookish-Light.ttf') format('truetype'),
-      url('/Bookish-Display.woff2') format('woff2');
-  font-weight:251 400;
-  font-style:normal;font-display:swap;
+      url('/Bookish-Light.ttf') format('truetype');
+  font-weight:normal;
+  font-style:normal;
+  font-display:swap;
 }
 
 :root{
@@ -111,7 +105,7 @@ img{display:block}
 
 .mono{font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em}
 .label{font-family:var(--mono);text-transform:uppercase;letter-spacing:.14em;font-size:9.5px;color:var(--mute);font-weight:400}
-.disp{font-family:var(--serif);font-weight:200;letter-spacing:-.004em;line-height:1.1}
+.disp{font-family:var(--serif);font-weight:normal;letter-spacing:-.004em;line-height:1.1}
 .disp em,.disp .thin{font-style:normal;color:var(--mute)}
 
 /* ============ SHELL ============ */
@@ -137,7 +131,7 @@ img{display:block}
   display:flex;align-items:center;justify-content:center;color:var(--mute);
   font-family:var(--mono);font-size:14px;transition:.16s}
 #sideclose:hover{background:var(--raised2);color:var(--text)}
-#sidemark{font-family:var(--serif);font-size:21px;font-weight:200;letter-spacing:.22em;
+#sidemark{font-family:var(--serif);font-size:21px;font-weight:normal;letter-spacing:.22em;
   text-transform:uppercase;color:var(--text);padding:2px 0 30px}
 #sideme{display:flex;align-items:center;gap:11px;padding:0 0 22px;margin-bottom:20px;
   border-bottom:1px solid var(--rule-soft)}
@@ -207,7 +201,7 @@ img{display:block}
 /* The wordmark is centred on the page, not on whatever space is left beside
    the controls, which is why it is taken out of the flow. */
 #tbmark{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-  font-family:var(--serif);font-size:clamp(17px,1.85vw,23px);font-weight:200;
+  font-family:var(--serif);font-size:clamp(17px,1.85vw,23px);font-weight:normal;
   letter-spacing:.26em;text-transform:uppercase;color:var(--text);white-space:nowrap;
   pointer-events:none}
 #whoami{display:flex;align-items:center;gap:10px;padding:6px 12px 6px 6px;border:1px solid var(--rule);border-radius:99px}
@@ -245,7 +239,7 @@ img{display:block}
 /* No scrim. The photograph carries itself, which means the type over it
    has to be dark rather than white. */
 #hero .hkick{font-family:var(--mono);font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:rgba(38,36,31,.62);margin-bottom:14px;text-shadow:0 1px 18px rgba(255,255,255,.7)}
-#hero h1{font-family:var(--serif);font-weight:200;font-size:clamp(38px,5.9vw,77px);letter-spacing:-.006em;line-height:1.02;text-align:center;color:var(--text);
+#hero h1{font-family:var(--serif);font-weight:normal;font-size:clamp(38px,5.9vw,77px);letter-spacing:-.006em;line-height:1.02;text-align:center;color:var(--text);
   /* A soft light halo rather than a dark shadow. It lifts the letterforms off
      the sand without visibly altering the photograph underneath. */
   text-shadow:0 1px 30px rgba(255,255,255,.75),0 1px 3px rgba(255,255,255,.55)}
