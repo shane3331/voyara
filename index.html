@@ -10,20 +10,31 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <link href="https://fonts.cdnfonts.com/css/bdo-grotesk" rel="stylesheet">
 <style>
-/* Bookish Light. A real lighter cut, made by eroding the outlines of Bookish
-   Book rather than letting the browser fake a weight it does not have. Both
-   files sit at the repository root. */
-@font-face{
-  font-family:'Bookish';
-  src:url('/Bookish-Light.woff2') format('woff2'),
-      url('/Bookish-Light.ttf') format('truetype');
-  font-weight:300;font-style:normal;font-display:swap;
-}
+/* Bookish. A genuinely lighter cut, made by eroding the outlines of Bookish
+   Book rather than letting the browser fake a weight the file does not have.
+   Both files sit at the repository root.
+
+   Two things here are deliberate. The weight RANGES mean iOS Safari will
+   match a face even when the requested weight is not an exact hit; it is far
+   stricter than desktop Chrome about this and will drop to Georgia rather
+   than substitute. And each face lists the other cut as a last resort source,
+   so if one file is missing the type degrades to the other Bookish weight
+   instead of falling out of the family entirely. */
 @font-face{
   font-family:'Bookish';
   src:url('/Bookish-Display.woff2') format('woff2'),
-      url('/Bookish-Display.ttf') format('truetype');
-  font-weight:200;font-style:normal;font-display:swap;
+      url('/Bookish-Display.ttf') format('truetype'),
+      url('/Bookish-Light.woff2') format('woff2');
+  font-weight:100 250;
+  font-style:normal;font-display:swap;
+}
+@font-face{
+  font-family:'Bookish';
+  src:url('/Bookish-Light.woff2') format('woff2'),
+      url('/Bookish-Light.ttf') format('truetype'),
+      url('/Bookish-Display.woff2') format('woff2');
+  font-weight:251 400;
+  font-style:normal;font-display:swap;
 }
 
 :root{
