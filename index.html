@@ -30,6 +30,18 @@
       url('/Bookish-Light.ttf') format('truetype');
   font-weight:normal;font-style:normal;font-display:swap;
 }
+@font-face{
+  font-family:'BookishText';
+  src:url('/Bookish-Text.woff2') format('woff2'),
+      url('/Bookish-Text.ttf') format('truetype');
+  font-weight:normal;font-style:normal;font-display:swap;
+}
+@font-face{
+  font-family:'BookishMedium';
+  src:url('/Bookish-Medium.woff2') format('woff2'),
+      url('/Bookish-Medium.ttf') format('truetype');
+  font-weight:normal;font-style:normal;font-display:swap;
+}
 
 :root{
   /* Warm paper rather than white. A pure white ground reads as software;
@@ -71,7 +83,7 @@
   --gold:#9A7B3C;
 
   --body:'BDO Grotesk','Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-  --serif:'BookishLight','BookishDisplay',Georgia,'Times New Roman',serif;
+  --serif:'BookishMedium','BookishText','BookishLight',Georgia,'Times New Roman',serif;
   --mono:'DM Mono','SFMono-Regular',Menlo,monospace;
   --side:236px;
   --topbar:74px;
@@ -412,7 +424,7 @@ img{display:block}
 #shcount{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;color:var(--faint);
   flex:0 0 auto;padding-top:2px}
 #shtext{flex:1;min-width:0}
-#shtitle{display:block;font-family:var(--serif);font-weight:200;font-size:20px;
+#shtitle{display:block;font-family:var(--serif);font-weight:normal;font-size:20px;
   letter-spacing:-.004em;color:var(--text);line-height:1.15}
 #shsay{display:block;font-size:13px;color:var(--mute);line-height:1.5;margin-top:5px;
   opacity:0;transform:translateY(4px);transition:opacity .45s ease,transform .45s ease}
