@@ -26,6 +26,42 @@ const TIERS = {
   luxury:  { stars: [5],       minRating: 8.5, minReviews: 40,  label: 'Five star only' }
 };
 
+// Hotelbeds does not accept city names. Every availability call needs one of
+// their own destination codes. This is a starter map covering the demo
+// cities; the full list comes from the Content API destinations endpoint:
+//   GET /hotel-content-api/1.0/locations/destinations?fields=all&language=ENG
+// VERIFY these against that endpoint before trusting them in production.
+const HOTELBEDS_DEST = {
+  milan: 'MIL', milano: 'MIL', rome: 'ROM', roma: 'ROM', venice: 'VCE',
+  florence: 'FLR', naples: 'NAP',
+  barcelona: 'BCN', madrid: 'MAD', palma: 'PMI', ibiza: 'IBZ', malaga: 'AGP',
+  paris: 'PAR', nice: 'NCE', cannes: 'CEQ', lyon: 'LYS',
+  london: 'LON', edinburgh: 'EDI', dublin: 'DUB',
+  amsterdam: 'AMS', berlin: 'BER', munich: 'MUC', vienna: 'VIE',
+  zurich: 'ZRH', geneva: 'GVA', prague: 'PRG', budapest: 'BUD',
+  lisbon: 'LIS', porto: 'OPO',
+  athens: 'ATH', mykonos: 'JMK', santorini: 'JTR', crete: 'HER', rhodes: 'RHO',
+  istanbul: 'IST', dubai: 'DXB', 'abu dhabi': 'AUH', doha: 'DOH',
+  'new york': 'NYC', nyc: 'NYC', miami: 'MIA', 'los angeles': 'LAX',
+  chicago: 'CHI', boston: 'BOS', 'san francisco': 'SFO', 'las vegas': 'LAS',
+  cancun: 'CUN', 'mexico city': 'MEX', tulum: 'TUY',
+  toronto: 'YTO', vancouver: 'YVR',
+  tokyo: 'TYO', kyoto: 'UKY', osaka: 'OSA', singapore: 'SIN',
+  bangkok: 'BKK', phuket: 'HKT', bali: 'DPS', 'hong kong': 'HKG', seoul: 'SEL',
+  sydney: 'SYD', melbourne: 'MEL',
+  marrakech: 'RAK', 'cape town': 'CPT', cairo: 'CAI'
+};
+
+function hotelbedsDestCode(input) {
+  const raw = String(input || '').trim().toLowerCase();
+  if (!raw) return null;
+  // Already a code, e.g. someone typed "PMI"
+  if (/^[A-Z]{3}$/.test(String(input).trim())) return String(input).trim();
+  // "Milan, Italy" -> "milan"
+  const first = raw.split(',')[0].trim();
+  return HOTELBEDS_DEST[first] || HOTELBEDS_DEST[raw] || null;
+}
+
 const SUPPORTED_CCY = ['USD','EUR','GBP','CHF','JPY','AUD','CAD','AED','SGD','MXN'];
 const MARKUP = num(process.env.VOYARA_MARKUP, 0.04);
 const ASSUMED_COMMISSION = num(process.env.RATE_HOTEL_COMMISSION, 0.15);
@@ -57,18 +93,30 @@ module.exports = async (req, res) => {
 
   let mode = 'mock';
   let offers;
+  let supplierNote = null;
   try {
-    // Hotelbeds first when available: net rates with no markup floor mean
-    // the retail price is genuinely yours to set, which is a stronger
-    // position than rebating a commission after the fact.
-    if (process.env.HOTELBEDS_API_KEY && process.env.HOTELBEDS_SECRET) {
-      offers = await hotelbeds(destination, checkIn, checkOut, guests);
-      mode = 'live:hotelbeds';
-    } else if (process.env.LITEAPI_KEY) {
+    const hbKeys = process.env.HOTELBEDS_API_KEY && process.env.HOTELBEDS_SECRET;
+    const hbCode = hbKeys ? hotelbedsDestCode(destination) : null;
+
+    // Hotelbeds first when we have keys AND a destination code we recognise.
+    // If either is missing, or the call fails, fall through to LiteAPI rather
+    // than failing the search. A supplier problem is ours, not the traveller's.
+    if (hbKeys && hbCode) {
+      try {
+        offers = await hotelbeds(hbCode, destination, checkIn, checkOut, guests);
+        mode = 'live:hotelbeds';
+      } catch (hbErr) {
+        supplierNote = 'hotelbeds_failed: ' + String(hbErr && hbErr.message).slice(0, 200);
+        offers = null;
+      }
+    }
+
+    if ((!offers || !offers.length) && process.env.LITEAPI_KEY) {
       offers = await liteapi(destination, checkIn, checkOut, guests, currencyPref, tier);
       mode = 'live:liteapi';
-    } else {
+    } else if (!offers || !offers.length) {
       offers = fixtures(destination, checkIn, checkOut, currencyPref);
+      mode = 'mock';
     }
   } catch (e) {
     const msg = String(e && e.message ? e.message : e).slice(0, 500);
@@ -77,22 +125,26 @@ module.exports = async (req, res) => {
     // than showing nothing.
     if (e && e.noResults) {
       return res.status(200).end(JSON.stringify({
-        mode: mode, count: 0, offers: [], noResults: true, message: msg
+        mode: mode, count: 0, offers: [], noResults: true, message: msg, supplierNote: supplierNote
       }));
     }
-    return res.status(502).end(JSON.stringify({ error: 'supplier_unavailable', detail: msg }));
+    return res.status(502).end(JSON.stringify({ error: 'supplier_unavailable', detail: msg, supplierNote: supplierNote }));
   }
 
   const priced = offers.map(priceOffer);
 
-  res.status(200).end(JSON.stringify({ mode, currency: currencyPref, quality: tierKey, qualityLabel: tier.label, count: priced.length, offers: priced }));
+  res.status(200).end(JSON.stringify({
+    mode, currency: currencyPref, quality: tierKey, qualityLabel: tier.label,
+    count: priced.length, supplierNote: supplierNote, offers: priced
+  }));
 };
 
-async function hotelbeds(destination, checkIn, checkOut, guests) {
+async function hotelbeds(destCode, destinationLabel, checkIn, checkOut, guests) {
   const ts = Math.floor(Date.now() / 1000);
   const sig = crypto.createHash('sha256')
     .update(process.env.HOTELBEDS_API_KEY + process.env.HOTELBEDS_SECRET + ts).digest('hex');
   const base = process.env.HOTELBEDS_BASE || 'https://api.test.hotelbeds.com';
+
   const r = await fetch(base + '/hotel-api/1.0/hotels', {
     method: 'POST',
     headers: {
@@ -102,32 +154,62 @@ async function hotelbeds(destination, checkIn, checkOut, guests) {
       Accept: 'application/json'
     },
     body: JSON.stringify({
-      stay: { checkIn, checkOut },
+      stay: { checkIn: checkIn, checkOut: checkOut },
       occupancies: [{ rooms: 1, adults: guests, children: 0 }],
-      destination: { code: destination }
+      destination: { code: destCode }
     })
   });
+
   if (!r.ok) throw new Error('Hotelbeds ' + r.status + ' ' + (await r.text()).slice(0, 300));
+
   const j = await r.json();
   const list = (j && j.hotels && j.hotels.hotels) || [];
   const n = nights(checkIn, checkOut);
-  return list.slice(0, 12).map((h, i) => {
+  const feedCcy = String((j.hotels && j.hotels.currency) || 'EUR');
+
+  return list.slice(0, 12).map(function (h, i) {
     const room = (h.rooms || [])[0] || {};
     const rt = (room.rates || [])[0] || {};
     const cancel = (rt.cancellationPolicies || [])[0];
+
+    // THE IMPORTANT PART.
+    // Hotelbeds `net` is what WE PAY. It is a cost, never a market price.
+    // `sellingRate` is their recommended retail, which is the only thing
+    // here that behaves like a market number. If sellingRate is absent we
+    // leave marketMinor at 0 and let priceOffer derive it and tag the
+    // basis as 'derived' — which is honest — rather than silently
+    // treating our own cost as the market rate.
+    const netMinor = toMinor(rt.net);
+    const sellMinor = toMinor(rt.sellingRate);
+
     return {
       id: String(h.code || i),
       name: String(h.name || 'Property'),
-      location: String(h.destinationName || destination),
+      location: String(h.destinationName || destinationLabel),
       roomDescription: String(room.name || 'Room'),
+      stars: starsOf(h),
+      rating: null,
       nights: n,
-      publicMinor: Math.round(Number(rt.net || h.minRate || 0) * 100),
-      currency: String((j.hotels && j.hotels.currency) || 'EUR'),
+      costMinor: netMinor,
+      marketMinor: sellMinor,
+      currency: String(h.currency || feedCcy),
+      refundable: Boolean(cancel && cancel.from),
       freeCancellationUntil: cancel && cancel.from ? String(cancel.from) : null,
       payAtProperty: String(rt.paymentType || '') === 'AT_HOTEL',
       taxesIncluded: true
     };
-  });
+  }).filter(function (o) { return o.costMinor > 0 || o.marketMinor > 0; });
+}
+
+// Hotelbeds returns categoryCode like "5EST" / "4EST".
+function starsOf(h) {
+  const m = String(h.categoryCode || '').match(/^(\d)/);
+  return m ? Number(m[1]) : null;
+}
+
+function toMinor(v) {
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? Math.round(n * 100) : 0;
 }
 
 // Turns whatever a supplier gave us into one honest shape.
@@ -481,7 +563,6 @@ function normaliseUrl(u) {
   return '';
 }
 
-// Supplier price fields arrive as either an object or an array of objects.
 // Ranking. Stars lead, because a five star property is a different category
 // of building. But a property guests actively dislike is a worn out property
 // whatever its plaque says, so anything under 7.5 takes a steep penalty and
@@ -493,6 +574,7 @@ function qualityScore(o) {
   return (stars * 1.6) + (rating / 2) - penalty;
 }
 
+// Supplier price fields arrive as either an object or an array of objects.
 function pickAmount(a, b) {
   for (const src of [a, b]) {
     if (!src) continue;
@@ -535,4 +617,3 @@ function nights(a, b) {
   if (!Number.isFinite(d1) || !Number.isFinite(d2) || d2 <= d1) return 5;
   return Math.round((d2 - d1) / 86400000);
 }
-function num(v, d) { const x = Number(v); return Number.isFinite(x) && v !== undefined && v !== '' ? x : d; }
