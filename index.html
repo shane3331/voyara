@@ -453,6 +453,73 @@ img{display:block}
   .scenefocus{animation:none}
 }
 
+/* ============ PROFILE ============ */
+#pfhero{position:relative;padding:clamp(28px,5vw,52px) clamp(20px,4vw,40px) 0}
+#pfcard{display:flex;align-items:flex-end;gap:clamp(18px,3vw,28px);flex-wrap:wrap;
+  padding-bottom:26px;border-bottom:1px solid var(--rule)}
+#pfav{position:relative;width:clamp(92px,15vw,124px);height:clamp(92px,15vw,124px);
+  border-radius:50%;flex:0 0 auto;overflow:hidden;background:var(--raised2);
+  border:1px solid var(--rule);cursor:pointer;transition:.18s}
+#pfav:hover{border-color:var(--faint)}
+#pfav img{width:100%;height:100%;object-fit:cover;display:block}
+#pfinit{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:var(--serif);font-size:clamp(32px,5vw,44px);color:var(--mute)}
+#pfav .cam{position:absolute;right:2px;bottom:2px;width:30px;height:30px;border-radius:50%;
+  background:var(--text);color:var(--surface);display:flex;align-items:center;justify-content:center;
+  font-size:12px;border:2px solid var(--ink)}
+#pfav.busy{opacity:.55;pointer-events:none}
+#pfwho{flex:1;min-width:220px}
+#pfname{font-family:var(--serif);font-weight:normal;font-size:clamp(28px,4.4vw,44px);
+  letter-spacing:-.006em;line-height:1.06;color:var(--text)}
+#pfmail{font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--faint);margin-top:11px}
+#pfchips{display:flex;gap:7px;margin-top:14px;flex-wrap:wrap}
+
+#pfbody{padding:0 clamp(20px,4vw,40px) 90px}
+.pfsec{padding:34px 0;border-bottom:1px solid var(--rule-soft)}
+.pfsec:last-child{border-bottom:none}
+.pfsec h3{font-family:var(--mono);font-size:9.5px;letter-spacing:.17em;text-transform:uppercase;
+  color:var(--mute)}
+.pfsec .why{font-size:13.5px;color:var(--faint);margin-top:9px;line-height:1.55;max-width:56ch}
+.pfgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(232px,1fr));gap:14px;margin-top:20px}
+.pff{display:flex;flex-direction:column;gap:7px}
+.pff.wide{grid-column:1 / -1}
+.pff label{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--faint)}
+.pff input,.pff select,.pff textarea{
+  background:var(--surface);border:1px solid var(--rule);border-radius:var(--r-sm);
+  padding:13px 15px;font-size:15px;color:var(--text);outline:none;font-family:var(--body);
+  width:100%;transition:border-color .16s}
+.pff input:focus,.pff select:focus,.pff textarea:focus{border-color:var(--nav)}
+.pff input::placeholder,.pff textarea::placeholder{color:var(--faint)}
+.pff select{appearance:none;cursor:pointer;
+  background-image:linear-gradient(45deg,transparent 50%,var(--mute) 50%),linear-gradient(135deg,var(--mute) 50%,transparent 50%);
+  background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;
+  background-size:5px 5px,5px 5px;background-repeat:no-repeat}
+.pff textarea{resize:vertical;min-height:88px;line-height:1.55}
+.pff input[type=date]{color-scheme:light}
+
+#pfbar{position:sticky;bottom:0;z-index:20;display:flex;align-items:center;gap:14px;
+  padding:16px clamp(20px,4vw,40px) calc(env(safe-area-inset-bottom,0) + 16px);
+  background:rgba(250,249,246,.94);backdrop-filter:blur(14px);
+  border-top:1px solid var(--rule);flex-wrap:wrap}
+#pfstate{flex:1;min-width:160px;font-size:13px;color:var(--faint);line-height:1.5}
+#pfstate.ok{color:var(--live)}
+#pfstate.no{color:var(--warn)}
+#pfsave{padding:14px 30px;border-radius:99px;background:var(--text);color:var(--surface);
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:500}
+#pfsave:disabled{opacity:.5}
+#pfout{padding:14px 22px;border-radius:99px;border:1px solid var(--rule);
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--mute)}
+#pfout:hover{border-color:var(--halt);color:var(--halt)}
+
+@media (max-width:640px){
+  #pfcard{align-items:center}
+  #pfwho{min-width:0}
+  #pfbar{gap:10px}
+  #pfsave,#pfout{flex:1;text-align:center;justify-content:center}
+}
+
 /* ============ SIGN IN SHEET ============
    A bottom sheet with the one tap paths first. Emailing a six digit code is
    real friction at the exact moment somebody decides to join, so it sits
@@ -1441,6 +1508,7 @@ body.demomode #demobadge{display:block}
     </div>
     <button class="sitem stab on" data-view="home"><span class="si">&#9670;</span>Book travel</button>
     <button class="sitem" id="navcollections"><span class="si">&#9633;</span>Collections</button>
+    <button class="sitem stab" id="navprofile" data-view="profile"><span class="si">&#9679;</span>Your profile</button>
     <div class="sdiv" id="tripsdiv">Your trips</div>
     <div id="realtrips"></div>
     <button id="tripcard" class="stab demoonly" data-view="trip">
@@ -1608,7 +1676,101 @@ body.demomode #demobadge{display:block}
       </section>
 
       <!-- ==================== TRIP ==================== -->
-      <section class="view" id="trip">
+      <section class="view" id="profile">
+      <div id="pfhero">
+        <div id="pfcard">
+          <button id="pfav" aria-label="Change photo">
+            <span id="pfinit"></span>
+            <img id="pfimg" alt="" style="display:none">
+            <span class="cam">&#9679;</span>
+          </button>
+          <input id="pffile" type="file" accept="image/png,image/jpeg,image/webp" style="display:none">
+          <div id="pfwho">
+            <h1 id="pfname" class="disp">Your profile</h1>
+            <div id="pfmail"></div>
+            <div id="pfchips"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="pfbody">
+        <div class="pfsec">
+          <h3>Who is travelling</h3>
+          <p class="why">Names have to match the passport exactly. Airlines charge to correct
+          them, and some tickets cannot be corrected at all.</p>
+          <div class="pfgrid">
+            <div class="pff"><label for="pf_fullName">Full name</label>
+              <input id="pf_fullName" placeholder="As printed on your passport" autocomplete="name"></div>
+            <div class="pff"><label for="pf_phone">Phone</label>
+              <input id="pf_phone" type="tel" placeholder="+1 555 000 0000" autocomplete="tel"></div>
+            <div class="pff"><label for="pf_dateOfBirth">Date of birth</label>
+              <input id="pf_dateOfBirth" type="date"></div>
+            <div class="pff"><label for="pf_homeAirport">Home airport</label>
+              <input id="pf_homeAirport" placeholder="TVC" maxlength="4" style="text-transform:uppercase"></div>
+          </div>
+        </div>
+
+        <div class="pfsec">
+          <h3>Travel documents</h3>
+          <p class="why">Stored so you never type them again. Held only to complete bookings
+          you approve, and never shared beyond the airline or hotel that needs them.</p>
+          <div class="pfgrid">
+            <div class="pff"><label for="pf_passportNumber">Passport number</label>
+              <input id="pf_passportNumber" placeholder="Optional" autocomplete="off"></div>
+            <div class="pff"><label for="pf_passportCountry">Issuing country</label>
+              <input id="pf_passportCountry" placeholder="USA" maxlength="3" style="text-transform:uppercase"></div>
+            <div class="pff"><label for="pf_passportExpiry">Expires</label>
+              <input id="pf_passportExpiry" type="date"></div>
+            <div class="pff"><label for="pf_knownTraveler">Known Traveler or Global Entry</label>
+              <input id="pf_knownTraveler" placeholder="Optional"></div>
+          </div>
+        </div>
+
+        <div class="pfsec">
+          <h3>How you like to travel</h3>
+          <p class="why">We pass these to the hotel and the airline on every booking, so you
+          stop asking for the same things twice a year.</p>
+          <div class="pfgrid">
+            <div class="pff"><label for="pf_seatPref">Seat</label>
+              <select id="pf_seatPref">
+                <option value="">No preference</option>
+                <option>Window</option><option>Aisle</option>
+                <option>Bulkhead</option><option>Exit row</option>
+              </select></div>
+            <div class="pff"><label for="pf_bedPref">Bed</label>
+              <select id="pf_bedPref">
+                <option value="">No preference</option>
+                <option>King</option><option>Queen</option>
+                <option>Twin</option><option>High floor</option>
+              </select></div>
+            <div class="pff wide"><label for="pf_dietary">Dietary requirements</label>
+              <input id="pf_dietary" placeholder="Vegetarian, no shellfish, anything a kitchen should know"></div>
+            <div class="pff wide"><label for="pf_notes">Anything else worth knowing</label>
+              <textarea id="pf_notes" placeholder="Quiet rooms away from the lift. Always need a late checkout. Travelling with a partner who does not eat dairy."></textarea></div>
+          </div>
+        </div>
+
+        <div class="pfsec">
+          <h3>In an emergency</h3>
+          <p class="why">Used only if something goes wrong while you are travelling and we
+          cannot reach you.</p>
+          <div class="pfgrid">
+            <div class="pff"><label for="pf_emergencyName">Contact name</label>
+              <input id="pf_emergencyName" placeholder="Optional"></div>
+            <div class="pff"><label for="pf_emergencyPhone">Contact phone</label>
+              <input id="pf_emergencyPhone" type="tel" placeholder="Optional"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="pfbar">
+        <span id="pfstate"></span>
+        <button id="pfout">Sign out</button>
+        <button id="pfsave">Save changes</button>
+      </div>
+    </section>
+
+    <section class="view" id="trip">
         <div id="tripcol">
           <div class="triphero">
             <img class="bgimg" src="https://images.unsplash.com/photo-1520440229-6469a149ac59?w=1600&q=70&auto=format&fit=crop" alt="" loading="lazy" onerror="this.remove()">
@@ -3545,7 +3707,180 @@ function setSession(email) {
   paintSession();
   loadCash();
   loadRealTrips();
+  PF.data = {}; PF.dirty = false; PF.loaded = false;
+  if (ME.email) pfLoad(); else pfPaint();
   if ($('#resultszone') && $('#resultszone').innerHTML.trim()) renderResults('hotels');
+}
+
+/* ============================================================
+   PROFILE
+   Everything a booking needs, held once. The photo is resized to a 256px
+   square in the browser before it is sent, which keeps a 4MB phone photo
+   under about 40KB and means nobody has to configure a storage bucket
+   before a profile picture works.
+   ============================================================ */
+var PF = { data: {}, dirty: false, loaded: false };
+
+var PF_FIELDS = ['fullName','phone','dateOfBirth','homeAirport','passportNumber',
+  'passportCountry','passportExpiry','knownTraveler','seatPref','bedPref',
+  'dietary','notes','emergencyName','emergencyPhone'];
+
+function pfLoad() {
+  if (!ME.email) return;
+  safeFetchJson('/api/profile?email=' + encodeURIComponent(ME.email), function (j) {
+    PF.data = (j && j.profile) || {};
+    PF.loaded = true;
+    pfPaint();
+  });
+}
+
+function pfPaint() {
+  var p = PF.data || {};
+  PF_FIELDS.forEach(function (f) {
+    var el = $('#pf_' + f);
+    if (el && p[f] != null) el.value = p[f];
+  });
+
+  var name = p.fullName || (ME.email ? ME.email.split('@')[0] : '');
+  $('#pfname').textContent = name || 'Your profile';
+  $('#pfmail').textContent = ME.email || '';
+
+  // Avatar, or the initial as a fallback rather than an empty grey circle.
+  var img = $('#pfimg'), init = $('#pfinit');
+  if (p.avatar) {
+    img.src = p.avatar; img.style.display = 'block'; init.style.display = 'none';
+  } else {
+    img.style.display = 'none'; init.style.display = 'flex';
+    init.textContent = (name || '?').slice(0, 1).toUpperCase();
+  }
+
+  // Chips say what the profile can already do, so an empty field reads as a
+  // missing capability rather than an empty field.
+  var chips = [];
+  if (p.passportNumber) chips.push(['live', 'Ready for international']);
+  else chips.push(['', 'Add a passport for international']);
+  if (p.seatPref || p.bedPref || p.dietary) chips.push(['live', 'Preferences on file']);
+  if (p.knownTraveler) chips.push(['live', 'Known Traveler saved']);
+  $('#pfchips').innerHTML = chips.map(function (c) {
+    return '<span class="pill' + (c[0] ? ' ' + c[0] : '') + '">' +
+      (c[0] ? '<span class="bd"></span>' : '') + c[1] + '</span>';
+  }).join('');
+}
+
+function pfCollect() {
+  var out = { email: ME.email };
+  PF_FIELDS.forEach(function (f) {
+    var el = $('#pf_' + f);
+    if (el) out[f] = (el.value || '').trim();
+  });
+  if (PF.data.avatar) out.avatar = PF.data.avatar;
+  return out;
+}
+
+function pfSay(text, cls) {
+  var el = $('#pfstate');
+  el.textContent = text;
+  el.className = cls || '';
+}
+
+function pfSave() {
+  if (!ME.email) { openAuth(); return; }
+  var btn = $('#pfsave');
+  btn.disabled = true;
+  pfSay('Saving', '');
+  var body = pfCollect();
+  fetch('/api/profile', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  }).then(function (r) { return r.json(); }).then(function (j) {
+    btn.disabled = false;
+    if (j && j.saved) {
+      PF.data = j.profile || body;
+      PF.dirty = false;
+      pfPaint();
+      pfSay('Saved', 'ok');
+      audit('profile.updated', {}, 'traveler');
+      setTimeout(function () { if (!PF.dirty) pfSay('', ''); }, 2600);
+      return;
+    }
+    if (j && j.mode === 'mock') { pfSay('Not connected to the database yet.', 'no'); return; }
+    pfSay((j && (j.error || j.detail)) || 'Could not save that.', 'no');
+  }).catch(function () {
+    btn.disabled = false;
+    pfSay('Could not reach the server.', 'no');
+  });
+}
+
+// Resize in the browser. A modern phone photo is several megabytes and no
+// profile avatar needs more than a 256px square, so this is the difference
+// between a feature that works and one that times out.
+function pfReadPhoto(file) {
+  if (!file) return;
+  if (!/^image\/(png|jpeg|jpg|webp)$/.test(file.type)) {
+    pfSay('That file is not an image.', 'no');
+    return;
+  }
+  var av = $('#pfav');
+  av.classList.add('busy');
+  pfSay('Reading the photo', '');
+  var reader = new FileReader();
+  reader.onload = function (e) {
+    var img = new Image();
+    img.onload = function () {
+      try {
+        var S2 = 256;
+        var c = document.createElement('canvas');
+        c.width = S2; c.height = S2;
+        var ctx = c.getContext('2d');
+        // Square crop from the centre, so a portrait photo does not squash.
+        var side = Math.min(img.width, img.height);
+        var sx = (img.width - side) / 2, sy = (img.height - side) / 2;
+        ctx.drawImage(img, sx, sy, side, side, 0, 0, S2, S2);
+        PF.data.avatar = c.toDataURL('image/jpeg', 0.82);
+        PF.dirty = true;
+        pfPaint();
+        av.classList.remove('busy');
+        pfSay('Photo ready. Save to keep it.', 'ok');
+      } catch (err) {
+        av.classList.remove('busy');
+        pfSay('Could not read that image.', 'no');
+      }
+    };
+    img.onerror = function () {
+      av.classList.remove('busy');
+      pfSay('Could not read that image.', 'no');
+    };
+    img.src = e.target.result;
+  };
+  reader.onerror = function () {
+    av.classList.remove('busy');
+    pfSay('Could not read that file.', 'no');
+  };
+  reader.readAsDataURL(file);
+}
+
+function wireProfile() {
+  $('#pfav').addEventListener('click', function () { $('#pffile').click(); });
+  $('#pffile').addEventListener('change', function (e) {
+    pfReadPhoto(e.target.files && e.target.files[0]);
+    e.target.value = '';
+  });
+  $('#pfsave').addEventListener('click', pfSave);
+  $('#pfout').addEventListener('click', function () { setSession(null); switchView('home'); });
+  PF_FIELDS.forEach(function (f) {
+    var el = $('#pf_' + f);
+    if (!el) return;
+    el.addEventListener('input', function () {
+      PF.dirty = true;
+      pfSay('Unsaved changes', '');
+    });
+  });
+  // Leaving with unsaved work should cost something, quietly.
+  window.addEventListener('beforeunload', function (e) {
+    if (!PF.dirty) return;
+    e.preventDefault();
+    e.returnValue = '';
+  });
 }
 
 /* ============================================================
@@ -3566,14 +3901,9 @@ function loadAuthConfig() {
 }
 
 function openAuth() {
-  if (ME.email) {
-    openModal('<div class="mhead"><h3 class="disp">Signed in</h3><button class="x" data-close>&#10005;</button></div>' +
-      '<div class="mbody"><div class="csline"><span class="k">Email</span><span class="v">' + ME.email + '</span></div>' +
-      '<p style="margin-top:14px;font-size:12px;color:var(--mute);line-height:1.6">Your trips, your rates and your watches are tied to this address.</p></div>' +
-      '<div class="mfoot"><button class="btn" data-close>Close</button><button class="btn danger" id="signout">Sign out</button></div>');
-    $('#signout').addEventListener('click', function () { setSession(null); closeModal(); });
-    return;
-  }
+  // Signed in, the account button is a way into the profile rather than a
+  // dead end that only tells you the address you already typed.
+  if (ME.email) { switchView('profile'); return; }
   $('#authsheet').classList.add('on');
   $('#authsheet').classList.remove('code');
   $('#authmsg').textContent = ''; $('#authmsg').className = '';
@@ -5324,6 +5654,7 @@ function switchView(v) {
   if (v === 'platform') { renderMetrics(); renderEvents(); renderSM(); }
   if (v === 'operator') { renderQueue(); renderCase(); renderAgentBoard(); }
   if (v === 'trip') { renderRateEngine(); renderFareWatch(); }
+  if (v === 'profile') { if (!ME.email) { openAuth(); } else if (!PF.loaded) pfLoad(); else pfPaint(); }
 }
 
 function tickClocks() {
@@ -5364,6 +5695,7 @@ function boot() {
   initSession(); loadCash();
   loadAuthConfig();
   wireAuth();
+  wireProfile();
   setTimeout(readOAuthReturn, 500);
   wireOnboarding();
   setTimeout(function () { obOpen(false); }, 260);
