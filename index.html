@@ -843,8 +843,10 @@ body.demomode #demobadge{display:block}
    So: the area the form occupies reserves a fixed height, which keeps the
    headline still whatever is selected. And once there are results the hero
    collapses to a slim summary you can tap to search again. */
-#hero .hcontrols{width:100%;display:flex;flex-direction:column;align-items:center;
-  min-height:var(--formh,246px);justify-content:flex-start}
+/* The headline stays put because it is anchored to the top of the hero, not
+   centred in it. The form grows downward from a fixed point. No reserved
+   height, which is what made the photo stretch on the short categories. */
+#hero .hcontrols{width:100%;display:flex;flex-direction:column;align-items:center}
 
 body.hasresults #hero{
   min-height:0;margin-bottom:0;
@@ -1561,14 +1563,30 @@ body.hasresults #minisearch{display:flex}
   #maincol{flex:none}
   #maincol{flex:none}
   #stage{overflow:visible}
+  /* Anchored to the top with a fixed lead, so the kicker and the headline sit
+     in exactly the same place on every category. The hero then ends just
+     below whatever form is open rather than stretching to a reserved size. */
   #hero{margin:10px 10px 0;min-height:0;border-radius:18px;
-    padding:44px 0 34px;justify-content:flex-start}
-  body.hasresults #hero{padding:0;margin:10px 10px 0}
+    padding:52px 0 26px;justify-content:flex-start}
+  body.hasresults #hero{padding:0;margin:10px 10px 0;border-radius:18px}
   #cats{flex-wrap:wrap;justify-content:center;border-radius:22px}
   .cat{padding:10px 16px 9px}
-  .sform.on{flex-direction:column}
-  .sfield{border-right:none;border-bottom:1px solid var(--rule);padding:13px 16px}
-  .sgo{margin:10px 12px 8px;align-self:stretch;text-align:center}
+  .sform.on{flex-direction:row;flex-wrap:wrap}
+  .sfield{
+    flex:1 1 50%;min-width:0;border-right:1px solid var(--rule);
+    border-bottom:1px solid var(--rule);padding:12px 16px;
+  }
+  /* The destination and anything free text takes the full width; short
+     fields pair up, so five rows becomes three. */
+  .sfield.full{flex:1 1 100%;border-right:none}
+  /* Pairing is counted from whichever field follows a full width one, so the
+     right hand border falls on the correct edge in every form. */
+  .sfield.full + .sfield:nth-child(odd),
+  .sform.on > .sfield:last-of-type{border-right:none}
+  .sfield:nth-child(2n){border-right:none}
+  .sfield.full ~ .sfield:nth-child(2n){border-right:1px solid var(--rule)}
+  .sfield.full ~ .sfield:nth-child(2n+1){border-right:none}
+  .sgo{margin:10px 12px 8px;align-self:stretch;text-align:center;flex:1 1 100%}
   .hsec{padding:34px 14px 4px}
   .cgrid,.tgrid{grid-template-columns:repeat(2,1fr);gap:10px;padding:14px 14px 6px}
   #resultszone{padding:6px 14px 0}
@@ -1791,7 +1809,7 @@ body.hasresults #minisearch{display:flex}
 
           <div id="searchforms" style="margin-top:12px">
             <div class="glass sform" id="sf-hotels">
-              <div class="sfield" style="flex:1.5"><span class="fk">Where to</span><input id="hq" placeholder="Milan, Mykonos, Tokyo, Spain" value="Milan" autocomplete="off"></div>
+              <div class="sfield full" style="flex:1.5"><span class="fk">Where to</span><input id="hq" placeholder="Milan, Mykonos, Tokyo, Spain" value="Milan" autocomplete="off"></div>
               <div class="sfield"><span class="fk">Check in</span><input id="hin" type="date" value="2026-09-13"></div>
               <div class="sfield"><span class="fk">Check out</span><span class="fk" style="display:none"></span><input id="hout" type="date" value="2026-09-18"></div>
               <div class="sfield" style="flex:.5"><span class="fk">Guests</span><input id="hg" type="number" min="1" max="8" value="2"></div>
@@ -1812,13 +1830,13 @@ body.hasresults #minisearch{display:flex}
               <button class="sgo" data-search="flights">Search</button>
             </div>
             <div class="glass sform" id="sf-villas">
-              <div class="sfield" style="flex:1.5"><span class="fk">Where</span><input id="vq" placeholder="Amalfi, Mykonos, Como, Provence"></div>
+              <div class="sfield full" style="flex:1.5"><span class="fk">Where</span><input id="vq" placeholder="Amalfi, Mykonos, Como, Provence"></div>
               <div class="sfield"><span class="fk">Sleeps</span><span class="fv">Any</span></div>
               <div class="sfield"><span class="fk">Held by</span><span class="fv">Voyara directly</span></div>
               <button class="sgo" data-search="villas">Show the collection</button>
             </div>
             <div class="glass sform" id="sf-experiences">
-              <div class="sfield" style="flex:1.6"><span class="fk">What are you after</span><input id="xq" placeholder="A table, a boat, a vineyard, a court"></div>
+              <div class="sfield full" style="flex:1.6"><span class="fk">What are you after</span><input id="xq" placeholder="A table, a boat, a vineyard, a court"></div>
               <div class="sfield"><span class="fk">When</span><span class="fv">While in Milan</span></div>
               <button class="sgo" data-search="experiences">Search</button>
             </div>
@@ -2892,52 +2910,10 @@ function renderCollectionResults(data, mode, c) {
   audit('search.completed', { vertical: 'collection', results: data.length, adapter: mode }, 'traveler');
 }
 
-// The reserve is measured rather than guessed. Hotels has five fields and
-// experiences has two, so any fixed number is wrong at some width, with some
-// font, or after any copy change. Measuring the tallest form and holding that
-// height is what actually stops the headline moving when you switch category.
-function measureFormHeight() {
-  var wrap = $('#hero .hcontrols');
-  if (!wrap) return;
-  var forms = $$('#hero .sform');
-  if (!forms.length) return;
-  var open = forms.filter(function (f) { return f.classList.contains('on'); })[0];
-  var askOpen = $('#askwrap') && $('#askwrap').style.display !== 'none';
-
-  wrap.style.minHeight = '0px';
-  var tallest = 0;
-
-  // Navi is a form too, just a different shape.
-  var ask = $('#askwrap');
-  if (ask) {
-    var prev = ask.style.display;
-    ask.style.display = '';
-    tallest = Math.max(tallest, ask.offsetHeight);
-    ask.style.display = prev;
-  }
-  forms.forEach(function (f) {
-    var had = f.classList.contains('on');
-    if (!had) { f.style.visibility = 'hidden'; f.classList.add('on'); }
-    tallest = Math.max(tallest, f.offsetHeight);
-    if (!had) { f.classList.remove('on'); f.style.visibility = ''; }
-  });
-
-  var cats = $('#cats');
-  var total = tallest + (cats ? cats.offsetHeight + 52 : 0);
-
-  // If the measurement is implausible the element was not laid out yet, or
-  // is hidden, or we are somewhere without a layout engine at all. Applying
-  // a near zero reserve would collapse the hero and bring the jumping back,
-  // so leave the stylesheet's own value in place instead.
-  if (tallest < 120 || total < 200) { wrap.style.minHeight = ''; return; }
-  wrap.style.minHeight = total + 'px';
-}
-
 function setCat(cat) {
   $$('.cat').forEach(function (c) { c.classList.toggle('on', c.getAttribute('data-cat') === cat); });
   $('#askwrap').style.display = cat === 'navi' ? '' : 'none';
   $$('.sform').forEach(function (f) { f.classList.toggle('on', f.id === 'sf-' + cat); });
-  measureFormHeight();
 }
 
 // Search results now come from the live API. Falls back to fixtures only
@@ -6129,17 +6105,6 @@ function boot() {
   renderQueue(); renderCase(); renderSteps(); renderSugg(); syncFlagUi(); initCurrency();
   renderRateEngine(); renderHomeRate(); renderModels(); renderAgentBoard(); renderFareWatch();
   initMode();
-  $('#demobadge').addEventListener('click', exitDemo);
-  // Once at boot, again when the webfont lands, and on any resize. The font
-  // matters: Bookish arriving late changes every measurement.
-  measureFormHeight();
-  setTimeout(measureFormHeight, 400);
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(measureFormHeight);
-  var reflow;
-  window.addEventListener('resize', function () {
-    clearTimeout(reflow);
-    reflow = setTimeout(measureFormHeight, 180);
-  });
   $('#demobadge').addEventListener('click', exitDemo);
   initSession(); loadCash();
   loadAuthConfig();
