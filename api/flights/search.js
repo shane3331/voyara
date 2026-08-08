@@ -88,6 +88,9 @@ async function duffel(origin, destination, departOn, passengers) {
       id: String(o.id),
       carrier: String((o.owner && o.owner.iata_code) || ''),
       carrierName: String((o.owner && o.owner.name) || 'Carrier'),
+      // Duffel ships the airline mark with the offer, so there is no reason to
+      // fetch it from anywhere else or to guess at a logo CDN.
+      carrierLogo: String((o.owner && (o.owner.logo_symbol_url || o.owner.logo_lockup_url)) || ''),
       segments: slices.map((s) => (s.origin || {}).iata_code + ' to ' + (s.destination || {}).iata_code).join(', '),
       departAt: String(fs.departing_at || ''),
       arriveAt: String(ls.arriving_at || ''),
@@ -104,9 +107,9 @@ async function duffel(origin, destination, departOn, passengers) {
 
 function fixtures(origin, destination, departOn) {
   return [
-    { id: 'mock_az631', carrier: 'AZ', carrierName: 'ITA Airways', segments: origin + ' to FCO, FCO to ' + destination, departAt: departOn + 'T18:40:00Z', arriveAt: departOn + 'T15:20:00Z', stops: 1, publicMinor: 214800, currency: 'EUR', bagIncluded: true, changeable: true, refundable: false, expiresAt: new Date(Date.now() + 240000).toISOString() },
-    { id: 'mock_az605', carrier: 'AZ', carrierName: 'ITA Airways', segments: origin + ' to MXP nonstop', departAt: departOn + 'T22:10:00Z', arriveAt: departOn + 'T12:05:00Z', stops: 0, publicMinor: 239000, currency: 'EUR', bagIncluded: true, changeable: true, refundable: false, expiresAt: new Date(Date.now() + 240000).toISOString() },
-    { id: 'mock_lh401', carrier: 'LH', carrierName: 'Lufthansa', segments: origin + ' to FRA, FRA to ' + destination, departAt: departOn + 'T16:05:00Z', arriveAt: departOn + 'T13:40:00Z', stops: 1, publicMinor: 190500, currency: 'EUR', bagIncluded: false, changeable: false, refundable: false, expiresAt: new Date(Date.now() + 240000).toISOString() }
+    { id: 'mock_az631', carrier: 'AZ', carrierName: 'ITA Airways', carrierLogo: 'https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/AZ.svg', segments: origin + ' to FCO, FCO to ' + destination, departAt: departOn + 'T18:40:00Z', arriveAt: departOn + 'T15:20:00Z', stops: 1, publicMinor: 214800, currency: 'EUR', bagIncluded: true, changeable: true, refundable: false, expiresAt: new Date(Date.now() + 240000).toISOString() },
+    { id: 'mock_az605', carrier: 'AZ', carrierName: 'ITA Airways', carrierLogo: 'https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/AZ.svg', segments: origin + ' to MXP nonstop', departAt: departOn + 'T22:10:00Z', arriveAt: departOn + 'T12:05:00Z', stops: 0, publicMinor: 239000, currency: 'EUR', bagIncluded: true, changeable: true, refundable: false, expiresAt: new Date(Date.now() + 240000).toISOString() },
+    { id: 'mock_lh401', carrier: 'LH', carrierLogo: 'https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/LH.svg', carrierName: 'Lufthansa', segments: origin + ' to FRA, FRA to ' + destination, departAt: departOn + 'T16:05:00Z', arriveAt: departOn + 'T13:40:00Z', stops: 1, publicMinor: 190500, currency: 'EUR', bagIncluded: false, changeable: false, refundable: false, expiresAt: new Date(Date.now() + 240000).toISOString() }
   ];
 }
 
