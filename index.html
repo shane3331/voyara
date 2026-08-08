@@ -834,6 +834,55 @@ body.demomode #demobadge{display:block}
   .obtyping i{animation:none}
 }
 
+/* ============ SEARCH LAYOUT ============
+   Two problems, one cause. The hero centred its contents, so a tall form
+   pushed the headline up and a short one let it fall back down; switching
+   category moved the whole page. And once results existed the hero kept its
+   full height, so the answer to a search sat below the fold.
+
+   So: the area the form occupies reserves a fixed height, which keeps the
+   headline still whatever is selected. And once there are results the hero
+   collapses to a slim summary you can tap to search again. */
+#hero .hcontrols{width:100%;display:flex;flex-direction:column;align-items:center;
+  min-height:var(--formh,246px);justify-content:flex-start}
+
+body.hasresults #hero{
+  min-height:0;margin-bottom:0;
+  border-bottom-left-radius:0;border-bottom-right-radius:0;
+}
+body.hasresults #hero .bgimg,
+body.hasresults #hero .hkick,
+body.hasresults #hero h1,
+body.hasresults #hero .hcontrols{display:none}
+body.hasresults #hero:after{content:none}
+
+#minisearch{display:none;align-items:center;gap:14px;width:100%;
+  padding:15px clamp(16px,3vw,26px);background:var(--surface);
+  border:1px solid var(--rule);border-radius:var(--r);text-align:left;transition:border-color .16s}
+#minisearch:hover{border-color:var(--faint)}
+body.hasresults #minisearch{display:flex}
+#minisearch .mi{width:34px;height:34px;flex:0 0 34px;border-radius:50%;background:var(--raised2);
+  border:1px solid var(--rule);display:flex;align-items:center;justify-content:center;color:var(--mute)}
+#minisearch .mi svg{width:17px;height:17px}
+#minisearch .mtxt{flex:1;min-width:0}
+#minisearch .mwhere{font-family:var(--serif);font-size:20px;color:var(--text);line-height:1.15;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#minisearch .mwhen{font-family:var(--mono);font-size:9px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--faint);margin-top:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#minisearch .medit{flex:0 0 auto;font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--mute);padding:9px 15px;border:1px solid var(--rule);border-radius:99px}
+#minisearch:hover .medit{border-color:var(--text);color:var(--text)}
+
+/* ============ SEARCH OVERLAY ============
+   A search takes a moment. Rather than swapping the results area for a
+   spinner and leaving the page half present, the whole surface goes soft
+   and the aircraft flies in the middle of it. */
+#searchveil{position:fixed;inset:0;z-index:260;display:none;align-items:center;justify-content:center;
+  background:rgba(242,240,234,.72);backdrop-filter:blur(18px) saturate(1.1);
+  -webkit-backdrop-filter:blur(18px) saturate(1.1);opacity:0;transition:opacity .3s}
+#searchveil.on{display:flex;opacity:1}
+#searchveil .fload{padding:0}
+
 /* ============ FLIGHT CARD ============
    A flight is a timetable, not a room. The old card reused the hotel layout,
    which meant a large photograph of a wing and the two things that actually
@@ -845,7 +894,12 @@ body.demomode #demobadge{display:block}
 .flcarrier{display:flex;align-items:center;gap:10px}
 .flcarrier .code{width:34px;height:34px;border-radius:8px;flex:0 0 34px;display:flex;
   align-items:center;justify-content:center;background:var(--raised2);border:1px solid var(--rule);
-  font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--text)}
+  font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--text);overflow:hidden}
+/* Carrier marks arrive in every shape and colour. White ground and a little
+   padding keeps a red logo and a blue one sitting at the same visual weight
+   beside each other in a list. */
+.flcarrier .code.logo{background:var(--raised);padding:5px}
+.flcarrier .code img{width:100%;height:100%;object-fit:contain;display:block}
 .flcarrier .nm{font-size:13.5px;color:var(--mute)}
 
 .fltimes{display:flex;align-items:center;gap:16px;margin-top:16px}
@@ -1507,7 +1561,9 @@ body.demomode #demobadge{display:block}
   #maincol{flex:none}
   #maincol{flex:none}
   #stage{overflow:visible}
-  #hero{margin:10px 10px 0;min-height:520px;border-radius:18px}
+  #hero{margin:10px 10px 0;min-height:0;border-radius:18px;
+    padding:44px 0 34px;justify-content:flex-start}
+  body.hasresults #hero{padding:0;margin:10px 10px 0}
   #cats{flex-wrap:wrap;justify-content:center;border-radius:22px}
   .cat{padding:10px 16px 9px}
   .sform.on{flex-direction:column}
@@ -1551,6 +1607,7 @@ body.demomode #demobadge{display:block}
   .cgrid,.tgrid{grid-template-columns:1fr}
   .mgrid{grid-template-columns:1fr}
   #hero h1{font-size:30px}
+  #minisearch .mwhere{font-size:18px}
   .cat{padding:9px 12px 8px}
   .cat .cl2{font-size:7px}
   #whoami .wn{display:none}
@@ -1706,7 +1763,8 @@ body.demomode #demobadge{display:block}
             onerror="this.src='https://images.unsplash.com/photo-1505142468610-359e7d316be0?w=2000&q=72&auto=format&fit=crop'">
           <div class="hkick">Travel, operated</div>
           <h1 class="disp">Where to next?</h1>
-          <div id="cats">
+          <div class="hcontrols">
+            <div id="cats">
             <button class="cat on" data-cat="navi"><span class="cg"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2.6l1.9 4.9 4.9 1.9-4.9 1.9L10 16.2l-1.9-4.9L3.2 9.4l4.9-1.9z"/></svg></span><span class="cl2">Navi<sup>Live</sup></span></button>
             <button class="cat" data-cat="hotels"><span class="cg"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.6L10 3.2l7 5.4"/><path d="M4.6 9.9v6.4h10.8V9.9"/><path d="M8.4 16.3v-3.7h3.2v3.7"/></svg></span><span class="cl2">Hotels</span></button>
             <button class="cat" data-cat="flights"><span class="cg"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M2.6 11.3l14.8-4.6M6.2 9.5L4.4 6.1l1.5-.5 3.1 2.7M7.4 14.4l1.1 2.6 1.4-.6.2-3.4"/></svg></span><span class="cl2">Flights</span></button>
@@ -1766,6 +1824,13 @@ body.demomode #demobadge{display:block}
             </div>
           </div>
         </div>
+
+        <button id="minisearch" aria-label="Edit your search">
+          <span class="mi"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><circle cx="9" cy="9" r="5.4"/><path d="M13.2 13.2L17 17"/></svg></span>
+          <span class="mtxt"><span class="mwhere" id="miwhere">Milan</span>
+            <span class="mwhen" id="miwhen"></span></span>
+          <span class="medit">Edit</span>
+        </button>
 
         <div id="resultszone"></div>
 
@@ -1844,6 +1909,7 @@ body.demomode #demobadge{display:block}
             <h1 id="pfname" class="disp">Your profile</h1>
             <div id="pfmail"></div>
             <div id="pfchips"></div>
+          </div>
           </div>
         </div>
       </div>
@@ -2238,6 +2304,8 @@ body.demomode #demobadge{display:block}
     <p id="obmsg"></p>
   </div>
 </div>
+
+<div id="searchveil" aria-hidden="true"></div>
 
 <div id="psheet"><div id="pinner"></div></div>
 
@@ -2820,14 +2888,56 @@ function renderCollectionResults(data, mode, c) {
     b.addEventListener('click', function () { openProperty(b.getAttribute('data-hotel')); });
   });
   var cl = $('#clearresults');
-  if (cl) cl.addEventListener('click', function () { $('#resultszone').innerHTML = ''; });
+  if (cl) cl.addEventListener('click', function () { $('#resultszone').innerHTML = ''; setResultsMode(false); });
   audit('search.completed', { vertical: 'collection', results: data.length, adapter: mode }, 'traveler');
+}
+
+// The reserve is measured rather than guessed. Hotels has five fields and
+// experiences has two, so any fixed number is wrong at some width, with some
+// font, or after any copy change. Measuring the tallest form and holding that
+// height is what actually stops the headline moving when you switch category.
+function measureFormHeight() {
+  var wrap = $('#hero .hcontrols');
+  if (!wrap) return;
+  var forms = $$('#hero .sform');
+  if (!forms.length) return;
+  var open = forms.filter(function (f) { return f.classList.contains('on'); })[0];
+  var askOpen = $('#askwrap') && $('#askwrap').style.display !== 'none';
+
+  wrap.style.minHeight = '0px';
+  var tallest = 0;
+
+  // Navi is a form too, just a different shape.
+  var ask = $('#askwrap');
+  if (ask) {
+    var prev = ask.style.display;
+    ask.style.display = '';
+    tallest = Math.max(tallest, ask.offsetHeight);
+    ask.style.display = prev;
+  }
+  forms.forEach(function (f) {
+    var had = f.classList.contains('on');
+    if (!had) { f.style.visibility = 'hidden'; f.classList.add('on'); }
+    tallest = Math.max(tallest, f.offsetHeight);
+    if (!had) { f.classList.remove('on'); f.style.visibility = ''; }
+  });
+
+  var cats = $('#cats');
+  var total = tallest + (cats ? cats.offsetHeight + 52 : 0);
+
+  // If the measurement is implausible the element was not laid out yet, or
+  // is hidden, or we are somewhere without a layout engine at all. Applying
+  // a near zero reserve would collapse the hero and bring the jumping back,
+  // so leave the stylesheet's own value in place instead.
+  if (tallest < 120 || total < 200) { wrap.style.minHeight = ''; return; }
+  wrap.style.minHeight = total + 'px';
 }
 
 function setCat(cat) {
   $$('.cat').forEach(function (c) { c.classList.toggle('on', c.getAttribute('data-cat') === cat); });
   $('#askwrap').style.display = cat === 'navi' ? '' : 'none';
   $$('.sform').forEach(function (f) { f.classList.toggle('on', f.id === 'sf-' + cat); });
+  measureFormHeight();
 }
 
 // Search results now come from the live API. Falls back to fixtures only
@@ -2881,6 +2991,7 @@ function offersToCards(type, json) {
       return {
         flight: true,
         carrier: o.carrier || '', carrierName: o.carrierName || 'Carrier',
+        carrierLogo: o.carrierLogo || '',
         route: o.segments || '', departAt: o.departAt || '', arriveAt: o.arriveAt || '',
         stops: Number(o.stops) || 0,
         p: pr.publicDisplay, net: pr.netDisplay, keep: pr.rebateDisplay,
@@ -2946,6 +3057,8 @@ function parseMoney(str) {
 }
 
 function emptyResults(type, message, heading) {
+  showVeil(false);
+  setResultsMode(true);
   var q = stayQuery();
   $('#resultszone').innerHTML =
     '<div class="hsec" style="padding-top:26px"><div class="hh"><div>' +
@@ -2959,7 +3072,7 @@ function emptyResults(type, message, heading) {
       return '<button class="sg" data-try="' + c + '">' + c + '</button>';
     }).join('') + '</div></div></div>';
   var c = $('#clearresults');
-  if (c) c.addEventListener('click', function () { $('#resultszone').innerHTML = ''; });
+  if (c) c.addEventListener('click', function () { $('#resultszone').innerHTML = ''; setResultsMode(false); });
   $$('[data-try]').forEach(function (b) {
     b.addEventListener('click', function () {
       if ($('#hq')) $('#hq').value = b.getAttribute('data-try');
@@ -2983,6 +3096,23 @@ function clockOf(iso) {
   h = h % 12; if (h === 0) h = 12;
   return { t: h + ':' + m + ' ' + ap, iso: d };
 }
+
+function esc(v) {
+  return String(v == null ? '' : v)
+    .replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// Image errors do not bubble, so the listener is captured rather than
+// delegated the usual way. One listener covers every card ever rendered.
+document.addEventListener('error', function (e) {
+  var img = e.target;
+  if (!img || img.tagName !== 'IMG' || !img.hasAttribute('data-logo')) return;
+  var chip = img.parentNode;
+  if (!chip) return;
+  chip.classList.remove('logo');
+  chip.textContent = chip.getAttribute('data-code') || '\u2708';
+}, true);
 
 function flightCard(r) {
   var a = clockOf(r.departAt), b = clockOf(r.arriveAt);
@@ -3022,7 +3152,15 @@ function flightCard(r) {
 
   return '<div class="flcard">' +
     '<div class="flmain">' +
-      '<div class="flcarrier"><span class="code">' + (r.carrier || '&#9992;') + '</span>' +
+      '<div class="flcarrier">' +
+        (r.carrierLogo
+          // Fallback lives in a data attribute rather than inline in onerror.
+          // Building a quoted string into a double quoted attribute closes it
+          // early, which silently produced a stray attribute and a fallback
+          // that could never fire.
+          ? '<span class="code logo" data-code="' + esc(r.carrier || '\u2708') + '">' +
+            '<img src="' + esc(r.carrierLogo) + '" alt="" loading="lazy" data-logo="1"></span>'
+          : '<span class="code">' + (r.carrier || '&#9992;') + '</span>') +
         '<span class="nm">' + r.carrierName + '</span></div>' +
       '<div class="fltimes">' +
         '<div class="fltime"><div class="t">' + a.t + '</div><div class="p">' + from + '</div></div>' +
@@ -3063,11 +3201,57 @@ function priceBlock(r) {
     book + '</div>';
 }
 
+/* ============================================================
+   SEARCH STATE
+   Results are the answer, so once they exist they get the screen and the
+   search shrinks to a line you can tap. Nothing repositions on its own.
+   ============================================================ */
+function setResultsMode(on) {
+  document.body.classList.toggle('hasresults', on);
+  if (on) paintMiniSearch();
+}
+
+function paintMiniSearch() {
+  var q = stayQuery();
+  var cat = S.cat || 'hotels';
+  var where = $('#miwhere'), when = $('#miwhen');
+  if (!where) return;
+  if (cat === 'flights') {
+    where.textContent = 'JFK to Milan';
+    when.textContent = prettyDate(q.checkIn) + ' . 1 traveller';
+  } else {
+    where.textContent = q.destination;
+    when.textContent = prettyDate(q.checkIn) + ' to ' + prettyDate(q.checkOut) +
+      ' . ' + q.guests + ' guest' + (q.guests === '1' ? '' : 's');
+  }
+}
+
+// Tapping the summary brings the full search back without throwing the
+// results away, so nobody loses their place to change one date.
+function expandSearch() {
+  setResultsMode(false);
+  var h = $('#hero');
+  if (h && h.scrollIntoView) h.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function showVeil(on, caption) {
+  var v = $('#searchveil');
+  if (!v) return;
+  if (on) {
+    v.innerHTML = flightLoader(caption || 'Searching every rate');
+    v.classList.add('on');
+    v.setAttribute('aria-hidden', 'false');
+  } else {
+    v.classList.remove('on');
+    v.setAttribute('aria-hidden', 'true');
+    setTimeout(function () { if (!v.classList.contains('on')) v.innerHTML = ''; }, 320);
+  }
+}
+
 function renderResults(type, live) {
   var url = apiUrl(type);
   if (url && !live) {
-    var zone = $('#resultszone');
-    zone.innerHTML = flightLoader('Searching every rate');
+    showVeil(true, type === 'flights' ? 'Searching every fare' : 'Searching every rate');
     // Guarded because this path is now reachable from signing in and out, not
     // only from a click. A synchronous throw here would abort the caller.
     try {
@@ -3126,6 +3310,8 @@ function renderResults(type, live) {
       priceBlock(r) + '</div>';
   });
   $('#resultszone').innerHTML = h;
+  showVeil(false);
+  setResultsMode(true);
   if (!ME.email && type === 'hotels') paintSaveBar(data);
   emit('search.' + type + '_completed.v1', 'booking-gateway');
   audit('search.completed', { vertical: type, results: data.length, adapter: srcMode }, 'traveler');
@@ -5944,6 +6130,17 @@ function boot() {
   renderRateEngine(); renderHomeRate(); renderModels(); renderAgentBoard(); renderFareWatch();
   initMode();
   $('#demobadge').addEventListener('click', exitDemo);
+  // Once at boot, again when the webfont lands, and on any resize. The font
+  // matters: Bookish arriving late changes every measurement.
+  measureFormHeight();
+  setTimeout(measureFormHeight, 400);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(measureFormHeight);
+  var reflow;
+  window.addEventListener('resize', function () {
+    clearTimeout(reflow);
+    reflow = setTimeout(measureFormHeight, 180);
+  });
+  $('#demobadge').addEventListener('click', exitDemo);
   initSession(); loadCash();
   loadAuthConfig();
   wireAuth();
@@ -5993,7 +6190,15 @@ function boot() {
   $$('#side .sitem, #side .stab, #side #tripcard').forEach(function (b) {
     b.addEventListener('click', function () { setMenu(false); });
   });
-  $('#tbmark').addEventListener('click', function (e) { e.preventDefault(); switchView('home'); });
+  // The wordmark is the way home from anywhere, including out of a set of
+  // results, which is what people reach for first.
+  $('#tbmark').addEventListener('click', function (e) {
+    e.preventDefault();
+    setResultsMode(false);
+    $('#resultszone').innerHTML = '';
+    switchView('home');
+  });
+  $('#minisearch').addEventListener('click', expandSearch);
   $('#navplan').addEventListener('click', function () { switchView('trip'); openImport(); });
   $('#navcollections').addEventListener('click', function () { switchView('home'); setTimeout(function () { var a = $('#collanchor'); if (a && a.scrollIntoView) a.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 60); });
   bootHome();
