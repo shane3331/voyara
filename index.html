@@ -453,6 +453,144 @@ img{display:block}
   .scenefocus{animation:none}
 }
 
+/* ============ ONBOARDING ============
+   Shown once, on a phone, before we ask for anything. Five screens, one
+   benefit each, every one carrying a real animated number rather than a
+   static illustration. The whole argument is arithmetic, so the onboarding
+   should count. */
+#ob{position:fixed;inset:0;z-index:400;display:none;background:var(--ink);
+  flex-direction:column;overscroll-behavior:contain}
+#ob.on{display:flex}
+#obtop{display:flex;align-items:center;gap:14px;padding:calc(env(safe-area-inset-top,0) + 18px) 20px 6px}
+#obmark{font-family:var(--serif);font-size:17px;letter-spacing:.24em;text-transform:uppercase;color:var(--text)}
+#obskip{margin-left:auto;font-family:var(--mono);font-size:9px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--faint);padding:8px 4px}
+#obskip:hover{color:var(--text)}
+
+#obstage{flex:1;min-height:0;position:relative;overflow:hidden}
+.obcard{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;
+  padding:8px 26px 20px;opacity:0;transform:translateX(28px);pointer-events:none;
+  transition:opacity .42s cubic-bezier(.3,0,.2,1),transform .42s cubic-bezier(.3,0,.2,1)}
+.obcard.on{opacity:1;transform:none;pointer-events:auto}
+.obcard.past{transform:translateX(-28px)}
+
+.obart{flex:0 0 auto;margin-bottom:32px;min-height:212px;display:flex;align-items:center}
+.obk{font-family:var(--mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint)}
+.obh{font-family:var(--serif);font-weight:normal;font-size:clamp(28px,8.4vw,40px);
+  letter-spacing:-.004em;line-height:1.1;margin-top:12px;color:var(--text)}
+.obp{font-size:15.5px;color:var(--mute);line-height:1.6;margin-top:14px;max-width:34ch;font-weight:300}
+
+/* card 1: the arithmetic, counting itself out */
+.obcalc{width:100%;border:1px solid var(--rule);border-radius:var(--r);background:var(--surface);
+  padding:20px 22px}
+.obrow{display:flex;justify-content:space-between;align-items:baseline;gap:14px;padding:9px 0;
+  opacity:0;transform:translateY(6px);transition:opacity .4s ease,transform .4s ease}
+.obcard.on .obrow{opacity:1;transform:none}
+.obcard.on .obrow:nth-child(1){transition-delay:.20s}
+.obcard.on .obrow:nth-child(2){transition-delay:.46s}
+.obcard.on .obrow:nth-child(3){transition-delay:.72s}
+.obcard.on .obrow:nth-child(4){transition-delay:1.02s}
+.obcard.on .obrow:nth-child(5){transition-delay:1.34s}
+.obrow .k{font-size:13.5px;color:var(--mute)}
+.obrow .v{font-family:var(--mono);font-size:14px;color:var(--text-dim)}
+.obrow.strike{position:relative}
+.obrow.strike .v{color:var(--faint)}
+.obrow.strike .v:after{content:'';position:absolute;right:0;top:50%;height:1px;width:0;
+  background:var(--faint);transition:width .5s cubic-bezier(.3,0,.2,1) 1.7s}
+.obcard.on .obrow.strike .v:after{width:var(--sw,72px)}
+.obrow.tot{border-top:1px solid var(--rule);margin-top:6px;padding-top:14px}
+.obrow.tot .k{color:var(--text);font-size:14.5px}
+.obrow.tot .v{font-size:24px;color:var(--text)}
+.obrow.save .v{color:var(--live);font-size:15px}
+
+/* card 2: a rate falling, and rebooking itself */
+.obdrop{width:100%;border:1px solid var(--rule);border-radius:var(--r);background:var(--surface);
+  padding:22px;position:relative;overflow:hidden}
+.obtrack{position:relative;height:104px;margin-top:6px}
+.obline{position:absolute;left:0;right:0;top:14px;height:1px;background:var(--rule)}
+.obline.low{top:78px}
+.obtag{position:absolute;font-family:var(--mono);font-size:9px;letter-spacing:.11em;color:var(--faint)}
+.obtag.a{top:0;left:0}
+.obtag.b{top:64px;left:0;color:var(--live)}
+.obdot{position:absolute;left:0;top:9px;width:11px;height:11px;border-radius:50%;
+  background:var(--text);transition:transform 1.5s cubic-bezier(.5,0,.2,1) .5s}
+.obcard.on .obdot{transform:translate(calc(60vw - 60px),64px)}
+.obtrail{position:absolute;left:5px;top:14px;height:1px;width:0;
+  background:linear-gradient(90deg,var(--rule),var(--live));
+  transition:width 1.5s cubic-bezier(.5,0,.2,1) .5s}
+.obcard.on .obtrail{width:calc(60vw - 55px);transform:rotate(0)}
+.obcatch{position:absolute;right:0;bottom:-2px;padding:7px 13px;border-radius:99px;
+  background:var(--live);color:#fff;font-family:var(--mono);font-size:9px;letter-spacing:.12em;
+  text-transform:uppercase;opacity:0;transform:translateY(6px);transition:.45s ease 1.9s}
+.obcard.on .obcatch{opacity:1;transform:none}
+
+/* card 3: the message that arrives before you notice */
+.obmsg{width:100%;display:flex;flex-direction:column;gap:9px}
+.obbub{max-width:84%;padding:14px 16px;border-radius:16px;font-size:14.5px;line-height:1.5;
+  opacity:0;transform:translateY(9px);transition:opacity .45s ease,transform .45s ease}
+.obcard.on .obbub{opacity:1;transform:none}
+.obbub.them{background:var(--surface);border:1px solid var(--rule);color:var(--text-dim);
+  align-self:flex-start;border-bottom-left-radius:5px}
+.obbub.you{background:var(--text);color:var(--surface);align-self:flex-end;
+  border-bottom-right-radius:5px;font-family:var(--body)}
+.obcard.on .obbub:nth-child(1){transition-delay:.25s}
+.obcard.on .obbub:nth-child(2){transition-delay:.95s}
+.obcard.on .obbub:nth-child(3){transition-delay:1.75s}
+.obtyping{display:inline-flex;gap:4px;align-items:center}
+.obtyping i{width:5px;height:5px;border-radius:50%;background:var(--faint);
+  animation:obtype 1.3s infinite}
+.obtyping i:nth-child(2){animation-delay:.18s}
+.obtyping i:nth-child(3){animation-delay:.36s}
+@keyframes obtype{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
+
+/* card 4: the hand written list */
+.obsig{width:100%;display:flex;flex-direction:column;gap:8px}
+.obsigrow{display:flex;align-items:center;gap:13px;padding:13px 15px;border:1px solid var(--rule);
+  border-radius:var(--r-sm);background:var(--surface);
+  opacity:0;transform:translateX(-10px);transition:opacity .4s ease,transform .4s ease}
+.obcard.on .obsigrow{opacity:1;transform:none}
+.obcard.on .obsigrow:nth-child(1){transition-delay:.22s}
+.obcard.on .obsigrow:nth-child(2){transition-delay:.42s}
+.obcard.on .obsigrow:nth-child(3){transition-delay:.62s}
+.obsigrow .nm{flex:1;min-width:0;font-size:14.5px;color:var(--text);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.obsigrow .tk{font-family:var(--mono);font-size:8px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--gold);flex:0 0 auto}
+
+/* card 5: the year, in one number */
+.obmath{width:100%;text-align:center}
+.obbig{font-family:var(--serif);font-size:clamp(50px,17vw,78px);line-height:1;color:var(--live);
+  opacity:0;transform:scale(.94);transition:opacity .5s ease .3s,transform .5s cubic-bezier(.3,0,.2,1) .3s}
+.obcard.on .obbig{opacity:1;transform:none}
+.obsub{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--faint);margin-top:14px}
+.obvs{display:flex;justify-content:center;gap:26px;margin-top:26px;padding-top:20px;
+  border-top:1px solid var(--rule)}
+.obvs div{text-align:center}
+.obvs .n{font-family:var(--mono);font-size:17px;color:var(--text-dim)}
+.obvs .l{font-family:var(--mono);font-size:8px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--faint);margin-top:7px}
+
+#obfoot{flex:0 0 auto;padding:16px 26px calc(env(safe-area-inset-bottom,0) + 22px)}
+#obdots{display:flex;gap:6px;justify-content:center;margin-bottom:18px}
+#obdots i{width:5px;height:5px;border-radius:99px;background:var(--rule);transition:.3s}
+#obdots i.on{background:var(--text);width:18px}
+#obnext{width:100%;padding:17px;border-radius:99px;background:var(--text);color:var(--surface);
+  font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;font-weight:500}
+#obmail{width:100%;background:var(--surface);border:1px solid var(--rule);border-radius:99px;
+  padding:16px 20px;font-size:16px;color:var(--text);outline:none;font-family:var(--body);
+  margin-bottom:9px;display:none}
+#obmail:focus{border-color:var(--nav)}
+#ob.last #obmail{display:block}
+#obmsg{font-size:12px;color:var(--faint);text-align:center;line-height:1.5;margin-top:12px;min-height:16px}
+#obmsg.ok{color:var(--live)}
+#obmsg.no{color:var(--warn)}
+
+@media (prefers-reduced-motion:reduce){
+  .obcard,.obrow,.obbub,.obsigrow,.obbig,.obdot,.obtrail,.obcatch{transition-duration:1ms !important}
+  .obtyping i{animation:none}
+}
+
 /* ============ MEMBER GATE ============
    A signed out visitor sees the market rate and, beneath it, exactly what a
    member would pay and exactly what they would keep. Showing the number
@@ -1197,6 +1335,7 @@ img{display:block}
     <button id="sideclose" aria-label="Close menu">&#10005;</button>
     <div id="sidemark">Voyara</div>
     <div id="sidetools">
+      <button class="sitem" id="show"><span class="si">&#9655;</span><span>How it works</span></button>
       <button class="sitem" id="sflag"><span class="si">&#9673;</span><span>Controls</span></button>
       <button class="sitem" id="sccy"><span class="si">&#164;</span><span>Currency</span><span class="sv" id="sccyv">USD</span></button>
       <button class="sitem" id="sproof"><span class="si">&#9635;</span><span>Proof layer</span><span class="sv" id="sproofv">6</span></button>
@@ -1550,6 +1689,107 @@ img{display:block}
     <span id="shcount">1 / 8</span>
     <div id="shtext"><strong id="shtitle"></strong><span id="shsay"></span></div>
     <button id="shpause" aria-label="Pause">&#10073;&#10073;</button>
+  </div>
+</div>
+
+<!-- Onboarding. Mobile, first visit, once. -->
+<div id="ob" role="dialog" aria-label="How Voyara works" aria-modal="true">
+  <div id="obtop">
+    <span id="obmark">Voyara</span>
+    <button id="obskip">Skip</button>
+  </div>
+
+  <div id="obstage">
+
+    <div class="obcard" data-ob="0">
+      <div class="obart">
+        <div class="obcalc">
+          <div class="obrow strike" style="--sw:78px"><span class="k">What the market charges</span><span class="v">$1,415.62</span></div>
+          <div class="obrow"><span class="k">What we pay the hotel</span><span class="v">$1,149.04</span></div>
+          <div class="obrow"><span class="k">What Voyara adds, 4%</span><span class="v">$45.96</span></div>
+          <div class="obrow tot"><span class="k">You pay</span><span class="v">$1,195.00</span></div>
+          <div class="obrow save"><span class="k">You keep</span><span class="v">$220.62</span></div>
+        </div>
+      </div>
+      <div class="obk">The difference</div>
+      <h2 class="obh">Every booking site earns more when you spend more.</h2>
+      <p class="obp">We are paid a flat membership instead, so we buy at wholesale and hand
+      the rest back. That is a real Marbella rate, with nothing removed.</p>
+    </div>
+
+    <div class="obcard" data-ob="1">
+      <div class="obart">
+        <div class="obdrop">
+          <div class="obk">Le Sirenuse . 5 nights</div>
+          <div class="obtrack">
+            <span class="obline"></span><span class="obline low"></span>
+            <span class="obtag a">$3,180 when you booked</span>
+            <span class="obtag b">$2,840 at 3am</span>
+            <span class="obtrail"></span>
+            <span class="obdot"></span>
+            <span class="obcatch">Rebooked . you keep $340</span>
+          </div>
+        </div>
+      </div>
+      <div class="obk">While you sleep</div>
+      <h2 class="obh">Your rate keeps getting shopped.</h2>
+      <p class="obp">We re-price every refundable booking until its cancellation deadline.
+      If the same room gets cheaper, we rebook it and the difference is yours.</p>
+    </div>
+
+    <div class="obcard" data-ob="2">
+      <div class="obart">
+        <div class="obmsg">
+          <div class="obbub them">Your Rome connection is at risk. AZ631 is 55 minutes late.</div>
+          <div class="obbub them">Two options priced and held. The 18:40 keeps your hotel
+          booking intact and costs nothing.</div>
+          <div class="obbub you">take the 18:40</div>
+        </div>
+      </div>
+      <div class="obk">When it goes wrong</div>
+      <h2 class="obh">We know before the airport does.</h2>
+      <p class="obp">Every flight is watched. When a delay threatens a connection we do the
+      arithmetic, price the alternatives, and bring you a decision rather than a problem.</p>
+    </div>
+
+    <div class="obcard" data-ob="3">
+      <div class="obart">
+        <div class="obsig">
+          <div class="obsigrow"><span class="nm">Le Sirenuse, Positano</span><span class="tk">Signature</span></div>
+          <div class="obsigrow"><span class="nm">Aman Tokyo</span><span class="tk">Signature</span></div>
+          <div class="obsigrow"><span class="nm">La Mamounia, Marrakech</span><span class="tk">Signature</span></div>
+        </div>
+      </div>
+      <div class="obk">The collection</div>
+      <h2 class="obh">Chosen by hand, not by feed.</h2>
+      <p class="obp">Aggregators return whatever is in the file. We keep a written list of the
+      properties worth being known for, and source them directly when they are not bookable.</p>
+    </div>
+
+    <div class="obcard" data-ob="4">
+      <div class="obart">
+        <div class="obmath">
+          <div class="obbig" id="obcount">$970</div>
+          <div class="obsub">Returned to a typical member each year</div>
+          <div class="obvs">
+            <div><div class="n">$499</div><div class="l">Membership</div></div>
+            <div><div class="n">2</div><div class="l">Trips a year</div></div>
+            <div><div class="n">1.9x</div><div class="l">Back on the fee</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="obk">Founding members</div>
+      <h2 class="obh">We are opening slowly, and on purpose.</h2>
+      <p class="obp">Leave your address and we will come to you before the first bookings open.</p>
+    </div>
+
+  </div>
+
+  <div id="obfoot">
+    <div id="obdots"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+    <input id="obmail" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" aria-label="Email">
+    <button id="obnext">Next</button>
+    <p id="obmsg"></p>
   </div>
 </div>
 
@@ -2978,6 +3218,129 @@ var CCY = {
    SESSION . passwordless, six digit code by email
    ============================================================ */
 var ME = { email: null };
+
+/* ============================================================
+   ONBOARDING
+   Five screens, one benefit each, shown once on a phone before we ask
+   for anything. Desktop already shows the whole product, so it would
+   only be in the way there.
+   ============================================================ */
+var OB = { i: 0, n: 5, done: false };
+
+function obShouldShow() {
+  if (window.innerWidth > 820) return false;
+  try { if (window.localStorage.getItem('voyara.onboarded')) return false; } catch (e) {}
+  return true;
+}
+
+function obOpen(force) {
+  if (!force && !obShouldShow()) return;
+  OB.i = 0;
+  obPaint();
+  $('#ob').classList.add('on');
+  document.body.style.overflow = 'hidden';
+  audit('onboarding.started', {}, 'traveler');
+}
+
+function obClose(completed) {
+  $('#ob').classList.remove('on');
+  document.body.style.overflow = '';
+  try { window.localStorage.setItem('voyara.onboarded', '1'); } catch (e) {}
+  audit(completed ? 'onboarding.completed' : 'onboarding.skipped', { card: OB.i + 1 }, 'traveler');
+}
+
+function obPaint() {
+  $$('#obstage .obcard').forEach(function (c, i) {
+    c.classList.toggle('on', i === OB.i);
+    c.classList.toggle('past', i < OB.i);
+  });
+  $$('#obdots i').forEach(function (d, i) { d.classList.toggle('on', i === OB.i); });
+  var last = OB.i === OB.n - 1;
+  $('#ob').classList.toggle('last', last);
+  $('#obnext').textContent = last ? 'Join the waitlist' : 'Next';
+  $('#obskip').textContent = last ? 'Not now' : 'Skip';
+  if (last) obCount();
+}
+
+// The closing number counts up rather than appearing, because the whole
+// argument is arithmetic and a number that lands is more convincing than
+// one that was always there.
+function obCount() {
+  var el = $('#obcount');
+  if (!el || el.dataset.counted) return;
+  el.dataset.counted = '1';
+  var target = 970, t0 = null, dur = 1100;
+  function frame(now) {
+    if (!t0) t0 = now;
+    var p = Math.min(1, (now - t0) / dur);
+    var e = 1 - Math.pow(1 - p, 3);
+    el.textContent = '$' + Math.round(target * e);
+    if (p < 1) requestAnimationFrame(frame);
+    else el.textContent = '$970';
+  }
+  setTimeout(function () { requestAnimationFrame(frame); }, 420);
+}
+
+function obNext() {
+  if (OB.i < OB.n - 1) { OB.i++; obPaint(); return; }
+  var email = ($('#obmail').value || '').trim();
+  var msg = $('#obmsg'), btn = $('#obnext');
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    msg.textContent = 'That does not look like an email address.';
+    msg.className = 'no';
+    $('#obmail').focus();
+    return;
+  }
+  btn.disabled = true; btn.textContent = 'Joining';
+  var land = function () {
+    msg.textContent = 'You are on the list. We will come to you before the doors open.';
+    msg.className = 'ok';
+    btn.textContent = 'On the list';
+    setTimeout(function () { obClose(true); }, 1600);
+  };
+  try {
+    fetch('/api/waitlist', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email, source: 'onboarding' })
+    }).then(function (r) { return r.json(); }).then(function (j) {
+      if (j && (j.saved || j.duplicate)) return land();
+      msg.textContent = 'Could not save that. Try again in a moment.';
+      msg.className = 'no';
+      btn.disabled = false; btn.textContent = 'Join the waitlist';
+    }).catch(land);
+  } catch (e) { land(); }
+}
+
+function wireOnboarding() {
+  $('#obnext').addEventListener('click', obNext);
+  $('#obskip').addEventListener('click', function () { obClose(false); });
+  $('#obmail').addEventListener('keydown', function (e) { if (e.key === 'Enter') obNext(); });
+
+  // Swipe, because on a phone that is how people move through cards.
+  var x0 = null, y0 = null;
+  var stage = $('#obstage');
+  stage.addEventListener('touchstart', function (e) {
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY;
+  }, { passive: true });
+  stage.addEventListener('touchend', function (e) {
+    if (x0 === null) return;
+    var dx = e.changedTouches[0].clientX - x0;
+    var dy = e.changedTouches[0].clientY - y0;
+    // Only a decisive horizontal swipe, so a scroll never changes the card.
+    if (Math.abs(dx) > 52 && Math.abs(dx) > Math.abs(dy) * 1.6) {
+      if (dx < 0 && OB.i < OB.n - 1) { OB.i++; obPaint(); }
+      else if (dx > 0 && OB.i > 0) { OB.i--; obPaint(); }
+    }
+    x0 = null; y0 = null;
+  }, { passive: true });
+
+  document.addEventListener('keydown', function (e) {
+    if (!$('#ob').classList.contains('on')) return;
+    if (e.key === 'Escape') obClose(false);
+    if (e.key === 'ArrowRight' && OB.i < OB.n - 1) { OB.i++; obPaint(); }
+    if (e.key === 'ArrowLeft' && OB.i > 0) { OB.i--; obPaint(); }
+  });
+}
 
 function initSession() {
   try { ME.email = window.localStorage.getItem('voyara.email') || null; } catch (e) { ME.email = null; }
@@ -4741,6 +5104,8 @@ function boot() {
   renderQueue(); renderCase(); renderSteps(); renderSugg(); syncFlagUi(); initCurrency();
   renderRateEngine(); renderHomeRate(); renderModels(); renderAgentBoard(); renderFareWatch();
   initSession(); loadCash();
+  wireOnboarding();
+  setTimeout(function () { obOpen(false); }, 260);
   setInterval(tickClocks, 1000); tickClocks();
 
   $$('.stab').forEach(function (b) { b.addEventListener('click', function () { switchView(b.getAttribute('data-view')); }); });
@@ -4774,6 +5139,7 @@ function boot() {
   $('#sideclose').addEventListener('click', function () { setMenu(false); });
   // The drawer copies of the brand bar controls, for narrow screens where the
   // bar cannot hold them. Same handlers, so there is one behaviour not two.
+  $('#show').addEventListener('click', function () { setMenu(false); obOpen(true); });
   $('#sflag').addEventListener('click', function () { setMenu(false); openFlags(); });
   $('#sccy').addEventListener('click', function () { setMenu(false); openCurrency(); });
   $('#sproof').addEventListener('click', function () { setMenu(false); switchView('platform'); openRail(); });
