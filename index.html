@@ -453,6 +453,78 @@ img{display:block}
   .scenefocus{animation:none}
 }
 
+/* ============ FLIGHT LOADER ============
+   A dotted great circle arc with a small aircraft tracing it, the way a
+   route is drawn in the back of an inflight magazine. Hairlines and ink
+   only. It is slow on purpose: a fast spinner reads as a computer working,
+   a slow arc reads as a journey being planned, and the second one is the
+   brand. */
+.fload{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:clamp(38px,7vw,72px) 22px;text-align:center}
+.fload svg{width:clamp(180px,42vw,268px);height:auto;display:block;overflow:visible}
+
+.fl-arc{fill:none;stroke:var(--rule);stroke-width:1;stroke-dasharray:2 5;
+  stroke-linecap:round;opacity:.85}
+.fl-prog{fill:none;stroke:var(--text);stroke-width:1.1;stroke-linecap:round;
+  stroke-dasharray:var(--len,240);stroke-dashoffset:var(--len,240);
+  animation:flDraw 3.4s cubic-bezier(.55,0,.35,1) infinite}
+@keyframes flDraw{
+  0%{stroke-dashoffset:var(--len,240);opacity:0}
+  8%{opacity:1}
+  62%{stroke-dashoffset:0;opacity:1}
+  82%{stroke-dashoffset:0;opacity:1}
+  100%{stroke-dashoffset:0;opacity:0}
+}
+
+.fl-node{fill:var(--ink);stroke:var(--text);stroke-width:1}
+.fl-node.b{opacity:0;animation:flLand 3.4s cubic-bezier(.55,0,.35,1) infinite}
+@keyframes flLand{0%,58%{opacity:0;r:2.2}66%{opacity:1;r:3.4}72%,100%{opacity:1;r:2.6}}
+
+.fl-ring{fill:none;stroke:var(--live);stroke-width:1;opacity:0;
+  animation:flRing 3.4s cubic-bezier(.2,.6,.2,1) infinite}
+@keyframes flRing{0%,60%{opacity:0;r:3}70%{opacity:.55;r:9}80%,100%{opacity:0;r:13}}
+
+.fl-plane{fill:var(--text);
+  offset-path:var(--path);offset-rotate:auto;offset-distance:0%;
+  animation:flFly 3.4s cubic-bezier(.55,0,.35,1) infinite}
+@keyframes flFly{
+  0%{offset-distance:0%;opacity:0}
+  8%{opacity:1}
+  62%{offset-distance:100%;opacity:1}
+  86%{offset-distance:100%;opacity:1}
+  100%{offset-distance:100%;opacity:0}
+}
+/* Older engines without offset-path still get a plane, sliding the arc's
+   chord rather than its curve. Less lovely, never broken. */
+@supports not (offset-path: path('M0 0')){
+  .fl-plane{animation:flSlide 3.4s cubic-bezier(.55,0,.35,1) infinite}
+  @keyframes flSlide{
+    0%{transform:translate(20px,54px);opacity:0}
+    8%{opacity:1}
+    62%{transform:translate(176px,54px);opacity:1}
+    86%{transform:translate(176px,54px);opacity:1}
+    100%{transform:translate(176px,54px);opacity:0}
+  }
+}
+
+.fload .cap{font-family:var(--mono);font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--faint);margin-top:26px}
+.fload .cap i{font-style:normal;animation:flDots 1.6s steps(1,end) infinite;opacity:0}
+.fload .cap i:nth-child(2){animation-delay:.4s}
+.fload .cap i:nth-child(3){animation-delay:.8s}
+@keyframes flDots{0%,74%{opacity:0}12%,72%{opacity:1}}
+
+.fload.sm{padding:26px 18px}
+.fload.sm svg{width:clamp(140px,34vw,190px)}
+.fload.sm .cap{margin-top:18px;font-size:9px}
+
+@media (prefers-reduced-motion:reduce){
+  .fl-prog,.fl-plane,.fl-node.b,.fl-ring,.fload .cap i{animation:none}
+  .fl-prog{stroke-dashoffset:0}
+  .fl-plane{offset-distance:62%}
+  .fload .cap i{opacity:1}
+}
+
 /* ============ PROFILE ============ */
 #pfhero{position:relative;padding:clamp(28px,5vw,52px) clamp(20px,4vw,40px) 0}
 #pfcard{display:flex;align-items:flex-end;gap:clamp(18px,3vw,28px);flex-wrap:wrap;
@@ -2164,7 +2236,7 @@ function renderRateEngine() {
 function renderFareWatch() {
   var el = $('#farewatch');
   if (!el) return;
-  el.innerHTML = '<div class="empty" style="padding:26px">Loading fare watch</div>';
+  el.innerHTML = flightLoader('Checking your fare', true);
   safeFetchJson('/api/watch/orders', function (j) {
     var list = (j && j.watched) || [];
     if (!list.length) {
@@ -2502,7 +2574,7 @@ function openRealTrip(t) {
 // is a complaint, whichever direction it goes in.
 function openCancel(trip, r) {
   openModal('<div class="mhead"><h3 class="disp">Cancel</h3><button class="x" data-close>&#10005;</button></div>' +
-    '<div class="mbody"><div class="empty" style="padding:30px">Checking the cancellation terms</div></div>');
+    '<div class="mbody">' + flightLoader('Reading the cancellation terms', true) + '</div>');
 
   fetch('/api/stays/cancel', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -2613,7 +2685,7 @@ function openCollection(slug) {
     '<span class="pill">' + prettyDate(c.checkIn) + ' to ' + prettyDate(c.checkOut) + '</span>' +
     '<span class="pill live"><span class="bd"></span>Live rates</span>' +
     '</div></div></div>' +
-    '<div id="collresults"><div class="empty" style="padding:50px 24px">Pricing this collection</div></div>';
+    '<div id="collresults">' + flightLoader('Pricing this collection') + '</div>';
 
   var x = $('#cbclose');
   if (x) x.addEventListener('click', function () { $('#resultszone').innerHTML = ''; });
@@ -2839,9 +2911,7 @@ function renderResults(type, live) {
   var url = apiUrl(type);
   if (url && !live) {
     var zone = $('#resultszone');
-    zone.innerHTML = '<div class="hsec" style="padding-top:26px"><div class="hh"><div>' +
-      '<h2 class="disp" style="font-size:24px">Searching</h2>' +
-      '<div class="hsub">Live request to the supplier</div></div></div></div>';
+    zone.innerHTML = flightLoader('Searching every rate');
     // Guarded because this path is now reachable from signing in and out, not
     // only from a click. A synchronous throw here would abort the caller.
     try {
@@ -3073,7 +3143,7 @@ function openProperty(hotelId) {
   var sheet = $('#psheet'), inner = $('#pinner');
   sheet.classList.add('on');
   document.body.style.overflow = 'hidden';
-  inner.innerHTML = '<div class="empty" style="padding:90px 24px">Loading the property</div>';
+  inner.innerHTML = flightLoader('Opening the property');
   PROP = { hotel: null, rooms: [], room: null, step: 1, mode: '', booking: null };
 
   var sq = stayQuery();
@@ -4674,6 +4744,31 @@ function openModal(html, paperish) {
   $$('[data-close]', m).forEach(function (b) { b.addEventListener('click', closeModal); });
 }
 function closeModal() { $('#scrim').classList.remove('on'); }
+
+// One loader, used everywhere something is being fetched. The path is
+// declared once and handed to both the stroke and the aircraft, so the plane
+// always traces exactly the line being drawn.
+var FL_PATH = 'M20 54 C 60 4, 140 4, 180 54';
+var FL_LEN = 183;   // measured length of that exact curve. A guess here
+// leaves the line visibly short when the aircraft lands, which is the sort
+// of small wrongness that reads as cheap without anyone knowing why.
+
+function flightLoader(caption, small) {
+  return '<div class="fload' + (small ? ' sm' : '') + '" role="status" aria-live="polite">' +
+    '<svg viewBox="0 0 200 76" aria-hidden="true">' +
+      '<path class="fl-arc" d="' + FL_PATH + '"/>' +
+      '<path class="fl-prog" d="' + FL_PATH + '" style="--len:' + FL_LEN + '"/>' +
+      '<circle class="fl-node" cx="20" cy="54" r="2.6"/>' +
+      '<circle class="fl-ring" cx="180" cy="54" r="3"/>' +
+      '<circle class="fl-node b" cx="180" cy="54" r="2.6"/>' +
+      '<path class="fl-plane" d="M-5.6 0 L4.4 0 M4.4 0 L1.2 -2.6 M4.4 0 L1.2 2.6 M-2 0 L-4.4 -3.4 M-2 0 L-4.4 3.4" ' +
+        'stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" fill="none" ' +
+        'style="--path:path(\'' + FL_PATH + '\');color:var(--text)"/>' +
+    '</svg>' +
+    '<div class="cap">' + (caption || 'Working') +
+      '<i>.</i><i>.</i><i>.</i></div>' +
+  '</div>';
+}
 
 function toast(msg, kind) {
   var t = document.createElement('div');
