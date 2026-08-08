@@ -480,7 +480,31 @@ img{display:block}
   letter-spacing:-.004em;line-height:1.1;margin-top:12px;color:var(--text)}
 .obp{font-size:15.5px;color:var(--mute);line-height:1.6;margin-top:14px;max-width:34ch;font-weight:300}
 
-/* card 1: the arithmetic, counting itself out */
+/* card 1: where the price lands against everyone else. A bar chart reads in
+   one second; a five row breakdown asks the reader to do arithmetic before
+   they know whether they care. */
+.obcmp{width:100%;border:1px solid var(--rule);border-radius:var(--r);background:var(--surface);
+  padding:22px 22px 20px}
+.obbar{display:flex;align-items:center;gap:13px;padding:9px 0}
+.obbar .who{width:82px;flex:0 0 82px;font-size:13px;color:var(--mute)}
+.obbar .track{flex:1;height:9px;border-radius:99px;background:var(--raised2);overflow:hidden}
+.obbar .fill{display:block;height:100%;border-radius:99px;background:var(--rule);width:0;
+  transition:width .85s cubic-bezier(.3,0,.2,1)}
+.obbar .amt{width:76px;flex:0 0 76px;text-align:right;font-family:var(--mono);font-size:13px;
+  color:var(--mute)}
+.obbar.us .who{color:var(--text)}
+.obbar.us .fill{background:var(--live)}
+.obbar.us .amt{color:var(--text);font-size:15px}
+.obcard.on .obbar:nth-child(1) .fill{width:100%;transition-delay:.25s}
+.obcard.on .obbar:nth-child(2) .fill{width:97%;transition-delay:.45s}
+.obcard.on .obbar:nth-child(3) .fill{width:84%;transition-delay:.68s}
+.obsaved{margin-top:16px;padding-top:15px;border-top:1px solid var(--rule-soft);text-align:center;
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--live);opacity:0;transform:translateY(5px);
+  transition:opacity .45s ease 1.5s,transform .45s ease 1.5s}
+.obcard.on .obsaved{opacity:1;transform:none}
+
+/* card 1 legacy calc, retained for the price sheet elsewhere */
 .obcalc{width:100%;border:1px solid var(--rule);border-radius:var(--r);background:var(--surface);
   padding:20px 22px}
 .obrow{display:flex;justify-content:space-between;align-items:baseline;gap:14px;padding:9px 0;
@@ -1703,18 +1727,20 @@ img{display:block}
 
     <div class="obcard" data-ob="0">
       <div class="obart">
-        <div class="obcalc">
-          <div class="obrow strike" style="--sw:78px"><span class="k">What the market charges</span><span class="v">$1,415.62</span></div>
-          <div class="obrow"><span class="k">What we pay the hotel</span><span class="v">$1,149.04</span></div>
-          <div class="obrow"><span class="k">What Voyara adds, 4%</span><span class="v">$45.96</span></div>
-          <div class="obrow tot"><span class="k">You pay</span><span class="v">$1,195.00</span></div>
-          <div class="obrow save"><span class="k">You keep</span><span class="v">$220.62</span></div>
+        <div class="obcmp">
+          <div class="obbar"><span class="who">Booking.com</span>
+            <span class="track"><i class="fill"></i></span><span class="amt">$1,415</span></div>
+          <div class="obbar"><span class="who">Expedia</span>
+            <span class="track"><i class="fill"></i></span><span class="amt">$1,372</span></div>
+          <div class="obbar us"><span class="who">Voyara</span>
+            <span class="track"><i class="fill"></i></span><span class="amt">$1,195</span></div>
+          <div class="obsaved">You save $220 on this room</div>
         </div>
       </div>
-      <div class="obk">The difference</div>
-      <h2 class="obh">Every booking site earns more when you spend more.</h2>
-      <p class="obp">We are paid a flat membership instead, so we buy at wholesale and hand
-      the rest back. That is a real Marbella rate, with nothing removed.</p>
+      <div class="obk">The price</div>
+      <h2 class="obh">The lowest price you will find. Anywhere.</h2>
+      <p class="obp">We buy at wholesale, the same rates the big sites buy at, and pass them
+      straight through. No invisible markup sitting in the middle.</p>
     </div>
 
     <div class="obcard" data-ob="1">
@@ -1732,9 +1758,9 @@ img{display:block}
         </div>
       </div>
       <div class="obk">While you sleep</div>
-      <h2 class="obh">Your rate keeps getting shopped.</h2>
-      <p class="obp">We re-price every refundable booking until its cancellation deadline.
-      If the same room gets cheaper, we rebook it and the difference is yours.</p>
+      <h2 class="obh">Prices drop. You keep the difference.</h2>
+      <p class="obp">We watch your booking every night. If the same room gets cheaper,
+      we rebook it for you and the savings are yours.</p>
     </div>
 
     <div class="obcard" data-ob="2">
@@ -1748,8 +1774,8 @@ img{display:block}
       </div>
       <div class="obk">When it goes wrong</div>
       <h2 class="obh">We know before the airport does.</h2>
-      <p class="obp">Every flight is watched. When a delay threatens a connection we do the
-      arithmetic, price the alternatives, and bring you a decision rather than a problem.</p>
+      <p class="obp">Delays, gate changes, missed connections. We price your options and
+      text you before you have even reached the desk.</p>
     </div>
 
     <div class="obcard" data-ob="3">
@@ -1761,26 +1787,27 @@ img{display:block}
         </div>
       </div>
       <div class="obk">The collection</div>
-      <h2 class="obh">Chosen by hand, not by feed.</h2>
-      <p class="obp">Aggregators return whatever is in the file. We keep a written list of the
-      properties worth being known for, and source them directly when they are not bookable.</p>
+      <h2 class="obh">An insiders club for people who travel.</h2>
+      <p class="obp">Hotels chosen by hand, not by an algorithm. The places worth knowing
+      about, and a real person to get you in.</p>
     </div>
 
     <div class="obcard" data-ob="4">
       <div class="obart">
         <div class="obmath">
           <div class="obbig" id="obcount">$970</div>
-          <div class="obsub">Returned to a typical member each year</div>
+          <div class="obsub">Saved by a typical member each year</div>
           <div class="obvs">
-            <div><div class="n">$499</div><div class="l">Membership</div></div>
             <div><div class="n">2</div><div class="l">Trips a year</div></div>
-            <div><div class="n">1.9x</div><div class="l">Back on the fee</div></div>
+            <div><div class="n">$485</div><div class="l">Saved a trip</div></div>
+            <div><div class="n">15%</div><div class="l">Below market</div></div>
           </div>
         </div>
       </div>
       <div class="obk">Founding members</div>
-      <h2 class="obh">We are opening slowly, and on purpose.</h2>
-      <p class="obp">Leave your address and we will come to you before the first bookings open.</p>
+      <h2 class="obh">Founding members go first.</h2>
+      <p class="obp">We are opening slowly, and on purpose. Leave your address and we will
+      come to you before the doors open.</p>
     </div>
 
   </div>
