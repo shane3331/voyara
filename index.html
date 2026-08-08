@@ -453,6 +453,77 @@ img{display:block}
   .scenefocus{animation:none}
 }
 
+/* ============ SIGN IN SHEET ============
+   A bottom sheet with the one tap paths first. Emailing a six digit code is
+   real friction at the exact moment somebody decides to join, so it sits
+   underneath as the fallback rather than being the only way in. */
+#authsheet{position:fixed;inset:0;z-index:340;display:none}
+#authsheet.on{display:block}
+#authscrim{position:absolute;inset:0;background:rgba(38,36,31,.44);backdrop-filter:blur(3px);
+  opacity:0;transition:opacity .3s}
+#authsheet.on #authscrim{opacity:1}
+#authpanel{position:absolute;left:0;right:0;bottom:0;background:var(--surface);
+  border-top:1px solid var(--rule);border-radius:calc(var(--r) + 8px) calc(var(--r) + 8px) 0 0;
+  padding:30px clamp(20px,5vw,34px) calc(env(safe-area-inset-bottom,0) + 26px);
+  transform:translateY(102%);transition:transform .42s cubic-bezier(.3,0,.2,1);
+  box-shadow:0 -20px 60px rgba(38,36,31,.16);max-height:92vh;overflow-y:auto}
+#authsheet.on #authpanel{transform:none}
+@media (min-width:820px){
+  #authpanel{left:50%;right:auto;bottom:auto;top:50%;width:420px;
+    transform:translate(-50%,-46%) scale(.98);opacity:0;
+    border-radius:calc(var(--r) + 4px);border:1px solid var(--rule)}
+  #authsheet.on #authpanel{transform:translate(-50%,-50%);opacity:1}
+}
+#authgrab{width:38px;height:4px;border-radius:99px;background:var(--rule);margin:0 auto 22px}
+@media (min-width:820px){#authgrab{display:none}}
+#authttl{font-family:var(--serif);font-weight:normal;font-size:27px;letter-spacing:-.004em;
+  line-height:1.15;color:var(--text)}
+#authsub{font-size:14.5px;color:var(--mute);line-height:1.55;margin-top:10px}
+.authbtn{display:flex;align-items:center;justify-content:center;gap:11px;width:100%;
+  padding:15px;border-radius:99px;border:1px solid var(--rule);background:var(--raised);
+  font-size:15.5px;color:var(--text);margin-top:10px;transition:.16s;font-family:var(--body)}
+.authbtn:hover{border-color:var(--faint)}
+.authbtn.dark{background:var(--text);color:var(--surface);border-color:var(--text)}
+.authbtn.dark:hover{background:#3A3730}
+.authbtn svg{width:18px;height:18px;flex:0 0 18px}
+#author{display:flex;align-items:center;gap:14px;margin:22px 0 4px}
+#author:before,#author:after{content:'';flex:1;height:1px;background:var(--rule-soft)}
+#author span{font-family:var(--mono);font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--faint)}
+#authmail,#authcode{width:100%;background:var(--ink);border:1px solid var(--rule);border-radius:99px;
+  padding:15px 20px;font-size:16px;color:var(--text);outline:none;font-family:var(--body);margin-top:10px}
+#authmail:focus,#authcode:focus{border-color:var(--nav)}
+#authcode{display:none;letter-spacing:.3em;text-align:center;font-family:var(--mono)}
+#authsheet.code #authcode{display:block}
+#authnote{font-size:11.5px;color:var(--faint);line-height:1.55;margin-top:16px;text-align:center}
+#authnote a{color:var(--mute);text-decoration:underline;text-underline-offset:2px}
+#authmsg{font-size:12.5px;line-height:1.5;margin-top:12px;text-align:center;min-height:16px;color:var(--faint)}
+#authmsg.ok{color:var(--live)}
+#authmsg.no{color:var(--warn)}
+
+/* ============ CONSUMER MODE ============
+   Everything an investor needs to see and a traveller never should is marked
+   demoonly and hidden by default. The scenario runner, the operator console,
+   the proof layer and the seeded Milan trip are demo furniture; a real person
+   arriving at this site should see a booking product and nothing else.
+   Add ?demo=1 to bring it all back for a pitch; it sticks for the session. */
+.demoonly{display:none !important}
+body.demomode .demoonly{display:revert !important}
+body.demomode #demobar{display:flex !important}
+body.demomode .tstat{display:flex !important}
+body.demomode .sitem.demoonly,body.demomode .stab.demoonly{display:flex !important}
+body.demomode .tbtn.demoonly{display:inline-flex !important}
+body.demomode #tripcard{display:block !important}
+
+/* Without the demo bar the page has its full height back. */
+body:not(.demomode) #stage{padding-bottom:0}
+body:not(.demomode) #railtoggle{display:none}
+
+#demobadge{position:fixed;left:12px;bottom:12px;z-index:300;padding:7px 13px;border-radius:99px;
+  background:var(--text);color:var(--surface);font-family:var(--mono);font-size:8px;
+  letter-spacing:.14em;text-transform:uppercase;display:none}
+body.demomode #demobadge{display:block}
+
 /* ============ ONBOARDING ============
    Shown once, on a phone, before we ask for anything. Five screens, one
    benefit each, every one carrying a real animated number rather than a
@@ -1360,27 +1431,27 @@ img{display:block}
     <div id="sidemark">Voyara</div>
     <div id="sidetools">
       <button class="sitem" id="show"><span class="si">&#9655;</span><span>How it works</span></button>
-      <button class="sitem" id="sflag"><span class="si">&#9673;</span><span>Controls</span></button>
+      <button class="sitem demoonly" id="sflag"><span class="si">&#9673;</span><span>Controls</span></button>
       <button class="sitem" id="sccy"><span class="si">&#164;</span><span>Currency</span><span class="sv" id="sccyv">USD</span></button>
-      <button class="sitem" id="sproof"><span class="si">&#9635;</span><span>Proof layer</span><span class="sv" id="sproofv">6</span></button>
+      <button class="sitem demoonly" id="sproof"><span class="si">&#9635;</span><span>Proof layer</span><span class="sv" id="sproofv">6</span></button>
     </div>
-    <div id="sideme">
-      <span class="sav">EM</span>
-      <span class="sn">Elena Marchetti<small>Signature member</small></span>
+    <div id="sideme" style="display:none">
+      <span class="sav" id="sideav"></span>
+      <span class="sn" id="sidenm"></span>
     </div>
     <button class="sitem stab on" data-view="home"><span class="si">&#9670;</span>Book travel</button>
     <button class="sitem" id="navcollections"><span class="si">&#9633;</span>Collections</button>
-    <div class="sdiv">Your trips</div>
+    <div class="sdiv" id="tripsdiv">Your trips</div>
     <div id="realtrips"></div>
-    <button id="tripcard" class="stab" data-view="trip">
+    <button id="tripcard" class="stab demoonly" data-view="trip">
       <div class="tt">Milan, September</div>
       <div class="td">12 . 18 Sep 2026 . 3 reservations</div>
       <div class="ts2" id="tripcardstatus"><i></i><span>Monitored live</span></div>
     </button>
     <button class="sitem" id="navplan" style="margin-top:6px"><span class="si">+</span>Plan a new trip</button>
-    <div class="sdiv">Operations</div>
-    <button class="sitem stab" data-view="operator"><span class="si">&#9678;</span>Operator console<span class="cnt" id="qcount"></span></button>
-    <button class="sitem stab" data-view="platform"><span class="si">&#9645;</span>Proof layer</button>
+    <div class="sdiv demoonly">Operations</div>
+    <button class="sitem stab demoonly" data-view="operator"><span class="si">&#9678;</span>Operator console<span class="cnt" id="qcount"></span></button>
+    <button class="sitem stab demoonly" data-view="platform"><span class="si">&#9645;</span>Proof layer</button>
     <div id="sidesearch"><span class="mono" style="font-size:10px">&#8981;</span>Search</div>
     <div id="sidefoot">
       &copy; 2026 Voyara, Inc.<br>
@@ -1393,13 +1464,13 @@ img{display:block}
     <header id="topbar">
       <button id="burger" aria-label="Open menu" aria-expanded="false"><span class="bi"><i></i><i></i><i></i></span><span class="bl">Menu</span></button><a id="tbmark" href="#" data-view="home">Voyara</a>
       <div id="topright">
-        <div class="tstat"><span class="k">Departure in</span><span class="v warn" id="ttd">2:14:00</span></div>
-        <div class="tstat"><span class="k">Workflows</span><span class="v live" id="wfcount">3 running</span></div>
-        <button class="tbtn" id="flagbtn"><span class="fdot"></span><span id="flagtxt">Controls</span></button>
+        <div class="tstat demoonly"><span class="k">Departure in</span><span class="v warn" id="ttd">2:14:00</span></div>
+        <div class="tstat demoonly"><span class="k">Workflows</span><span class="v live" id="wfcount">3 running</span></div>
+        <button class="tbtn demoonly" id="flagbtn"><span class="fdot"></span><span id="flagtxt">Controls</span></button>
         <button class="tbtn" id="cashbtn" style="display:none"><span class="chc" id="cashnow">$0</span><span>Cash</span></button>
         <button class="tbtn" id="authbtn"><span class="chc" id="authwho">&#9711;</span><span id="authlbl">Sign in</span></button>
         <button class="tbtn" id="ccybtn"><span class="chc" id="ccynow">USD</span><span>Currency</span></button>
-        <button class="tbtn" id="proofbtn"><span class="chc" id="rtcount">6</span><span>Proof</span></button>
+        <button class="tbtn demoonly" id="proofbtn"><span class="chc" id="rtcount">6</span><span>Proof</span></button>
       </div>
     </header>
 
@@ -1678,7 +1749,7 @@ img{display:block}
 
     </main>
 
-    <div id="demobar">
+    <div id="demobar" class="demoonly">
       <span class="dlab">North star<br>scenario</span>
       <div id="steps"></div>
       <button id="runall">Run the scenario</button>
@@ -1717,6 +1788,37 @@ img{display:block}
 </div>
 
 <!-- Onboarding. Mobile, first visit, once. -->
+<div id="authsheet" role="dialog" aria-label="Sign in" aria-modal="true">
+  <div id="authscrim"></div>
+  <div id="authpanel">
+    <div id="authgrab"></div>
+    <h2 id="authttl">Join Voyara</h2>
+    <p id="authsub">Members see wholesale rates and keep the difference on every booking.</p>
+
+    <button class="authbtn dark" id="auapple">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.05 12.54c.02-2.2 1.8-3.26 1.88-3.31-1.02-1.5-2.62-1.7-3.19-1.72-1.36-.14-2.65.8-3.34.8-.69 0-1.75-.78-2.87-.76-1.48.02-2.84.86-3.6 2.18-1.53 2.66-.39 6.6 1.1 8.76.73 1.06 1.6 2.25 2.74 2.2 1.1-.04 1.51-.71 2.84-.71 1.32 0 1.7.71 2.86.69 1.18-.02 1.93-1.08 2.65-2.14.84-1.23 1.18-2.42 1.2-2.48-.03-.01-2.3-.88-2.32-3.51zM14.9 5.6c.6-.74 1.01-1.76.9-2.78-.87.04-1.93.58-2.56 1.31-.56.65-1.06 1.7-.93 2.7.97.08 1.97-.5 2.59-1.23z"/></svg>
+      Continue with Apple
+    </button>
+
+    <button class="authbtn" id="augoogle">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M23 12.27c0-.82-.07-1.6-.21-2.36H12v4.47h6.16a5.27 5.27 0 0 1-2.28 3.46v2.87h3.7C21.73 18.72 23 15.78 23 12.27z"/><path fill="#34A853" d="M12 23.5c3.08 0 5.67-1.02 7.56-2.77l-3.7-2.87c-1.02.69-2.33 1.1-3.86 1.1-2.97 0-5.48-2-6.38-4.69H1.79v2.95A11.42 11.42 0 0 0 12 23.5z"/><path fill="#FBBC05" d="M5.62 14.27a6.86 6.86 0 0 1 0-4.38V6.94H1.79a11.44 11.44 0 0 0 0 10.28l3.83-2.95z"/><path fill="#EA4335" d="M12 5.36c1.67 0 3.17.58 4.35 1.7l3.27-3.26C17.66 1.98 15.07.9 12 .9 7.56.9 3.72 3.44 1.79 6.94l3.83 2.95c.9-2.69 3.41-4.53 6.38-4.53z"/></svg>
+      Continue with Google
+    </button>
+
+    <div id="author"><span>or</span></div>
+
+    <input id="authmail" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" aria-label="Email">
+    <input id="authcode" inputmode="numeric" maxlength="6" placeholder="000000" aria-label="Six digit code">
+    <button class="authbtn" id="augo">Email me a code</button>
+
+    <p id="authmsg"></p>
+    <p id="authnote">By continuing you agree to our <a href="/legal.html#terms">Terms</a>
+    and <a href="/legal.html#privacy">Privacy Policy</a>.</p>
+  </div>
+</div>
+
+<button id="demobadge" title="Leave demo mode">Demo mode</button>
+
 <div id="ob" role="dialog" aria-label="How Voyara works" aria-modal="true">
   <div id="obtop">
     <span id="obmark">Voyara</span>
@@ -2200,6 +2302,7 @@ function loadRealTrips() {
         ' . ' + t.reservationCount + ' reservation' + (t.reservationCount === 1 ? '' : 's') + '</div>' +
         '<div class="rt3"><i></i><span>Monitored live</span></div></button>';
     }).join('');
+    paintSession();
     $$('[data-realtrip]').forEach(function (b) {
       b.addEventListener('click', function () {
         var t = list[parseInt(b.getAttribute('data-realtrip'), 10)];
@@ -3254,6 +3357,32 @@ var ME = { email: null };
    ============================================================ */
 var OB = { i: 0, n: 5, done: false };
 
+/* ============================================================
+   CONSUMER MODE
+   The default. Demo furniture is hidden unless someone deliberately
+   asks for it with ?demo=1, which then sticks for the session so a
+   pitch does not lose it on the first navigation.
+   ============================================================ */
+function initMode() {
+  var on = false;
+  try {
+    if (/[?&]demo=1/.test(window.location.search)) {
+      on = true;
+      window.sessionStorage.setItem('voyara.demo', '1');
+    } else if (window.sessionStorage.getItem('voyara.demo') === '1') {
+      on = true;
+    }
+  } catch (e) { on = /[?&]demo=1/.test(window.location.search); }
+  document.body.classList.toggle('demomode', on);
+  return on;
+}
+
+function exitDemo() {
+  try { window.sessionStorage.removeItem('voyara.demo'); } catch (e) {}
+  document.body.classList.remove('demomode');
+  switchView('home');
+}
+
 function obShouldShow() {
   if (window.innerWidth > 820) return false;
   try { if (window.localStorage.getItem('voyara.onboarded')) return false; } catch (e) {}
@@ -3378,12 +3507,32 @@ function initSession() {
 function paintSession() {
   var lbl = $('#authlbl'), who = $('#authwho');
   if (!lbl) return;
+  var name = ME.email ? ME.email.split('@')[0] : '';
   if (ME.email) {
-    lbl.textContent = ME.email.split('@')[0].slice(0, 14);
+    lbl.textContent = name.slice(0, 14);
     who.textContent = ME.email.slice(0, 1).toUpperCase();
   } else {
     lbl.textContent = 'Sign in';
     who.innerHTML = '&#9711;';
+  }
+  // The drawer identity is the real one or nothing at all. A seeded name in
+  // a live product reads as a mock.
+  var me = $('#sideme');
+  if (me) {
+    me.style.display = ME.email ? 'flex' : 'none';
+    if (ME.email) {
+      $('#sideav').textContent = ME.email.slice(0, 1).toUpperCase();
+      $('#sidenm').innerHTML = name + '<small>Member</small>';
+    }
+  }
+  // With no trips of your own the heading has nothing to head.
+  var div = $('#tripsdiv'), real = $('#realtrips');
+  if (div) {
+    var any = document.body.classList.contains('demomode') ||
+      (real && real.children.length > 0);
+    div.style.display = any ? '' : 'none';
+    var plan = $('#navplan');
+    if (plan) plan.style.display = any ? '' : 'none';
   }
 }
 
@@ -3399,69 +3548,149 @@ function setSession(email) {
   if ($('#resultszone') && $('#resultszone').innerHTML.trim()) renderResults('hotels');
 }
 
+/* ============================================================
+   SIGN IN
+   One tap first, email as the fallback. OAuth goes through Supabase,
+   which needs SUPABASE_ANON_KEY set and the provider enabled in the
+   dashboard; until then the button says so rather than failing silently.
+   ============================================================ */
+var AUTHCFG = { url: null, anon: null, ready: false };
+
+function loadAuthConfig() {
+  safeFetchJson('/api/config', function (j) {
+    if (!j) return;
+    AUTHCFG.url = j.supabaseUrl;
+    AUTHCFG.anon = j.supabaseAnonKey;
+    AUTHCFG.ready = Boolean(j.authEnabled);
+  });
+}
+
 function openAuth() {
   if (ME.email) {
     openModal('<div class="mhead"><h3 class="disp">Signed in</h3><button class="x" data-close>&#10005;</button></div>' +
       '<div class="mbody"><div class="csline"><span class="k">Email</span><span class="v">' + ME.email + '</span></div>' +
-      '<p style="margin-top:14px;font-size:12px;color:var(--mute);line-height:1.6">Your trips, your Voyara Cash and your fare watches are tied to this address.</p></div>' +
+      '<p style="margin-top:14px;font-size:12px;color:var(--mute);line-height:1.6">Your trips, your rates and your watches are tied to this address.</p></div>' +
       '<div class="mfoot"><button class="btn" data-close>Close</button><button class="btn danger" id="signout">Sign out</button></div>');
     $('#signout').addEventListener('click', function () { setSession(null); closeModal(); });
     return;
   }
-  openModal('<div class="mhead"><h3 class="disp">Sign in</h3><button class="x" data-close>&#10005;</button></div>' +
-    '<div class="mbody"><p style="font-size:13px;line-height:1.6;color:var(--text-dim)">No password. We email a six digit code.</p>' +
-    '<input class="pinput" id="auE" type="email" placeholder="you@example.com" style="margin-top:14px">' +
-    '<div id="auCode" style="display:none;margin-top:10px"><input class="pinput" id="auT" inputmode="numeric" maxlength="6" placeholder="Six digit code"></div>' +
-    '<div id="auMsg" style="margin-top:12px;font-size:11.5px;color:var(--faint);line-height:1.55"></div></div>' +
-    '<div class="mfoot"><button class="btn" data-close>Not now</button><button class="btn primary" id="auGo">Email me a code</button></div>');
+  $('#authsheet').classList.add('on');
+  $('#authsheet').classList.remove('code');
+  $('#authmsg').textContent = ''; $('#authmsg').className = '';
+  $('#augo').textContent = 'Email me a code';
+  $('#augo').disabled = false;
+  document.body.style.overflow = 'hidden';
+  AUTH.stage = 'send';
+}
 
-  var stage = 'send';
-  $('#auGo').addEventListener('click', function () {
-    var email = ($('#auE').value || '').trim();
-    var msg = $('#auMsg'), btn = $('#auGo');
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-      msg.innerHTML = '<span style="color:var(--warn)">That does not look like an email address.</span>';
-      return;
+function closeAuth() {
+  $('#authsheet').classList.remove('on');
+  document.body.style.overflow = '';
+}
+
+var AUTH = { stage: 'send' };
+
+// Supabase does OAuth by redirect. We hand off and it comes back to us with
+// the session in the URL fragment, which readOAuthReturn picks up on load.
+function oauth(provider) {
+  if (!AUTHCFG.ready) {
+    authSay('One tap sign in is not switched on yet. Use your email below.', 'no');
+    $('#authmail').focus();
+    return;
+  }
+  var back = window.location.origin + window.location.pathname;
+  window.location.href = AUTHCFG.url + '/auth/v1/authorize?provider=' + encodeURIComponent(provider) +
+    '&redirect_to=' + encodeURIComponent(back);
+}
+
+function readOAuthReturn() {
+  if (!window.location.hash || window.location.hash.indexOf('access_token') < 0) return;
+  var p = {};
+  window.location.hash.replace(/^#/, '').split('&').forEach(function (kv) {
+    var i = kv.indexOf('=');
+    if (i > 0) p[decodeURIComponent(kv.slice(0, i))] = decodeURIComponent(kv.slice(i + 1));
+  });
+  if (!p.access_token || !AUTHCFG.url) return;
+  fetch(AUTHCFG.url + '/auth/v1/user', {
+    headers: { apikey: AUTHCFG.anon || '', Authorization: 'Bearer ' + p.access_token }
+  }).then(function (r) { return r.json(); }).then(function (u) {
+    if (u && u.email) {
+      setSession(u.email);
+      audit('auth.signed_in', { method: 'oauth' }, 'traveler');
+      toast('Signed in. Member rates are showing.', 'live');
     }
-    btn.disabled = true;
-    btn.textContent = stage === 'send' ? 'Sending' : 'Checking';
-    var body = stage === 'send'
-      ? { action: 'send', email: email }
-      : { action: 'verify', email: email, token: ($('#auT').value || '').trim() };
-    fetch('/api/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-      .then(function (r) { return r.json().then(function (j) { return { code: r.status, j: j }; }); })
-      .then(function (out) {
-        var j = out.j;
-        if (stage === 'send') {
-          if (j.mode === 'mock') {
-            msg.innerHTML = '<span style="color:var(--warn)">Sign in is not connected yet. Set the Supabase keys and enable Email auth.</span>';
-            btn.disabled = false; btn.textContent = 'Email me a code';
-            return;
-          }
-          if (j.sent) {
-            stage = 'verify';
-            $('#auCode').style.display = '';
-            msg.innerHTML = '<span style="color:var(--live)">Code sent. Check your inbox.</span>';
-            btn.disabled = false; btn.textContent = 'Sign in';
-            return;
-          }
-          msg.innerHTML = '<span style="color:var(--halt)">' + (j.detail || j.error || 'Could not send that.') + '</span>';
+  }).catch(function () {}).then(function () {
+    try { history.replaceState(null, '', window.location.pathname + window.location.search); } catch (e) {}
+  });
+}
+
+function authSay(text, cls) {
+  var m = $('#authmsg');
+  m.textContent = text;
+  m.className = cls || '';
+}
+
+function authSubmit() {
+  var email = ($('#authmail').value || '').trim();
+  var btn = $('#augo');
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    authSay('That does not look like an email address.', 'no');
+    $('#authmail').focus();
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = AUTH.stage === 'send' ? 'Sending' : 'Checking';
+  var body = AUTH.stage === 'send'
+    ? { action: 'send', email: email }
+    : { action: 'verify', email: email, token: ($('#authcode').value || '').trim() };
+
+  fetch('/api/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    .then(function (r) { return r.json().then(function (j) { return { code: r.status, j: j }; }); })
+    .then(function (out) {
+      var j = out.j;
+      if (AUTH.stage === 'send') {
+        if (j.mode === 'mock') {
+          authSay('Sign in is not connected yet.', 'no');
           btn.disabled = false; btn.textContent = 'Email me a code';
           return;
         }
-        if (j.session) {
-          setSession(j.session.email);
-          audit('auth.signed_in', { method: 'email_code' }, 'traveler');
-          closeModal();
-          toast('Signed in. Your trips and Cash are attached to this address.', 'live');
+        if (j.sent) {
+          AUTH.stage = 'verify';
+          $('#authsheet').classList.add('code');
+          authSay('Code sent. Check your inbox.', 'ok');
+          btn.disabled = false; btn.textContent = 'Sign in';
+          $('#authcode').focus();
           return;
         }
-        msg.innerHTML = '<span style="color:var(--halt)">' + (j.detail || 'That code did not work.') + '</span>';
-        btn.disabled = false; btn.textContent = 'Sign in';
-      }).catch(function () {
-        msg.innerHTML = '<span style="color:var(--halt)">Could not reach the server.</span>';
-        btn.disabled = false; btn.textContent = stage === 'send' ? 'Email me a code' : 'Sign in';
-      });
+        authSay(j.detail || j.error || 'Could not send that.', 'no');
+        btn.disabled = false; btn.textContent = 'Email me a code';
+        return;
+      }
+      if (j.session) {
+        setSession(j.session.email);
+        audit('auth.signed_in', { method: 'email_code' }, 'traveler');
+        closeAuth();
+        toast('Signed in. Member rates are showing.', 'live');
+        return;
+      }
+      authSay(j.detail || 'That code did not work.', 'no');
+      btn.disabled = false; btn.textContent = 'Sign in';
+    }).catch(function () {
+      authSay('Could not reach the server.', 'no');
+      btn.disabled = false;
+      btn.textContent = AUTH.stage === 'send' ? 'Email me a code' : 'Sign in';
+    });
+}
+
+function wireAuth() {
+  $('#auapple').addEventListener('click', function () { oauth('apple'); });
+  $('#augoogle').addEventListener('click', function () { oauth('google'); });
+  $('#augo').addEventListener('click', authSubmit);
+  $('#authscrim').addEventListener('click', closeAuth);
+  $('#authmail').addEventListener('keydown', function (e) { if (e.key === 'Enter') authSubmit(); });
+  $('#authcode').addEventListener('keydown', function (e) { if (e.key === 'Enter') authSubmit(); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && $('#authsheet').classList.contains('on')) closeAuth();
   });
 }
 
@@ -5130,7 +5359,12 @@ function boot() {
   renderMetrics(); renderEvents(); renderPolicy(); renderScope(); renderArch(); renderSM();
   renderQueue(); renderCase(); renderSteps(); renderSugg(); syncFlagUi(); initCurrency();
   renderRateEngine(); renderHomeRate(); renderModels(); renderAgentBoard(); renderFareWatch();
+  initMode();
+  $('#demobadge').addEventListener('click', exitDemo);
   initSession(); loadCash();
+  loadAuthConfig();
+  wireAuth();
+  setTimeout(readOAuthReturn, 500);
   wireOnboarding();
   setTimeout(function () { obOpen(false); }, 260);
   setInterval(tickClocks, 1000); tickClocks();
