@@ -312,13 +312,20 @@ img{display:block}
 /* search forms per category */
 #searchforms{width:min(880px,calc(100% - 40px))}
 .sform{display:none;padding:8px}
-.sform.on{display:flex;align-items:stretch}
+.sform.on{display:flex;align-items:stretch;flex-wrap:wrap}
+/* Without wrap, a child asking for 100% just gets squeezed into the row, which
+   is what put the trip toggle inline with the fields and left the rest of them
+   fighting over what was left. */
+.sform.on > .sfield{flex:1 1 0}
 .sfield{flex:1;min-width:0;padding:12px 18px;border-right:1px solid var(--rule);display:flex;flex-direction:column;gap:4px;justify-content:center}
 .sfield:last-of-type{border-right:none}
 .sfield .fk{font-family:var(--mono);font-size:8px;letter-spacing:.16em;text-transform:uppercase;color:var(--mute)}
 .sfield input{background:none;border:none;outline:none;font-size:14.5px;font-weight:300;color:var(--text);width:100%}
 .sfield input::placeholder{color:var(--faint)}
-.sfield input[type=date],.sfield input[type=number]{color-scheme:dark;font-family:var(--body);cursor:pointer}
+/* Left over from the dark theme. On a cream page this makes the browser draw
+   the date picker and the stepper in dark chrome, which is why those two
+   fields never looked like the rest of the form. */
+.sfield input[type=date],.sfield input[type=number]{color-scheme:light;font-family:var(--body);cursor:pointer}
 .sfield input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:.5;cursor:pointer}
 .sfield select{background:none;border:none;outline:none;font-family:var(--body);font-size:14.5px;font-weight:300;color:var(--text);width:100%;cursor:pointer;appearance:none}
 .sfield select option{background:var(--surface);color:var(--text)}
@@ -729,6 +736,16 @@ img{display:block}
 /* Text fields match that height so a column of them lines up. */
 .pff input:not([type=date]),.pff select{min-height:49px}
 
+/* The stepper arrows a browser draws are not in this typeface and cannot be
+   made to be, so they go. The field still accepts a number. */
+input[type=number]{-moz-appearance:textfield;appearance:textfield}
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+/* Same for the date field in the search bar, which was clipping to "09/1". */
+.sfield input[type=date]{-webkit-appearance:none;appearance:none;min-width:0;width:100%}
+.sfield input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
+.sfield input[type=date]::-webkit-calendar-picker-indicator{opacity:.35;padding:0;margin:0}
+
 /* An empty date field says so. Placeholders are not allowed on a date input,
    so the hint sits on the wrapper and is taken away the moment there is a value. */
 .pff.dateempty:after{
@@ -1083,20 +1100,23 @@ body.hasresults #minisearch{display:flex}
    On a desktop these sit in a row. On a phone the two place fields take a
    line each, because a city name in half a phone width is three letters and
    an ellipsis, and the autocomplete below it is the same width as its field. */
-#sf-flights .fwide{flex:1 1 30%}
-#sf-flights .fhalf{flex:1 1 20%}
+/* A city name needs room; a passenger count does not. */
+#sf-flights .fwide{flex:1 1 26%;min-width:150px}
+#sf-flights .fhalf{flex:0 1 150px;min-width:132px}
+#sf-flights .sgo{flex:0 0 auto}
 @media (max-width:820px){
-  #sf-flights .fwide{flex:1 1 100%;border-right:none}
-  #sf-flights .fhalf{flex:1 1 50%}
+  /* A city name in half a phone width is three letters and an ellipsis, so
+     the two place fields take a line each. */
+  #sf-flights .fwide{flex:1 1 100%;min-width:0;border-right:none}
+  #sf-flights .fhalf{flex:1 1 50%;min-width:0}
   #sf-flights .fhalf:nth-of-type(odd){border-right:none}
-  /* One line each, so the dropdown underneath has the full width to sit in. */
-  #sf-flights.oneway .fhalf{flex:1 1 50%}
+  #sf-flights .sgo{flex:1 1 100%}
 }
 
 /* ============ TRIP TYPE ============
    A return leg is an assumption, and it was baked in. Sitting above the
    fields rather than beside them because it changes which fields exist. */
-.trippick{flex:1 1 100%;display:flex;gap:6px;padding:11px 14px;
+.trippick{flex:0 0 100%;width:100%;display:flex;gap:6px;padding:11px 14px;
   border-bottom:1px solid var(--rule);align-items:center}
 .tpick{padding:8px 15px;border-radius:99px;border:1px solid transparent;background:none;
   font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;
@@ -1115,7 +1135,10 @@ body.hasresults #minisearch{display:flex}
    the single place a page like this stops looking like itself. */
 #hero .sfield{position:relative}
 .aclist{
-  position:absolute;left:-14px;right:-14px;top:calc(100% + 12px);z-index:120;
+  position:absolute;left:-14px;top:calc(100% + 12px);z-index:120;
+  /* Anchored to the field but never narrower than a city name plus its
+     country, otherwise every row truncates to two letters and an ellipsis. */
+  min-width:max(100%,320px);width:max-content;max-width:min(420px,90vw);
   background:var(--surface);border:1px solid var(--rule);border-radius:var(--r);
   box-shadow:0 24px 60px rgba(38,36,31,.18);overflow:hidden;display:none;
   max-height:min(52vh,380px);overflow-y:auto;-webkit-overflow-scrolling:touch;
@@ -1143,8 +1166,8 @@ body.hasresults #minisearch{display:flex}
 @media (max-width:820px){
   /* Anchored to the form rather than the field, so a half width field does not
      produce a half width list with every city name truncated. */
-  .aclist{left:-16px;right:-16px;top:calc(100% + 10px);max-height:46vh;
-    min-width:calc(100vw - 44px)}
+  .aclist{left:-16px;top:calc(100% + 10px);max-height:46vh;
+    min-width:calc(100vw - 44px);max-width:calc(100vw - 44px)}
   .acitem{padding:15px 18px}
   .acitem .acn{font-size:18px}
 }
@@ -1214,15 +1237,17 @@ body.hasresults #minisearch{display:flex}
 /* the route, above the results */
 #flroute{display:flex;align-items:center;gap:clamp(14px,4vw,40px);
   padding:26px clamp(18px,3vw,26px) 24px;margin-bottom:4px}
-#flroute .end{flex:1 1 0;min-width:0;display:flex;flex-direction:column}
-#flroute .end.to{align-items:flex-end;text-align:right}
+#flroute .end{flex:0 1 auto;min-width:0;display:flex;flex-direction:column}
+#flroute .end.to{align-items:flex-start;text-align:left}
 #flroute .code{display:block;font-family:var(--serif);font-weight:normal;
   font-size:clamp(28px,6.4vw,44px);line-height:1;letter-spacing:.01em;color:var(--text)}
 /* Blocks, and allowed to shrink. As inline spans these ran into each other and
    the destination city hung off the right edge of the page. */
 #flroute .city{display:block;font-size:13px;color:var(--mute);margin-top:8px;max-width:100%;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#flroute .mid{flex:1;min-width:44px;position:relative;height:26px}
+/* Capped, so on a wide screen the two ends stay a readable distance apart
+   rather than being pushed to opposite sides of the page. */
+#flroute .mid{flex:1 1 auto;min-width:48px;max-width:260px;position:relative;height:26px}
 #flroute .mid .ln{position:absolute;left:0;right:0;top:13px;height:1px;
   background:repeating-linear-gradient(90deg,var(--rule) 0 4px,transparent 4px 8px)}
 #flroute .mid .pin{position:absolute;right:-3px;top:9px;width:7px;height:7px;border-radius:50%;
@@ -5468,9 +5493,31 @@ function pfLoad() {
 
   // No email in the URL. The server knows who is asking from the token.
   apiFetch('/api/profile').then(function (r) {
-    return r.json().then(function (j) { return { code: r.status, j: j }; });
+    // Read as text first. A missing or crashed route answers with an HTML
+    // error page, and calling json() on that throws, which is what turned
+    // every server side problem into "could not reach the server".
+    return r.text().then(function (body) {
+      var j = null;
+      try { j = JSON.parse(body); } catch (e) { j = null; }
+      return { code: r.status, j: j, raw: body, type: r.headers && r.headers.get ? r.headers.get('content-type') : '' };
+    });
   }).then(function (out) {
     PF.loading = false;
+
+    if (out.j === null) {
+      // Not JSON. Name the likely cause rather than making somebody guess.
+      var why = out.code === 404
+        ? 'The /api/profile route is not deployed. Upload api/profile.js and api/_auth.js.'
+        : out.code >= 500
+          ? 'The /api/profile function crashed on the server (' + out.code + '). ' +
+            'Usually a missing api/_auth.js.'
+          : 'The server answered with something that was not JSON (' + out.code + ').';
+      PF.loaded = false;
+      pfSay(why, 'no');
+      pfFailed(true);
+      return;
+    }
+
     if (out.code >= 400 || (out.j && out.j.error)) {
       // A failed load must never be cached as a successful empty one. That is
       // what made saved details look like they had never been saved: the
@@ -5485,10 +5532,12 @@ function pfLoad() {
     pfFailed(false);
     pfSay('', '');
     pfPaint();
-  }).catch(function () {
+  }).catch(function (e) {
     PF.loading = false;
     PF.loaded = false;
-    pfSay('Could not reach the server.', 'no');
+    // Genuinely no response: offline, DNS, or the request was blocked.
+    pfSay('No response from the server. Check the connection.' +
+      (e && e.message ? ' (' + String(e.message).slice(0, 60) + ')' : ''), 'no');
     pfFailed(true);
   });
 }
@@ -5572,7 +5621,12 @@ function pfSave() {
   apiFetch('/api/profile', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body)
-  }).then(function (r) { return r.json(); }).then(function (j) {
+  }).then(function (r) {
+    return r.text().then(function (t) {
+      try { return JSON.parse(t); }
+      catch (e) { return { error: 'not_json', detail: 'The server returned ' + r.status + ', not JSON.' }; }
+    });
+  }).then(function (j) {
     btn.disabled = false;
     if (j && j.saved) {
       PF.data = j.profile || body;
