@@ -85,7 +85,14 @@ module.exports = async (req, res) => {
 
   const priced = offers.map(priceOffer);
 
-  res.status(200).end(JSON.stringify({ mode, currency: currencyPref, quality: tierKey, qualityLabel: tier.label, count: priced.length, offers: priced }));
+  res.status(200).end(JSON.stringify({
+    mode, currency: currencyPref, quality: tierKey, qualityLabel: tier.label,
+    // These were set as properties on the offers array, which JSON.stringify
+    // silently drops, so neither has ever reached the browser.
+    resolvedAs: offers.resolvedAs || null,
+    relaxed: Boolean(offers.relaxed),
+    count: priced.length, offers: priced
+  }));
 };
 
 async function hotelbeds(destination, checkIn, checkOut, guests) {
@@ -325,12 +332,33 @@ async function liteapi(destination, checkIn, checkOut, guests, currencyPref, tie
   const nationality = process.env.LITEAPI_NATIONALITY || 'US';
   const headers = { 'X-API-Key': apiKey, Accept: 'application/json' };
 
+  // Ask the supplier where the place is rather than consulting a list we
+  // maintain by hand. A hardcoded table of a couple of hundred cities will
+  // never cover the world, and every city missing from it looked to a
+  // traveller like a city with no hotels. Detroit was the one that caught it.
+  async function resolveWithSupplier(text) {
+    try {
+      const r = await fetch(base + '/data/places?textQuery=' + encodeURIComponent(text), { headers });
+      if (!r.ok) return null;
+      const j = await r.json();
+      const hit = ((j && j.data) || [])[0];
+      if (!hit || !hit.placeId) return null;
+      return {
+        placeId: hit.placeId,
+        label: hit.displayName || text,
+        formatted: hit.formattedAddress || ''
+      };
+    } catch (e) { return null; }
+  }
+
+  const supplierPlace = await resolveWithSupplier(destination);
+
+  // The hand written table is now only a fallback for when the supplier's own
+  // lookup is unavailable, not the primary way places are understood.
   const place = resolvePlace(destination);
   const city = place.cityName || '';
   const country = place.countryCode;
 
-  // Step 1. Hotel ids and names. Try city first, then the whole country,
-  // so a search for a country or an unfamiliar town still returns something.
   async function lookup(cityName, cc) {
     const useCountry = cc || country;
     // The supplier requires a country. Without one there is nothing to ask, so
@@ -349,10 +377,23 @@ async function liteapi(destination, checkIn, checkOut, guests, currencyPref, tie
     return (jj && (jj.data || jj.hotels)) || [];
   }
 
-  let hotels = await lookup(city);
-  let resolvedAs = city ? city + ', ' + country : country;
+  let hotels = [];
+  let resolvedAs = '';
+  let placeId = null;
 
-  if (!hotels.length && city) {
+  if (supplierPlace) {
+    // A place the supplier recognises is passed straight through, which is
+    // what makes any city on earth work rather than only the listed ones.
+    placeId = supplierPlace.placeId;
+    resolvedAs = supplierPlace.formatted
+      ? supplierPlace.label + ', ' + supplierPlace.formatted
+      : supplierPlace.label;
+  } else {
+    hotels = await lookup(city);
+    resolvedAs = city ? city + ', ' + country : country;
+  }
+
+  if (!placeId && !hotels.length && city) {
     // The city did not match. Fall back to the country.
     hotels = await lookup('');
     resolvedAs = country;
@@ -361,7 +402,7 @@ async function liteapi(destination, checkIn, checkOut, guests, currencyPref, tie
     hotels = await lookup(COUNTRY_DEFAULT_CITY[country]);
     resolvedAs = COUNTRY_DEFAULT_CITY[country] + ', ' + country;
   }
-  if (!hotels.length) {
+  if (!placeId && !hotels.length) {
     // An unknown place and a known place with no inventory are different
     // problems and deserve different sentences.
     const e = new Error(place.unknown
@@ -395,7 +436,9 @@ async function liteapi(destination, checkIn, checkOut, guests, currencyPref, tie
     method: 'POST',
     headers: Object.assign({ 'Content-Type': 'application/json' }, headers),
     body: JSON.stringify(Object.assign({
-      hotelIds: ids,
+      // A placeId covers everywhere the supplier knows about. A list of ids is
+      // the fallback for when its place lookup was unavailable.
+      ...(placeId ? { placeId, includeHotelData: true, limit: 40 } : { hotelIds: ids }),
       checkin: checkIn,
       checkout: checkOut,
       currency,
@@ -410,7 +453,28 @@ async function liteapi(destination, checkIn, checkOut, guests, currencyPref, tie
   if (!rr.ok) throw new Error('LiteAPI /hotels/rates ' + rr.status + ' ' + (await rr.text()).slice(0, 300));
   const rj = await rr.json();
   const rates = (rj && rj.data) || [];
+
+  // With includeHotelData the names, photos and ratings arrive alongside the
+  // rates, so the separate lookup is not needed on the placeId path.
+  ((rj && rj.hotels) || []).forEach((h) => {
+    const id = String(h.id || h.hotelId || '');
+    if (!id) return;
+    nameById[id] = {
+      name: String(h.name || 'Property'),
+      address: String(h.address || h.city || ''),
+      image: firstImage(h),
+      stars: Number(h.stars || h.starRating || 0) || null,
+      rating: Number(h.rating || 0) || null
+    };
+  });
   const n = nights(checkIn, checkOut);
+
+  if (!rates.length) {
+    const e = new Error('No properties available in ' + (resolvedAs || destination) +
+      ' for those dates. Try different dates, or a lower standard.');
+    e.noResults = true;
+    throw e;
+  }
 
   const out = rates.map((h) => {
     const id = String(h.hotelId || h.id || '');
