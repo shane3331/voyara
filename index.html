@@ -1054,6 +1054,22 @@ body.hasresults #minisearch{display:flex}
 #searchveil.on{display:flex;opacity:1}
 #searchveil .fload{padding:0}
 
+/* ============ TRIP TYPE ============
+   A return leg is an assumption, and it was baked in. Sitting above the
+   fields rather than beside them because it changes which fields exist. */
+.trippick{flex:1 1 100%;display:flex;gap:6px;padding:11px 14px;
+  border-bottom:1px solid var(--rule);align-items:center}
+.tpick{padding:8px 15px;border-radius:99px;border:1px solid transparent;background:none;
+  font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--mute);transition:.16s;cursor:pointer}
+.tpick:hover{color:var(--text)}
+.tpick.on{background:var(--text);color:var(--surface)}
+.sform.oneway #fretwrap{display:none}
+@media (max-width:820px){
+  .trippick{padding:10px 12px}
+  .tpick{flex:1;text-align:center;padding:9px 8px}
+}
+
 /* ============ PLACE AUTOCOMPLETE ============
    A custom list rather than the browser's own. The native one inherits the
    operating system typeface and ignores every rule this brand has, which is
@@ -1187,36 +1203,54 @@ body.hasresults #minisearch{display:flex}
 .flbadge.cheap{color:var(--gold)}
 
 .fltimes{display:flex;align-items:flex-start;gap:16px;padding:0 24px 22px}
-.fltime{flex:0 0 auto;min-width:0}
-.fltime.arr{text-align:right;margin-left:auto}
-.fltime .ap{font-family:var(--serif);font-size:clamp(22px,5.4vw,29px);line-height:1;color:var(--text)}
-.fltime .dt{font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;
-  color:var(--faint);margin-top:9px}
-.fltime .hr{font-size:17px;color:var(--text);margin-top:7px}
-.fltime .day{font-family:var(--mono);font-size:9px;color:var(--warn);vertical-align:super;margin-left:2px}
+.fltime{flex:0 0 auto;min-width:0;display:flex;flex-direction:column}
+.fltime.arr{text-align:right;margin-left:auto;align-items:flex-end}
+/* Each of these is its own line. They were inline spans, which ran the code,
+   the date and the time together into one string and made the date look like
+   an afterthought when it is half of what somebody is checking. */
+.fltime .ap{display:block;font-family:var(--serif);font-size:clamp(26px,6.2vw,34px);
+  line-height:1;letter-spacing:.01em;color:var(--text)}
+.fltime .dt{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--mute);margin-top:11px;white-space:nowrap}
+.fltime .hr{display:block;font-size:20px;color:var(--text);margin-top:8px;white-space:nowrap}
+.fltime .day{font-family:var(--mono);font-size:10px;color:var(--warn);vertical-align:super;margin-left:2px}
 
-.flpath{flex:1;min-width:56px;position:relative;height:52px;padding-top:4px}
-.flpath .dur{position:absolute;left:0;right:0;top:0;text-align:center;
-  font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--text-dim)}
-.flpath .ln{position:absolute;left:16px;right:6px;top:26px;height:1px;
+.flpath{flex:1;min-width:70px;position:relative;height:74px;padding-top:6px}
+.flpath .dur{position:absolute;left:0;right:0;top:2px;text-align:center;
+  font-family:var(--mono);font-size:11px;letter-spacing:.05em;color:var(--text-dim)}
+.flpath .ln{position:absolute;left:20px;right:10px;top:36px;height:1px;
   background:repeating-linear-gradient(90deg,var(--rule) 0 3px,transparent 3px 7px)}
-.flpath .plane{position:absolute;left:0;top:18px;width:16px;height:16px;color:var(--gold)}
+.flpath .plane{position:absolute;left:0;top:28px;width:17px;height:17px;color:var(--gold)}
 .flpath .plane svg{width:100%;height:100%}
-.flpath .dot{position:absolute;right:0;top:23px;width:7px;height:7px;border-radius:50%;
-  background:var(--rule-soft);border:1px solid var(--rule)}
-.flpath .stopn{position:absolute;left:0;right:0;top:36px;text-align:center;
-  font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:var(--mute)}
+.flpath .dot{position:absolute;right:0;top:33px;width:7px;height:7px;border-radius:50%;
+  background:var(--gold)}
+.flpath .stopn{position:absolute;left:0;right:0;top:50px;text-align:center;
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--mute)}
 .flpath .stopn.direct{color:var(--live)}
 
 /* the perforation, punched from both sides */
 .flperf{position:relative;height:1px;margin:0 24px;
   background:repeating-linear-gradient(90deg,var(--rule) 0 5px,transparent 5px 10px)}
 .flperf:before,.flperf:after{content:'';position:absolute;top:-11px;width:22px;height:22px;
-  border-radius:50%;background:var(--ink);border:1px solid var(--rule)}
-.flperf:before{left:-35px;clip-path:inset(0 0 0 50%)}
-.flperf:after{right:-35px;clip-path:inset(0 50% 0 0)}
+  border-radius:50%;background:var(--ink)}
+/* Centred exactly on the card edge so the circle punches through it, the way
+   a real stub is cut. No border and no clip: a clipped bordered circle shows
+   its straight edge as a line down the middle of the notch, which is what
+   made this look wrong. */
+.flperf:before{left:-35px}
+.flperf:after{right:-35px}
 
-.flfoot{display:flex;align-items:center;gap:16px;padding:18px 24px 20px;flex-wrap:wrap}
+.flfoot{display:flex;align-items:flex-end;gap:16px;padding:18px 24px 20px;flex-wrap:wrap}
+/* The savings used to be a full width block below the ticket, which was a lot
+   of empty green for two numbers. It belongs beside the price. */
+.flmoney{flex:0 0 auto;text-align:right;margin-left:auto}
+.flmoney .mk{font-family:var(--mono);font-size:13px;color:var(--faint);text-decoration:line-through}
+.flmoney .now{font-family:var(--serif);font-size:29px;line-height:1;color:var(--text);margin-top:6px}
+.flmoney .save{display:inline-flex;align-items:center;gap:6px;margin-top:9px;padding:4px 9px;
+  border-radius:99px;background:var(--live-soft);color:var(--live);
+  font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase}
+.flmoney .lab{font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--faint);margin-top:7px}
 .flfoot .left{flex:1;min-width:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .flfoot .right{flex:0 0 auto;text-align:right}
 .flfoot .pp{font-family:var(--serif);font-size:27px;line-height:1;color:var(--text)}
@@ -1232,15 +1266,21 @@ body.hasresults #minisearch{display:flex}
 @media (max-width:820px){
   #flroute{padding:20px 16px 18px;gap:12px}
   .fltop{padding:16px 18px 14px}
-  .fltimes{padding:0 18px 18px;gap:10px}
+  .fltimes{padding:0 18px 18px;gap:8px}
   .flperf{margin:0 18px}
   .flperf:before{left:-29px}
   .flperf:after{right:-29px}
-  .flfoot{padding:16px 18px 18px;gap:10px}
-  .flcard .mgate{margin:0 18px 18px}
-  .flfoot .flbook{margin-left:0;width:100%;text-align:center}
-  .flfoot .right{width:100%;text-align:left;display:flex;align-items:baseline;gap:12px}
-  .flfoot .pe{margin-top:0}
+  .flfoot{padding:16px 18px 18px;gap:12px}
+  .fltime .ap{font-size:26px}
+  .fltime .dt{font-size:9.5px;letter-spacing:.07em}
+  .fltime .hr{font-size:17px}
+  .flpath{min-width:56px;height:70px}
+  /* Tags come off first. On a phone the times and the price are what matter,
+     and a row of pills pushes both of them apart. */
+  .flfoot .left{display:none}
+  .flmoney{margin-left:0;text-align:left;flex:1}
+  .flmoney .now{font-size:26px}
+  .flfoot .flbook{margin-left:0;flex:0 0 auto}
 }
 
 /* ============ MEMBER GATE ============
@@ -2130,12 +2170,16 @@ body.hasresults #minisearch{display:flex}
               <button class="sgo" data-search="hotels">Search</button>
             </div>
             <div class="glass sform" id="sf-flights">
+              <div class="trippick" role="group" aria-label="Trip type">
+                <button class="tpick on" data-trip="round" aria-pressed="true">Round trip</button>
+                <button class="tpick" data-trip="one" aria-pressed="false">One way</button>
+              </div>
               <div class="sfield full" style="flex:1.3"><span class="fk">From</span>
                 <input id="fq1" placeholder="City or airport" value="JFK" autocomplete="off"></div>
               <div class="sfield full" style="flex:1.3"><span class="fk">To</span>
                 <input id="fq2" placeholder="City or airport" value="Milan" autocomplete="off"></div>
               <div class="sfield"><span class="fk">Leaving</span><input id="fout" type="date" value="2026-09-12"></div>
-              <div class="sfield"><span class="fk">Returning</span><input id="fret" type="date" value="2026-09-18"></div>
+              <div class="sfield" id="fretwrap"><span class="fk">Returning</span><input id="fret" type="date" value="2026-09-18"></div>
               <div class="sfield" style="flex:.55"><span class="fk">Travellers</span>
                 <input id="fpax" type="number" min="1" max="9" value="1"></div>
               <button class="sgo" data-search="flights">Search</button>
@@ -3537,6 +3581,25 @@ function wireAutocomplete() {
   acAttach($('#fq2'), { showCode: true });
 }
 
+var TRIP = { type: 'round' };
+
+function setTripType(t) {
+  TRIP.type = t === 'one' ? 'one' : 'round';
+  var form = $('#sf-flights');
+  if (form) form.classList.toggle('oneway', TRIP.type === 'one');
+  $$('.tpick').forEach(function (b) {
+    var on = b.getAttribute('data-trip') === TRIP.type;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', String(on));
+  });
+}
+
+function wireTripType() {
+  $$('.tpick').forEach(function (b) {
+    b.addEventListener('click', function () { setTripType(b.getAttribute('data-trip')); });
+  });
+}
+
 function flightQuery() {
   var raw1 = ($('#fq1') && $('#fq1').value || 'JFK').trim();
   var raw2 = ($('#fq2') && $('#fq2').value || 'Milan').trim();
@@ -3544,7 +3607,10 @@ function flightQuery() {
     origin: toCode(raw1),
     destination: toCode(raw2),
     departOn: ($('#fout') && $('#fout').value) || '2026-09-12',
-    returnOn: ($('#fret') && $('#fret').value) || '',
+    // A one way carries no return date at all, rather than one the search
+    // is quietly told to ignore.
+    returnOn: TRIP.type === 'one' ? '' : (($('#fret') && $('#fret').value) || ''),
+    tripType: TRIP.type,
     passengers: ($('#fpax') && $('#fpax').value) || '1'
   };
 }
@@ -3999,11 +4065,23 @@ function flightCard(r) {
   else if (r.badge === 'rec') badge = '<span class="flbadge rec">Recommended</span>';
 
   var joined = hasAccount();
-  var priceSide = joined || !r.net || !r.keep
-    ? '<div class="pp">' + (r.net || r.p) + '</div>' +
-      (r.net && r.keep ? '<div class="pe" style="color:var(--live)">You save ' + r.keep + '</div>'
-                       : '<div class="pe">Total</div>')
-    : '<div class="pp market">' + r.p + '</div><div class="pe">Market rate</div>';
+  var pct = r.pct ? Math.round(r.pct) + '% below' : '';
+
+  // Two numbers and a badge, beside the button. Everything a person needs to
+  // decide, in the space that was previously a large empty green rectangle.
+  var money = joined || !r.net || !r.keep
+    ? '<span class="flmoney">' +
+        (r.net && r.keep ? '<span class="mk">' + r.p + '</span>' : '') +
+        '<span class="now">' + (r.net || r.p) + '</span>' +
+        (r.net && r.keep
+          ? '<span class="save">You save ' + r.keep + (pct ? ' . ' + pct : '') + '</span>'
+          : '<span class="lab">Total</span>') +
+      '</span>'
+    : '<span class="flmoney">' +
+        '<span class="mk">' + r.p + '</span>' +
+        '<span class="now">' + r.net + '</span>' +
+        '<span class="save">Members pay . save ' + r.keep + (pct ? ' . ' + pct : '') + '</span>' +
+      '</span>';
 
   return '<div class="flcard">' +
     '<div class="fltop">' +
@@ -4040,10 +4118,10 @@ function flightCard(r) {
     '<div class="flfoot">' +
       '<span class="left">' + (r.tags || []).slice(1).map(function (t) {
         return '<span class="pill">' + esc(t) + '</span>'; }).join('') + '</span>' +
-      '<span class="right">' + priceSide + '</span>' +
-      '<button class="flbook">' + (joined ? 'Select' : 'Create a free account') + '</button>' +
+      money +
+      '<button class="flbook"' + (joined ? '' : ' data-join="1"') + '>' +
+        (joined ? 'Select' : 'Create a free account') + '</button>' +
     '</div>' +
-    (joined || !r.net || !r.keep ? '' : gateBlock(r)) +
   '</div>';
 }
 
@@ -4068,6 +4146,11 @@ function flRouteHtml() {
     '<span class="mid"><span class="ln"></span>' + PLANE_SVG + '<span class="pin"></span></span>' +
     '<span class="end to"><span class="code">' + esc(q.destination) + '</span>' +
       '<span class="city">' + esc(b ? b.name + ', ' + (COUNTRY[b.cc] || b.cc) : 'Destination') + '</span></span>' +
+  '</div>' +
+  '<div style="padding:0 clamp(18px,3vw,26px) 14px;font-family:var(--mono);font-size:9px;' +
+    'letter-spacing:.15em;text-transform:uppercase;color:var(--faint)">' +
+    esc(prettyDate(q.departOn)) + (q.returnOn ? ' to ' + esc(prettyDate(q.returnOn)) : ' . one way') +
+    ' . ' + esc(q.passengers) + ' traveller' + (q.passengers === '1' ? '' : 's') +
   '</div>';
 }
 
@@ -4148,8 +4231,11 @@ function paintMiniSearch() {
   var where = $('#miwhere'), when = $('#miwhen');
   if (!where) return;
   if (cat === 'flights') {
-    where.textContent = 'JFK to Milan';
-    when.textContent = prettyDate(q.checkIn) + ' . 1 traveller';
+    var f = flightQuery();
+    where.textContent = f.origin + ' to ' + f.destination;
+    when.textContent = prettyDate(f.departOn) +
+      (f.returnOn ? ' to ' + prettyDate(f.returnOn) : ' . one way') +
+      ' . ' + f.passengers + ' traveller' + (f.passengers === '1' ? '' : 's');
   } else {
     where.textContent = q.destination;
     when.textContent = prettyDate(q.checkIn) + ' to ' + prettyDate(q.checkOut) +
@@ -7457,6 +7543,7 @@ function boot() {
   wireAuth();
   wireMembership();
   wireAutocomplete();
+  wireTripType();
   wireProfile();
   wireYear();
   wireBrief();
