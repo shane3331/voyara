@@ -1125,7 +1125,19 @@ body.hasresults #minisearch{display:flex}
    question, and the results of that question arrive underneath as the same
    cards the search uses, not as a paragraph describing them. */
 #navi{display:none}
-#navi.on{display:flex;flex-direction:column;min-height:calc(100vh - var(--topbar,64px))}
+/* Pinned to the viewport rather than sitting at the bottom of a tall column.
+   min-height only made the section tall; the page still scrolled and took the
+   composer with it. Fixed means the thread is the only thing that can move,
+   so the box cannot be pushed out of sight at any width. */
+#navi.on{
+  position:fixed;left:0;right:0;top:var(--topbar);bottom:0;
+  max-width:none;margin:0;z-index:30;background:var(--ink);
+  display:flex;flex-direction:column;
+}
+/* And nothing behind it scrolls while it is open, or the page drifts under a
+   fixed panel, which reads as broken even though nothing has moved on screen. */
+body.navilock{overflow:hidden}
+body.navilock #stage{overflow:hidden}
 
 /* the opening state */
 #nvopen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -1167,7 +1179,9 @@ body.hasresults #minisearch{display:flex}
    question to the top actually puts it there rather than part way up. Without
    this the last turn cannot reach the top and the view lurches as the answer
    grows. Only the last one, or short answers would leave permanent gaps. */
-.nvturn:last-child{min-height:calc(100vh - 300px)}
+/* Measured from the thread itself rather than the window, now that the thread
+   is a fixed height panel rather than part of a scrolling page. */
+.nvturn:last-child{min-height:var(--nvroom,60vh)}
 /* The answer appears in place rather than pushing anything. */
 .nva{animation:nvFade .3s ease both}
 @keyframes nvFade{from{opacity:0}to{opacity:1}}
@@ -1247,8 +1261,11 @@ body.hasresults #minisearch{display:flex}
   color:#fff;font-family:var(--mono);font-size:9px;letter-spacing:.15em;text-transform:uppercase}
 .nvjoin button:hover{filter:brightness(1.08)}
 
-#nvfoot{flex:0 0 auto;padding:0 clamp(16px,4vw,28px) calc(env(safe-area-inset-bottom,0) + 18px);
-  display:none;background:linear-gradient(to top,var(--ink) 62%,transparent)}
+/* The composer. Never scrolls, never moves, always the last thing in the
+   column. The gradient lets the thread pass under it rather than stopping at
+   a hard edge. */
+#nvfoot{flex:0 0 auto;padding:8px clamp(16px,4vw,28px) calc(env(safe-area-inset-bottom,0) + 18px);
+  display:none;background:linear-gradient(to top,var(--ink) 68%,transparent)}
 #nvfoot.on{display:block}
 #nvfoot .nvbox{margin-top:0}
 
@@ -5293,8 +5310,19 @@ var NV_CHIPS = [
   'What did I save last year?'
 ];
 
+// The reserve has to be the height of the thread, not of the window, or a
+// short answer either leaves a gap or fails to reach the top.
+function nvRoom() {
+  var t = $('#nvthread');
+  if (!t) return;
+  var h = t.clientHeight;
+  if (h > 200) t.style.setProperty('--nvroom', (h - 90) + 'px');
+}
+
 function nvOpen() {
+  document.body.classList.add('navilock');
   $('#nvhello').textContent = nvGreeting();
+  nvRoom();
   if (!NV.started) {
     $('#nvchips').innerHTML = NV_CHIPS.map(function (c) {
       return '<button>' + esc(c) + '</button>';
@@ -5484,6 +5512,14 @@ function nvAutosize(ta) {
 }
 
 function wireNavi() {
+  var rt;
+  window.addEventListener('resize', function () {
+    clearTimeout(rt);
+    rt = setTimeout(function () {
+      if (document.body.classList.contains('navilock')) nvRoom();
+    }, 140);
+  });
+
   [['#nvta', '#nvsend'], ['#nvta2', '#nvsend2']].forEach(function (pair) {
     var ta = $(pair[0]), btn = $(pair[1]);
     if (!ta || !btn) return;
@@ -8643,6 +8679,9 @@ var DEMO_VIEWS = ['operator', 'platform'];
 
 function switchView(v) {
   if (DEMO_VIEWS.indexOf(v) >= 0 && !document.body.classList.contains('demomode')) v = 'home';
+  // The lock belongs to Navi alone. Leaving it set would freeze every other
+  // page, which is a far worse bug than the one it fixes.
+  if (v !== 'navi') document.body.classList.remove('navilock');
   S.view = v;
   $$('.view').forEach(function (n) { n.classList.toggle('on', n.id === v); });
   $$('.stab').forEach(function (n) { n.classList.toggle('on', n.getAttribute('data-view') === v); });
