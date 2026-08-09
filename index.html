@@ -1010,6 +1010,62 @@ body.hasresults #minisearch{display:flex}
 #searchveil.on{display:flex;opacity:1}
 #searchveil .fload{padding:0}
 
+/* ============ SORT AND FILTER ============
+   Everything runs on the results already in hand. No refetch, so a sort is
+   instant and a filter can be undone without paying for it twice. */
+#sortbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:0 26px 18px;border-bottom:1px solid var(--rule-soft);margin-bottom:20px}
+#sortcount{font-family:var(--mono);font-size:9px;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--faint);margin-right:auto}
+#sortcount b{color:var(--text);font-weight:400}
+.sortsel{position:relative;display:inline-flex;align-items:center}
+.sortsel select{appearance:none;background:var(--surface);border:1px solid var(--rule);
+  border-radius:99px;padding:10px 34px 10px 16px;font-family:var(--mono);font-size:9px;
+  letter-spacing:.13em;text-transform:uppercase;color:var(--text);cursor:pointer;outline:none}
+.sortsel select:focus{border-color:var(--nav)}
+.sortsel:after{content:'';position:absolute;right:15px;pointer-events:none;
+  border-left:3.5px solid transparent;border-right:3.5px solid transparent;
+  border-top:4px solid var(--mute)}
+#filterbtn{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:99px;
+  border:1px solid var(--rule);background:var(--surface);font-family:var(--mono);font-size:9px;
+  letter-spacing:.13em;text-transform:uppercase;color:var(--text);transition:.16s}
+#filterbtn:hover{border-color:var(--faint)}
+#filterbtn.active{background:var(--text);color:var(--surface);border-color:var(--text)}
+#filterbtn .fc{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;
+  border-radius:99px;background:var(--live);color:#fff;font-size:8px;padding:0 4px}
+
+#filterpanel{display:none;padding:0 26px 22px;border-bottom:1px solid var(--rule-soft);margin-bottom:20px}
+#filterpanel.on{display:block}
+.fgrp{margin-bottom:20px}
+.fgrp:last-child{margin-bottom:0}
+.fgrp h4{font-family:var(--mono);font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--faint);margin-bottom:11px}
+.fchips{display:flex;gap:7px;flex-wrap:wrap}
+.fchip{padding:9px 15px;border-radius:99px;border:1px solid var(--rule);background:var(--surface);
+  font-size:13px;color:var(--text-dim);transition:.15s;cursor:pointer}
+.fchip:hover{border-color:var(--faint)}
+.fchip.on{background:var(--text);color:var(--surface);border-color:var(--text)}
+#pricerow{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+#pricerange{flex:1;min-width:180px;accent-color:var(--text);height:2px}
+#pricelab{font-family:var(--mono);font-size:12px;color:var(--text);white-space:nowrap}
+#filterclear{margin-top:4px;font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--mute);text-decoration:underline;text-underline-offset:3px}
+#filterclear:hover{color:var(--halt)}
+
+#nomatch{padding:56px 26px;text-align:center}
+#nomatch .nm1{font-family:var(--serif);font-size:24px;color:var(--text)}
+#nomatch .nm2{font-size:14px;color:var(--mute);margin-top:12px;line-height:1.6}
+#nomatch button{margin-top:20px;padding:12px 24px;border-radius:99px;border:1px solid var(--rule);
+  font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--text)}
+
+@media (max-width:820px){
+  #sortbar{padding:0 16px 16px;gap:8px}
+  #sortcount{width:100%;margin-bottom:4px}
+  .sortsel{flex:1}
+  .sortsel select{width:100%}
+  #filterpanel{padding:0 16px 20px}
+}
+
 /* ============ FLIGHT CARD ============
    A flight is a timetable, not a room. The old card reused the hotel layout,
    which meant a large photograph of a wing and the two things that actually
@@ -3139,6 +3195,13 @@ function prettyDate(iso) {
   return d.getUTCDate() + ' ' + m[d.getUTCMonth()];
 }
 
+// Prefer the supplier's minor units; fall back to reading the formatted
+// string only when they are absent.
+function num(minor, display) {
+  if (minor != null && Number.isFinite(Number(minor))) return Number(minor);
+  return parseMoney(display);
+}
+
 function offersToCards(type, json) {
   return (json.offers || []).map(function (o) {
     var pr = o.pricing || {};
@@ -3151,6 +3214,10 @@ function offersToCards(type, json) {
         stops: Number(o.stops) || 0,
         p: pr.publicDisplay, net: pr.netDisplay, keep: pr.rebateDisplay,
         pct: (pr.rebatePct != null ? pr.rebatePct : pr.savingPct),
+        pMinor: num(pr.publicMinor, pr.publicDisplay),
+        netMinor: num(pr.netMinor, pr.netDisplay),
+        keepMinor: num(pr.rebateMinor, pr.rebateDisplay),
+        refundable: Boolean(o.refundable), bag: Boolean(o.bagIncluded),
         tags: [o.bagIncluded ? 'Bag included' : 'No bag',
                o.changeable ? 'Changeable' : 'No changes',
                o.refundable ? 'Refundable' : 'Nonrefundable']
@@ -3166,6 +3233,11 @@ function offersToCards(type, json) {
       net: pr.voyaraDisplay || pr.netDisplay,
       keep: pr.savingDisplay || pr.rebateDisplay,
       pct: (pr.savingPct != null ? pr.savingPct : pr.rebatePct),
+      pMinor: num(pr.marketMinor != null ? pr.marketMinor : pr.publicMinor, pr.marketDisplay || pr.publicDisplay),
+      netMinor: num(pr.voyaraMinor != null ? pr.voyaraMinor : pr.netMinor, pr.voyaraDisplay || pr.netDisplay),
+      keepMinor: num(pr.savingMinor != null ? pr.savingMinor : pr.rebateMinor, pr.savingDisplay || pr.rebateDisplay),
+      refundable: Boolean(o.refundable), breakfast: /breakfast/i.test(o.board || o.roomDescription || ''),
+      nights: Number(o.nights) || 0,
       tags: [o.taxesIncluded ? 'Taxes included' : 'Taxes extra',
              o.refundable ? 'Free cancellation' : 'Nonrefundable',
              (pr.savingPct ? pr.savingPct + '% below market' : 'Net rate')]
@@ -3270,6 +3342,247 @@ document.addEventListener('error', function (e) {
   chip.classList.remove('logo');
   chip.textContent = chip.getAttribute('data-code') || '\u2708';
 }, true);
+
+/* ============================================================
+   SORTING AND FILTERING
+   Runs entirely on the results already fetched. A sort is instant, and a
+   filter can be lifted without paying for the search twice.
+   ============================================================ */
+var RES = { all: [], type: 'hotels', mode: '', sort: 'quality', f: {} };
+
+var SORTS = {
+  hotels: [
+    ['quality', 'Quality first'],
+    ['price', 'Price, lowest'],
+    ['pricedesc', 'Price, highest'],
+    ['saving', 'Biggest saving'],
+    ['rating', 'Guest rating'],
+    ['stars', 'Star rating']
+  ],
+  flights: [
+    ['quality', 'Best overall'],
+    ['price', 'Price, lowest'],
+    ['duration', 'Shortest'],
+    ['depart', 'Earliest departure'],
+    ['stops', 'Fewest stops']
+  ]
+};
+
+function cardPrice(r) {
+  // Sort on what this person would actually pay, so the order does not change
+  // meaning when they sign in.
+  return (r.netMinor || r.pMinor || 0);
+}
+
+function durationOf(r) {
+  if (!r.departAt || !r.arriveAt) return Infinity;
+  var a = new Date(r.departAt), b = new Date(r.arriveAt);
+  if (isNaN(a) || isNaN(b)) return Infinity;
+  return b - a;
+}
+
+function sortCards(list, how) {
+  var out = list.slice();
+  var by = {
+    price: function (a, b) { return cardPrice(a) - cardPrice(b); },
+    pricedesc: function (a, b) { return cardPrice(b) - cardPrice(a); },
+    saving: function (a, b) { return (b.keepMinor || 0) - (a.keepMinor || 0); },
+    rating: function (a, b) { return (b.rating || 0) - (a.rating || 0); },
+    stars: function (a, b) { return (b.stars || 0) - (a.stars || 0); },
+    duration: function (a, b) { return durationOf(a) - durationOf(b); },
+    depart: function (a, b) { return String(a.departAt || '').localeCompare(String(b.departAt || '')); },
+    stops: function (a, b) { return (a.stops || 0) - (b.stops || 0) || cardPrice(a) - cardPrice(b); }
+  };
+  // Quality is the order the supplier and our own scoring already produced.
+  if (how === 'quality' || !by[how]) return out;
+  return out.sort(by[how]);
+}
+
+function filterCards(list, f) {
+  return list.filter(function (r) {
+    if (f.max != null && cardPrice(r) > f.max) return false;
+    if (f.stars && (r.stars || 0) < f.stars) return false;
+    if (f.refundable && !r.refundable) return false;
+    if (f.breakfast && !r.breakfast) return false;
+    if (f.nonstop && (r.stops || 0) > 0) return false;
+    return true;
+  });
+}
+
+function priceBounds(list) {
+  var vals = list.map(cardPrice).filter(function (v) { return v > 0; });
+  if (!vals.length) return null;
+  return { min: Math.min.apply(null, vals), max: Math.max.apply(null, vals) };
+}
+
+function sortBarHtml(type) {
+  var opts = (SORTS[type] || SORTS.hotels).map(function (o) {
+    return '<option value="' + o[0] + '"' + (RES.sort === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
+  }).join('');
+  return '<div id="sortbar">' +
+    '<span id="sortcount"></span>' +
+    '<button id="filterbtn">Filter</button>' +
+    '<span class="sortsel"><select id="sortsel" aria-label="Sort results">' + opts + '</select></span>' +
+  '</div>' + filterPanelHtml(type);
+}
+
+function filterPanelHtml(type) {
+  var b = priceBounds(RES.all);
+  var cur = CCY.current;
+  var price = b ? '<div class="fgrp"><h4>Price, up to</h4><div id="pricerow">' +
+      '<input id="pricerange" type="range" min="' + b.min + '" max="' + b.max + '" ' +
+      'value="' + b.max + '" step="' + Math.max(1, Math.round((b.max - b.min) / 40)) + '">' +
+      '<span id="pricelab">' + money(b.max, cur) + '</span></div></div>' : '';
+
+  var second = type === 'flights'
+    ? '<div class="fgrp"><h4>Stops</h4><div class="fchips">' +
+      '<button class="fchip" data-f="nonstop">Nonstop only</button></div></div>'
+    : '<div class="fgrp"><h4>Standard</h4><div class="fchips">' +
+      '<button class="fchip" data-stars="4">Four star and above</button>' +
+      '<button class="fchip" data-stars="5">Five star only</button></div></div>';
+
+  var third = type === 'flights' ? ''
+    : '<div class="fgrp"><h4>Conditions</h4><div class="fchips">' +
+      '<button class="fchip" data-f="refundable">Free cancellation</button>' +
+      '<button class="fchip" data-f="breakfast">Breakfast included</button></div></div>';
+
+  return '<div id="filterpanel">' + price + second + third +
+    '<button id="filterclear">Clear all filters</button></div>';
+}
+
+function activeFilterCount() {
+  var f = RES.f, n = 0, b = priceBounds(RES.all);
+  if (f.max != null && b && f.max < b.max) n++;
+  if (f.stars) n++;
+  if (f.refundable) n++;
+  if (f.breakfast) n++;
+  if (f.nonstop) n++;
+  return n;
+}
+
+function paintList() {
+  var list = sortCards(filterCards(RES.all, RES.f), RES.sort);
+  var zone = $('#reslist');
+  if (!zone) return;
+
+  var n = activeFilterCount();
+  var cnt = $('#sortcount');
+  if (cnt) {
+    cnt.innerHTML = '<b>' + list.length + '</b> of ' + RES.all.length +
+      (RES.type === 'flights' ? ' flights' : ' properties');
+  }
+  var fb = $('#filterbtn');
+  if (fb) {
+    fb.classList.toggle('active', n > 0);
+    fb.innerHTML = 'Filter' + (n ? ' <span class="fc">' + n + '</span>' : '');
+  }
+
+  if (!list.length) {
+    zone.innerHTML = '<div id="nomatch"><div class="nm1">Nothing matches that</div>' +
+      '<div class="nm2">' + RES.all.length + ' result' + (RES.all.length === 1 ? '' : 's') +
+      ' came back, but none of them clear the filters you set.</div>' +
+      '<button id="nomatchclear">Clear the filters</button></div>';
+    var nc = $('#nomatchclear');
+    if (nc) nc.addEventListener('click', clearFilters);
+    return;
+  }
+
+  zone.innerHTML = list.map(function (r) {
+    if (r.flight) return flightCard(r);
+    return '<div class="rescard">' +
+      (r.imgUrl
+        ? '<div class="rimgwrap"><img class="rimg" src="' + r.imgUrl + '" alt="" loading="lazy" ' +
+          'onerror="this.parentNode.classList.add(\'noimg\');this.remove()"></div>'
+        : '<div class="rimgwrap noimg"></div>') +
+      '<div class="rmain"><div class="rt2">' + r.n +
+      (r.best ? ' <span class="pill nav" style="margin-left:6px"><span class="bd"></span>Navi pick</span>' : '') + '</div>' +
+      '<div class="rs2">' + r.s + '</div>' +
+      '<div class="rtags">' +
+      (r.stars ? '<span class="pill">' + r.stars + ' star</span>' : '') +
+      (r.rating ? '<span class="pill live"><span class="bd"></span>' + r.rating + '</span>' : '') +
+      (r.tags || []).map(function (t) { return '<span class="pill">' + t + '</span>'; }).join('') +
+      '</div></div>' + priceBlock(r) + '</div>';
+  }).join('');
+
+  wireCards();
+}
+
+// Re-attached after every re-render, because sorting and filtering rebuild
+// the list and listeners do not survive innerHTML.
+function wireCards() {
+  $$('#reslist [data-join]').forEach(function (b) {
+    b.addEventListener('click', function (e) { e.stopPropagation(); openAuth(); });
+  });
+  $$('#reslist .rbook').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var hid = b.getAttribute('data-hotel');
+      if (hid) return openProperty(hid);
+      openModal('<div class="mhead"><h3 class="disp">Booking is approval gated</h3><button class="x" data-close>&#10005;</button></div>' +
+        '<div class="mbody"><p style="font-size:13.5px;line-height:1.6">Nothing on Voyara books because you clicked a card. A request becomes a priced proposal, the proposal becomes a signed approval, the approval becomes an idempotent execution, and the execution gets verified against the supplier.</p></div>' +
+        '<div class="mfoot"><button class="btn" data-close>Close</button></div>');
+    });
+  });
+  $$('#reslist .flbook').forEach(function (b) {
+    b.addEventListener('click', function () {
+      openModal('<div class="mhead"><h3 class="disp">Booking is approval gated</h3><button class="x" data-close>&#10005;</button></div>' +
+        '<div class="mbody"><p style="font-size:13.5px;line-height:1.6">A fare is held and re-priced before anything is charged. You approve the exact number before it books.</p></div>' +
+        '<div class="mfoot"><button class="btn" data-close>Close</button></div>');
+    });
+  });
+}
+
+function clearFilters() {
+  RES.f = { max: null, stars: null, refundable: false, breakfast: false, nonstop: false };
+  $$('#filterpanel .fchip').forEach(function (c) { c.classList.remove('on'); });
+  var pr = $('#pricerange'), b = priceBounds(RES.all);
+  if (pr && b) { pr.value = b.max; $('#pricelab').textContent = money(b.max, CCY.current); }
+  paintList();
+}
+
+function wireSortBar() {
+  var sel = $('#sortsel');
+  if (sel) sel.addEventListener('change', function () {
+    RES.sort = sel.value;
+    paintList();
+    audit('search.sorted', { by: RES.sort, vertical: RES.type }, 'traveler');
+  });
+
+  var fb = $('#filterbtn');
+  if (fb) fb.addEventListener('click', function () {
+    $('#filterpanel').classList.toggle('on');
+  });
+
+  $$('#filterpanel .fchip').forEach(function (c) {
+    c.addEventListener('click', function () {
+      var stars = c.getAttribute('data-stars');
+      if (stars) {
+        var v = Number(stars);
+        // Star chips are one choice, not a set. Tapping the active one clears it.
+        var was = RES.f.stars === v;
+        $$('#filterpanel [data-stars]').forEach(function (o) { o.classList.remove('on'); });
+        RES.f.stars = was ? null : v;
+        if (!was) c.classList.add('on');
+      } else {
+        var k = c.getAttribute('data-f');
+        RES.f[k] = !RES.f[k];
+        c.classList.toggle('on', RES.f[k]);
+      }
+      paintList();
+    });
+  });
+
+  var pr = $('#pricerange');
+  if (pr) {
+    pr.addEventListener('input', function () {
+      RES.f.max = Number(pr.value);
+      $('#pricelab').textContent = money(RES.f.max, CCY.current);
+      paintList();
+    });
+  }
+
+  var fc = $('#filterclear');
+  if (fc) fc.addEventListener('click', clearFilters);
+}
 
 function flightCard(r) {
   var a = clockOf(r.departAt), b = clockOf(r.arriveAt);
@@ -3468,22 +3781,14 @@ function renderResults(type, live) {
       ? '<div class="hsub" style="color:var(--warn)">Not enough properties met that standard here, so the floor was relaxed. Every result is still shown with its rating.</div>'
       : '') +
     '</div><div style="display:flex;gap:0">' + extraBtn + '<button class="viewall" id="clearresults">Clear</button></div></div></div>';
-  data.forEach(function (r) {
-    if (r.flight) { h += flightCard(r); return; }
-    h += '<div class="rescard">' +
-      (r.imgUrl
-        ? '<div class="rimgwrap"><img class="rimg" src="' + r.imgUrl + '" alt="" loading="lazy" ' +
-          'onerror="this.parentNode.classList.add(\'noimg\');this.remove()"></div>'
-        : '<div class="rimgwrap noimg"></div>') +
-      '<div class="rmain"><div class="rt2">' + r.n + (r.best ? ' <span class="pill nav" style="margin-left:6px"><span class="bd"></span>Navi pick</span>' : '') + '</div>' +
-      '<div class="rs2">' + r.s + '</div>' +
-      '<div class="rtags">' +
-      (r.stars ? '<span class="pill">' + r.stars + ' star</span>' : '') +
-      (r.rating ? '<span class="pill live"><span class="bd"></span>' + r.rating + '</span>' : '') +
-      (r.tags || []).map(function (t) { return '<span class="pill">' + t + '</span>'; }).join('') + '</div></div>' +
-      priceBlock(r) + '</div>';
-  });
+  // Hold the unfiltered set so a filter can be undone without a refetch.
+  RES.all = data; RES.type = type; RES.mode = srcMode;
+  RES.sort = RES.sort || 'quality';
+  RES.f = { max: null, stars: null, refundable: false, breakfast: false, nonstop: false };
+  h += sortBarHtml(type) + '<div id="reslist"></div>';
   $('#resultszone').innerHTML = h;
+  wireSortBar();
+  paintList();
   showVeil(false);
   setResultsMode(true);
   if (!ME.email && type === 'hotels') paintSaveBar(data);
@@ -3494,18 +3799,6 @@ function renderResults(type, live) {
   if (c) c.addEventListener('click', function () { $('#resultszone').innerHTML = ''; });
   var tcb = $('#totalcostbtn');
   if (tcb) tcb.addEventListener('click', openTotalCost);
-  $$('[data-join]').forEach(function (b) {
-    b.addEventListener('click', function (e) { e.stopPropagation(); openAuth(); });
-  });
-  $$('.rbook').forEach(function (b) {
-    b.addEventListener('click', function () {
-      var hid = b.getAttribute('data-hotel');
-      if (hid) return openProperty(hid);
-      openModal('<div class="mhead"><h3 class="disp">Booking is approval gated</h3><button class="x" data-close>&#10005;</button></div>' +
-        '<div class="mbody"><p style="font-size:13.5px;line-height:1.6">Nothing on Voyara books because you clicked a card. A request becomes a priced proposal, the proposal becomes a signed approval, the approval becomes an idempotent execution, and the execution gets verified against the supplier.</p></div>' +
-        '<div class="mfoot"><button class="btn" data-close>Close</button></div>');
-    });
-  });
   var rz = $('#resultszone');
   if (rz.scrollIntoView) rz.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
@@ -4034,7 +4327,7 @@ function bootHome() {
   $$('.cat').forEach(function (c) { c.addEventListener('click', function () { setCat(c.getAttribute('data-cat')); }); });
   var ql = $('#hql');
   if (ql) ql.addEventListener('change', function () {
-    if ($('#resultszone') && $('#resultszone').innerHTML.trim()) renderResults('hotels');
+    if ($('#reslist') && RES.all.length) paintList();
   });
   ['#hq', '#hin', '#hout', '#hg'].forEach(function (sel) {
     var el = $(sel);
@@ -4306,7 +4599,7 @@ function setSession(email) {
   loadRealTrips();
   PF.data = {}; PF.dirty = false; PF.loaded = false;
   if (ME.email) pfLoad(); else pfPaint();
-  if ($('#resultszone') && $('#resultszone').innerHTML.trim()) renderResults('hotels');
+  if ($('#reslist') && RES.all.length) paintList();
 }
 
 /* ============================================================
@@ -5002,7 +5295,7 @@ function setCurrency(code) {
   audit('preference.currency_changed', { currency: code }, 'traveler');
   closeModal();
   // Re prices whatever is on screen.
-  if ($('#resultszone') && $('#resultszone').innerHTML.trim()) renderResults('hotels');
+  if ($('#reslist') && RES.all.length) paintList();
   if ($('#psheet').classList.contains('on') && PROP.hotel) openProperty(PROP.hotel.id);
 }
 
