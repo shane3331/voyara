@@ -215,13 +215,18 @@ img{display:block}
 #tbmark{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
   font-family:var(--serif);font-size:clamp(17px,1.85vw,23px);font-weight:normal;
   letter-spacing:.26em;text-transform:uppercase;color:var(--text);white-space:nowrap;
-  /* The mark is centred on the page by sitting outside the flow, which means
-     it spans the bar and would swallow clicks meant for the controls behind
-     it. So the element ignores the pointer and the text inside accepts it,
-     giving a hit area the width of the word and nothing more. */
-  pointer-events:none;padding:10px 6px;cursor:pointer;transition:opacity .16s}
-#tbmark span{pointer-events:auto}
-#tbmark:hover span{opacity:.62}
+  /* No width and no right edge, so this shrinks to the width of the word and
+     never covers the controls either side of it. An earlier version set
+     pointer-events:none here to protect them, which was unnecessary and was
+     the reason tapping the mark did nothing on a phone.
+     The padding gives a 44px touch target without changing how it looks, and
+     touch-action removes the double tap delay on iOS. */
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:44px;padding:0 10px;cursor:pointer;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+  transition:opacity .16s;z-index:2}
+#tbmark:hover{opacity:.62}
+#tbmark:active{opacity:.45}
 #whoami{display:flex;align-items:center;gap:10px;padding:6px 12px 6px 6px;border:1px solid var(--rule);border-radius:99px}
 #whoami .av2{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--nav),#5A79A6);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;color:#fff}
 #whoami .wn{font-size:12.5px;line-height:1.15}
@@ -987,6 +992,12 @@ body.hasresults #minisearch{display:flex}
 .mgate .mrow .k{font-family:var(--mono);font-size:8px;letter-spacing:.13em;text-transform:uppercase;
   color:var(--mute)}
 .mgate .mrow .v{font-family:var(--mono);font-size:14.5px;color:var(--text)}
+
+/* A member gets the same block with the ask removed. It reads as a receipt
+   rather than an offer, which is what it is once they have joined. */
+.mgate.joined{border-color:rgba(47,122,92,.34)}
+.mgate.joined .mtop{padding-bottom:16px}
+.mgate.joined .mrow{border-bottom-left-radius:var(--r-sm);border-bottom-right-radius:var(--r-sm)}
 .mgate button{display:block;width:100%;padding:14px;border:none;
   background:var(--live);color:#fff;font-family:var(--mono);font-size:9px;letter-spacing:.16em;
   text-transform:uppercase;font-weight:500;transition:.16s}
@@ -3132,11 +3143,11 @@ function flightCard(r) {
   for (var i = 0; i < Math.min(r.stops, 3); i++) dots += '<span class="stop"></span>';
   if (!r.stops) dots = '<span class="stop" style="opacity:0"></span>';
 
+  // Same rule as a room: only a fare with nothing to compare against stands
+  // alone. A member sees what the membership did on this fare too.
   var priceSide;
-  if (ME.email || !r.net || !r.keep) {
-    priceSide = '<div><div class="pp">' + (r.net || r.p) + '</div>' +
-      (r.net ? '<div class="pe" style="color:var(--live)">You save ' + r.keep + '</div>'
-             : '<div class="pe">Total</div>') + '</div>';
+  if (!r.net || !r.keep) {
+    priceSide = '<div><div class="pp">' + r.p + '</div><div class="pe">Total</div></div>';
   } else {
     priceSide = '<div><div class="pp market">' + r.p + '</div>' +
       '<div class="pe marketlab">Market rate</div></div>' + gateBlock(r);
@@ -3185,23 +3196,28 @@ function gateBlock(r) {
     var m = parseMoney(r.p), k = parseMoney(r.keep);
     if (m > 0 && k > 0) pct = Math.round((k / m) * 100) + '% below market';
   }
-  return '<div class="mgate">' +
-    '<div class="mtop"><span class="ml">You save</span>' +
+  // A member sees the same block. Showing them only their own price throws
+  // away the proof on every booking, and that proof is the whole argument.
+  var joined = Boolean(ME.email);
+  return '<div class="mgate' + (joined ? ' joined' : '') + '">' +
+    '<div class="mtop"><span class="ml">' + (joined ? 'You saved' : 'You save') + '</span>' +
       '<span class="msave">' + r.keep + '</span>' +
       (pct ? '<span class="mpct">' + pct + '</span>' : '') +
     '</div>' +
-    '<div class="mrow"><span class="k">Members pay</span><span class="v">' + r.net + '</span></div>' +
-    '<button data-join="1">Join and save ' + r.keep + '</button></div>';
+    '<div class="mrow"><span class="k">' + (joined ? 'You pay' : 'Members pay') + '</span>' +
+      '<span class="v">' + r.net + '</span></div>' +
+    (joined ? '' : '<button data-join="1">Join and save ' + r.keep + '</button>') +
+  '</div>';
 }
 
 function priceBlock(r) {
   var book = '<button class="rbook"' + (r.hotelId ? ' data-hotel="' + r.hotelId + '"' : '') + '>' +
     (r.hotelId ? 'View property' : 'Request to book') + '</button>';
 
-  if (ME.email || !r.net || !r.keep) {
-    return '<div class="rprice"><div><div class="pp">' + (r.net || r.p) + '</div>' +
-      (r.net ? '<div class="pe" style="color:var(--live)">You save ' + r.keep + '</div>'
-             : '<div class="pe">Expires in 4:00</div>') + '</div>' + book + '</div>';
+  // Only when there is nothing to compare against does the price stand alone.
+  if (!r.net || !r.keep) {
+    return '<div class="rprice"><div><div class="pp">' + r.p + '</div>' +
+      '<div class="pe">Total for the stay</div></div>' + book + '</div>';
   }
 
   return '<div class="rprice"><div><div class="pp market">' + r.p + '</div>' +
@@ -4359,6 +4375,10 @@ function apiFetch(url, opts) {
   var tok = authToken();
   if (tok) h.Authorization = 'Bearer ' + tok;
   o.headers = h;
+  // Guarded because this is reachable from setSession, which runs during
+  // sign in. A synchronous throw there would break signing in rather than
+  // just failing one request.
+  if (typeof fetch !== 'function') return Promise.reject(new Error('offline'));
   return fetch(url, o).then(function (r) {
     if (r.status === 401) {
       // Expired or revoked. Clear it so the interface stops pretending to be
@@ -6252,12 +6272,20 @@ function boot() {
   });
   // The wordmark is the way home from anywhere, including out of a set of
   // results, which is what people reach for first.
-  $('#tbmark').addEventListener('click', function (e) {
-    e.preventDefault();
+  function goHome(e) {
+    if (e) e.preventDefault();
     setResultsMode(false);
     $('#resultszone').innerHTML = '';
     switchView('home');
-  });
+  }
+  $('#tbmark').addEventListener('click', goHome);
+  // Belt and braces on touch: iOS can swallow a click on an anchor whose
+  // default is prevented, and a wordmark that sometimes works is worse than
+  // one that never does.
+  $('#tbmark').addEventListener('touchend', function (e) {
+    if (e.cancelable) e.preventDefault();
+    goHome();
+  }, { passive: false });
   $('#minisearch').addEventListener('click', expandSearch);
   $('#navplan').addEventListener('click', function () { switchView('trip'); openImport(); });
   $('#navcollections').addEventListener('click', function () { switchView('home'); setTimeout(function () { var a = $('#collanchor'); if (a && a.scrollIntoView) a.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 60); });
