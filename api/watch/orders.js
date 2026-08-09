@@ -1,7 +1,17 @@
+const { verifyCaller, dbConfigured, unauthorized } = require('../_auth');
+
 // GET  /api/watch/orders?email=x   -> watched bookings, their scan history, savings
 // POST /api/watch/orders           -> start watching a booking
 module.exports = async (req, res) => {
   res.setHeader('content-type', 'application/json');
+
+  // Identity comes from the verified token. A route that takes an email from
+  // the query string is a route that hands one person's data to another.
+  let caller = null;
+  if (dbConfigured()) {
+    caller = await verifyCaller(req);
+    if (!caller) return unauthorized(res);
+  }
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_KEY;
 
@@ -54,7 +64,7 @@ module.exports = async (req, res) => {
 
   if (!url || !key) return res.status(200).end(JSON.stringify({ mode: 'mock', watched: DEMO }));
 
-  const email = String((req.query && req.query.email) || '').trim().toLowerCase();
+  const email = (caller ? caller.email : '');
   try {
     const q = url + '/rest/v1/watched_orders?select=*,fare_checks(checked_at,best_minor,delta_minor,window_type,actionable,reason)' +
       (email ? '&email=eq.' + encodeURIComponent(email) : '') +
