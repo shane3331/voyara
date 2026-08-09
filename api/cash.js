@@ -1,3 +1,5 @@
+const { verifyCaller, dbConfigured, unauthorized } = require('./_auth');
+
 // GET  /api/cash?email=x  -> balance and ledger
 // POST /api/cash          -> earn, burn, reverse, expire
 //
@@ -18,10 +20,18 @@ const EXPIRY_MONTHS = int(process.env.CASH_EXPIRY_MONTHS, 24);
 
 module.exports = async (req, res) => {
   res.setHeader('content-type', 'application/json');
+
+  // Identity comes from the verified token. A route that takes an email from
+  // the query string is a route that hands one person's data to another.
+  let caller = null;
+  if (dbConfigured()) {
+    caller = await verifyCaller(req);
+    if (!caller) return unauthorized(res);
+  }
   const url = process.env.SUPABASE_URL, key = process.env.SUPABASE_SERVICE_KEY;
 
   if (req.method === 'GET') {
-    const email = String((req.query && req.query.email) || '').trim().toLowerCase();
+    const email = (caller ? caller.email : '');
     if (!url || !key) return res.status(200).end(JSON.stringify(emptyWallet('mock')));
     try {
       const r = await fetch(
@@ -38,7 +48,7 @@ module.exports = async (req, res) => {
 
   const b = await readJson(req);
   const action = String(b.action || '').toLowerCase();
-  const email = String(b.email || '').trim().toLowerCase();
+  const email = (caller ? caller.email : '');
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
     return res.status(400).end(JSON.stringify({ error: 'a valid email is required' }));
   }

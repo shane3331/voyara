@@ -1,3 +1,5 @@
+const { verifyCaller, dbConfigured, unauthorized } = require('./_auth');
+
 // GET  /api/trips?email=x   -> a traveller's trips with their reservations
 // POST /api/trips           -> create a trip, or attach a reservation to one
 //
@@ -8,11 +10,19 @@ const crypto = require('crypto');
 
 module.exports = async (req, res) => {
   res.setHeader('content-type', 'application/json');
+
+  // Identity comes from the verified token. A route that takes an email from
+  // the query string is a route that hands one person's data to another.
+  let caller = null;
+  if (dbConfigured()) {
+    caller = await verifyCaller(req);
+    if (!caller) return unauthorized(res);
+  }
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_KEY;
 
   if (req.method === 'GET') {
-    const email = String((req.query && req.query.email) || '').trim().toLowerCase();
+    const email = (caller ? caller.email : '');
     if (!url || !key) return res.status(200).end(JSON.stringify({ mode: 'mock', trips: [] }));
     try {
       const q = url + '/rest/v1/trips?select=*' +
@@ -29,7 +39,7 @@ module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).end(JSON.stringify({ error: 'GET or POST only' }));
 
   const b = await readJson(req);
-  const email = String(b.email || '').trim().toLowerCase();
+  const email = (caller ? caller.email : '');
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
     return res.status(400).end(JSON.stringify({ error: 'a valid email is required' }));
   }
