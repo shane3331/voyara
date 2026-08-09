@@ -2842,7 +2842,7 @@ body.hasresults #minisearch{display:flex}
       </section>
 
       <!-- ==================== OPERATOR ==================== -->
-      <section class="view" id="operator">
+      <section class="view demoonly" id="operator">
         <div id="agentbar">
           <div id="agentid"></div>
           <div id="agentmetrics"></div>
@@ -2864,7 +2864,7 @@ body.hasresults #minisearch{display:flex}
       </section>
 
       <!-- ==================== PLATFORM ==================== -->
-      <section class="view" id="platform">
+      <section class="view demoonly" id="platform">
         <div class="vhead">
           <div>
             <h2 class="disp">Proof layer</h2>
@@ -8531,7 +8531,12 @@ function resetAll() {
 /* ============================================================
    VIEWS AND BOOT
    ============================================================ */
+// Demo surfaces are for a pitch, not for a traveller. Asking for one outside
+// demo mode lands on home rather than on a half hidden operator console.
+var DEMO_VIEWS = ['operator', 'platform'];
+
 function switchView(v) {
+  if (DEMO_VIEWS.indexOf(v) >= 0 && !document.body.classList.contains('demomode')) v = 'home';
   S.view = v;
   $$('.view').forEach(function (n) { n.classList.toggle('on', n.id === v); });
   $$('.stab').forEach(function (n) { n.classList.toggle('on', n.getAttribute('data-view') === v); });
