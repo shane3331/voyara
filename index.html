@@ -547,6 +547,118 @@ img{display:block}
   .fload .cap i{opacity:1}
 }
 
+/* ============ TRIP BRIEF ============
+   One page holding everything a trip needs, in the order you need it at an
+   airport rather than the order a database holds it. Printable, and it does
+   not ask the network for anything once it is open, because the moment you
+   most need this is the moment the wifi is worst. */
+#brief{position:fixed;inset:0;z-index:320;display:none;background:var(--ink);overflow-y:auto}
+#brief.on{display:block}
+#brtop{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:14px;
+  padding:calc(env(safe-area-inset-top,0) + 16px) clamp(18px,4vw,34px) 16px;
+  background:rgba(242,240,234,.94);backdrop-filter:blur(14px);border-bottom:1px solid var(--rule)}
+#brtop .t{flex:1;min-width:0;font-family:var(--mono);font-size:9px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--faint)}
+#brtop button{padding:9px 15px;border:1px solid var(--rule);border-radius:99px;
+  font-family:var(--mono);font-size:8.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--mute)}
+#brtop button:hover{border-color:var(--text);color:var(--text)}
+#brbody{max-width:760px;margin:0 auto;padding:clamp(26px,5vw,50px) clamp(18px,4vw,34px) 90px}
+#brttl{font-family:var(--serif);font-weight:normal;font-size:clamp(30px,6vw,52px);
+  line-height:1.05;letter-spacing:-.006em;color:var(--text)}
+#brdates{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--faint);margin-top:14px}
+.brsec{margin-top:38px;padding-top:22px;border-top:1px solid var(--rule)}
+.brsec h3{font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--mute)}
+.britem{margin-top:18px;padding:18px 20px;border:1px solid var(--rule);border-radius:var(--r);
+  background:var(--surface)}
+.britem .bn{font-family:var(--serif);font-size:21px;color:var(--text);line-height:1.2}
+.brkv{display:flex;justify-content:space-between;gap:16px;padding:9px 0;
+  border-bottom:1px solid var(--rule-soft);font-size:14px}
+.brkv:last-child{border-bottom:none}
+.brkv .k{color:var(--mute)}
+.brkv .v{font-family:var(--mono);color:var(--text);text-align:right;word-break:break-word}
+.brnote{font-size:13.5px;color:var(--mute);line-height:1.6;margin-top:14px}
+#brwrong{border:1px solid rgba(154,106,28,.35);background:var(--warn-soft);
+  border-radius:var(--r);padding:20px;margin-top:18px}
+#brwrong h4{font-family:var(--mono);font-size:9px;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--warn)}
+#brwrong p{font-size:14px;color:var(--text-dim);line-height:1.6;margin-top:10px}
+#brwrong a{color:var(--text);text-decoration:underline;text-underline-offset:3px}
+
+@media print{
+  body > *{display:none !important}
+  #brief{display:block !important;position:static;overflow:visible;background:#fff}
+  #brtop{display:none !important}
+  #brbody{max-width:none;padding:0}
+  .britem{break-inside:avoid;border-color:#ccc}
+  #brwrong{break-inside:avoid}
+}
+
+/* ============ FORWARD, LEDGER, HOUSEHOLD ============ */
+.wsec{padding:0 clamp(20px,4vw,40px) 60px;max-width:920px}
+.whead{padding:clamp(28px,5vw,52px) clamp(20px,4vw,40px) 0;max-width:920px}
+.whead h1{font-family:var(--serif);font-weight:normal;font-size:clamp(30px,5vw,48px);
+  letter-spacing:-.006em;line-height:1.06;color:var(--text);margin-top:12px}
+.whead p{font-size:16px;color:var(--mute);line-height:1.6;margin-top:16px;max-width:56ch}
+
+.wlist{margin-top:14px}
+.wrow{display:flex;align-items:center;gap:16px;padding:18px 20px;border:1px solid var(--rule);
+  border-radius:var(--r);background:var(--surface);margin-bottom:10px}
+.wrow .wmain{flex:1;min-width:0}
+.wrow .wt{font-family:var(--serif);font-size:20px;color:var(--text);line-height:1.2}
+.wrow .ws{font-family:var(--mono);font-size:9px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--faint);margin-top:8px}
+.wrow .wgo{flex:0 0 auto;padding:10px 16px;border:1px solid var(--rule);border-radius:99px;
+  font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+.wrow .wgo:hover{border-color:var(--text);color:var(--text)}
+
+/* the year */
+#lgtop{display:flex;gap:12px;align-items:center;margin-top:24px;flex-wrap:wrap}
+#lgtop select{background:var(--surface);border:1px solid var(--rule);border-radius:99px;
+  padding:10px 18px;font-family:var(--mono);font-size:9.5px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--text);cursor:pointer}
+#lgbig{margin-top:26px;border:1px solid var(--rule);border-radius:calc(var(--r) + 4px);
+  background:var(--surface);padding:clamp(26px,4vw,44px);text-align:center}
+#lgkept{font-family:var(--serif);font-size:clamp(50px,12vw,92px);line-height:1;color:var(--live);
+  letter-spacing:-.01em}
+#lgkeptlab{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--faint);margin-top:16px}
+#lgvs{display:flex;justify-content:center;gap:clamp(20px,5vw,48px);margin-top:28px;padding-top:24px;
+  border-top:1px solid var(--rule-soft);flex-wrap:wrap}
+#lgvs div{text-align:center}
+#lgvs .n{font-family:var(--mono);font-size:17px;color:var(--text-dim)}
+#lgvs .n.strike{text-decoration:line-through;color:var(--faint)}
+#lgvs .l{font-family:var(--mono);font-size:8px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--faint);margin-top:8px}
+#lgverdict{margin-top:22px;font-size:15px;color:var(--text-dim);line-height:1.6}
+#lgverdict b{color:var(--live);font-weight:400}
+.lgline{display:flex;align-items:baseline;gap:14px;padding:15px 0;border-bottom:1px solid var(--rule-soft)}
+.lgline .d{font-family:var(--mono);font-size:9px;letter-spacing:.11em;color:var(--faint);
+  width:66px;flex:0 0 66px}
+.lgline .t{flex:1;min-width:0;font-size:15px;color:var(--text);overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.lgline .m{font-family:var(--mono);font-size:12.5px;color:var(--faint);text-decoration:line-through}
+.lgline .s{font-family:var(--mono);font-size:13px;color:var(--live);width:82px;flex:0 0 82px;text-align:right}
+
+/* household */
+.cpcard{display:flex;align-items:center;gap:14px;padding:16px 18px;border:1px solid var(--rule);
+  border-radius:var(--r);background:var(--surface);margin-bottom:10px}
+.cpcard .av{width:38px;height:38px;flex:0 0 38px;border-radius:50%;background:var(--raised2);
+  border:1px solid var(--rule);display:flex;align-items:center;justify-content:center;
+  font-family:var(--serif);font-size:16px;color:var(--mute)}
+.cpcard .cn{flex:1;min-width:0}
+.cpcard .cn b{display:block;font-family:var(--serif);font-size:18px;font-weight:normal;color:var(--text)}
+.cpcard .cn span{font-family:var(--mono);font-size:8.5px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--faint);display:block;margin-top:6px}
+.cpcard .cx{flex:0 0 auto;padding:8px 14px;border:1px solid var(--rule);border-radius:99px;
+  font-family:var(--mono);font-size:8px;letter-spacing:.13em;text-transform:uppercase;color:var(--mute)}
+.cpcard .cx:hover{border-color:var(--halt);color:var(--halt)}
+#cpadd{margin-top:6px;width:100%;padding:16px;border:1px dashed var(--rule);border-radius:var(--r);
+  font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);
+  background:none;transition:.16s}
+#cpadd:hover{border-color:var(--text);color:var(--text)}
+
 /* ============ PROFILE ============ */
 #pfhero{position:relative;padding:clamp(28px,5vw,52px) clamp(20px,4vw,40px) 0}
 #pfcard{display:flex;align-items:flex-end;gap:clamp(18px,3vw,28px);flex-wrap:wrap;
@@ -1767,6 +1879,7 @@ body.hasresults #minisearch{display:flex}
     </div>
     <button class="sitem stab on" data-view="home"><span class="si">&#9670;</span>Book travel</button>
     <button class="sitem" id="navcollections"><span class="si">&#9633;</span>Collections</button>
+    <button class="sitem stab" id="navyear" data-view="year"><span class="si">&#9650;</span>Your year</button>
     <button class="sitem stab" id="navprofile" data-view="profile"><span class="si">&#9679;</span>Your profile</button>
     <div class="sdiv" id="tripsdiv">Your trips</div>
     <div id="realtrips"></div>
@@ -1944,7 +2057,26 @@ body.hasresults #minisearch{display:flex}
       </section>
 
       <!-- ==================== TRIP ==================== -->
-      <section class="view" id="profile">
+      <section class="view" id="year">
+      <div class="whead">
+        <div class="kick" style="font-family:var(--mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint)">Your year</div>
+        <h1>What your travel actually cost.</h1>
+        <p>Every travel company shows you what you paid. This is what the same
+        travel would have cost you elsewhere, and what you kept instead.</p>
+        <div id="lgtop"><select id="lgyear"></select></div>
+      </div>
+      <div class="wsec">
+        <div id="lgbig">
+          <div id="lgkept">$0</div>
+          <div id="lgkeptlab">Kept this year</div>
+          <div id="lgvs"></div>
+          <div id="lgverdict"></div>
+        </div>
+        <div id="lglines" style="margin-top:30px"></div>
+      </div>
+    </section>
+
+    <section class="view" id="profile">
       <div id="pfhero">
         <div id="pfcard">
           <button id="pfav" aria-label="Change photo">
@@ -2019,6 +2151,14 @@ body.hasresults #minisearch{display:flex}
         </div>
 
         <div class="pfsec">
+          <h3>Who you travel with</h3>
+          <p class="why">A booking for two needs the second passport as much as the first.
+          Stored once, so nobody is typing a partner's details at a checkout again.</p>
+          <div id="cplist" style="margin-top:20px"></div>
+          <button id="cpadd">Add someone</button>
+        </div>
+
+        <div class="pfsec">
           <h3>In an emergency</h3>
           <p class="why">Used only if something goes wrong while you are travelling and we
           cannot reach you.</p>
@@ -2049,6 +2189,7 @@ body.hasresults #minisearch{display:flex}
             <h1 class="disp">Milan, <em>September</em></h1>
             <div class="meta">
               <div><span class="k">Traveler</span><span class="v">Elena Marchetti</span></div>
+          <button id="tripbrief" class="btn" style="margin-top:18px">Trip brief</button>
               <div><span class="k">Dates</span><span class="v">12 . 18 Sep 2026</span></div>
               <div><span class="k">Reservations</span><span class="v" id="rescount">3</span></div>
               <div><span class="k">Source</span><span class="v">Forwarded email</span></div>
@@ -2350,6 +2491,15 @@ body.hasresults #minisearch{display:flex}
     <button id="obnext">Next</button>
     <p id="obmsg"></p>
   </div>
+</div>
+
+<div id="brief" role="dialog" aria-label="Trip brief" aria-modal="true">
+  <div id="brtop">
+    <span class="t">Trip brief</span>
+    <button id="brprint">Print</button>
+    <button id="brclose">Close</button>
+  </div>
+  <div id="brbody"></div>
 </div>
 
 <div id="searchveil" aria-hidden="true"></div>
@@ -4157,6 +4307,257 @@ function setSession(email) {
   PF.data = {}; PF.dirty = false; PF.loaded = false;
   if (ME.email) pfLoad(); else pfPaint();
   if ($('#resultszone') && $('#resultszone').innerHTML.trim()) renderResults('hotels');
+}
+
+/* ============================================================
+   TRIP BRIEF
+   Everything about one trip on a single page, ordered the way you need it
+   standing in an airport rather than the way a database holds it. Once open
+   it asks the network for nothing, because the moment you most need this is
+   the moment the wifi is worst.
+   ============================================================ */
+function openBrief(trip) {
+  if (!trip) return;
+  var rs = (trip.reservations || (trip.data && trip.data.reservations) || []);
+  var title = trip.title || 'Your trip';
+  var start = trip.startsOn || trip.starts_on, end = trip.endsOn || trip.ends_on;
+
+  // Flights first. At an airport nobody is looking for the hotel address.
+  var order = { FLIGHT: 0, TRANSFER: 1, STAY: 2, EXPERIENCE: 3 };
+  var sorted = rs.slice().sort(function (a, b) {
+    var oa = order[(a.type || 'STAY').toUpperCase()], ob = order[(b.type || 'STAY').toUpperCase()];
+    if (oa !== ob) return (oa == null ? 9 : oa) - (ob == null ? 9 : ob);
+    return String(a.checkIn || '').localeCompare(String(b.checkIn || ''));
+  });
+
+  var groups = {};
+  sorted.forEach(function (r) {
+    var k = (r.type || 'STAY').toUpperCase();
+    (groups[k] = groups[k] || []).push(r);
+  });
+
+  var LABEL = { FLIGHT: 'Getting there', TRANSFER: 'On the ground',
+                STAY: 'Where you are staying', EXPERIENCE: 'Booked while you are there' };
+
+  var html = '<h1 id="brttl">' + esc(title) + '</h1>' +
+    '<div id="brdates">' + esc(prettyDate(start) || '') +
+    (end ? ' to ' + esc(prettyDate(end)) : '') + '</div>';
+
+  Object.keys(LABEL).forEach(function (k) {
+    var list = groups[k];
+    if (!list || !list.length) return;
+    html += '<div class="brsec"><h3>' + LABEL[k] + '</h3>' + list.map(function (r) {
+      var rows = '';
+      var kv = function (a, b) { if (b) rows += '<div class="brkv"><span class="k">' + a +
+        '</span><span class="v">' + esc(b) + '</span></div>'; };
+      kv('Reference', r.reference);
+      kv('Confirmation', r.confirmation);
+      if (k === 'FLIGHT') {
+        kv('Flight', r.flightNumber || r.segments);
+        kv('Departs', r.departAt ? prettyDateTime(r.departAt) : null);
+        kv('Arrives', r.arriveAt ? prettyDateTime(r.arriveAt) : null);
+        kv('Terminal', r.terminal);
+        kv('Seat', r.seat);
+      } else {
+        kv('Check in', prettyDate(r.checkIn));
+        kv('Check out', prettyDate(r.checkOut));
+        kv('Room', r.room || r.roomDescription);
+      }
+      kv('Address', r.address);
+      kv('Telephone', r.phone);
+      kv('Cancellation', r.refundable === false ? 'Non refundable'
+        : r.freeCancelUntil ? 'Free until ' + prettyDate(r.freeCancelUntil) : null);
+      if (r.bookedElsewhere) rows += '<div class="brkv"><span class="k">Booked</span>' +
+        '<span class="v">Elsewhere, watched by us</span></div>';
+      return '<div class="britem"><div class="bn">' + esc(r.name || r.supplier || 'Reservation') +
+        '</div><div style="margin-top:12px">' + rows + '</div></div>';
+    }).join('') + '</div>';
+  });
+
+  if (!sorted.length) {
+    html += '<div class="brsec"><h3>Nothing on this trip yet</h3>' +
+      '<p class="brnote">Forward a confirmation and it appears here.</p></div>';
+  }
+
+  html += '<div class="brsec"><h3>If something goes wrong</h3>' +
+    '<div id="brwrong"><h4>Before you queue at a desk</h4>' +
+    '<p>Message us first. We can usually see the change before the airline announces it, ' +
+    'and rebooking through us keeps the rest of this trip intact. ' +
+    '<a href="mailto:help@voyara.com">help@voyara.com</a></p></div>' +
+    '<p class="brnote">This page works without a connection once it is open. ' +
+    'Print it or keep the tab if you are travelling somewhere thin on signal.</p></div>';
+
+  $('#brbody').innerHTML = html;
+  $('#brief').classList.add('on');
+  document.body.style.overflow = 'hidden';
+  audit('trip.brief_opened', { title: title }, 'traveler');
+}
+
+function closeBrief() {
+  $('#brief').classList.remove('on');
+  document.body.style.overflow = '';
+}
+
+function prettyDateTime(iso) {
+  var d = new Date(iso);
+  if (isNaN(d.getTime())) return String(iso);
+  return prettyDate(iso) + ', ' + clockOf(iso).t;
+}
+
+function wireBrief() {
+  $('#brclose').addEventListener('click', closeBrief);
+  $('#brprint').addEventListener('click', function () { try { window.print(); } catch (e) {} });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && $('#brief').classList.contains('on')) closeBrief();
+  });
+}
+
+/* ============================================================
+   THE YEAR
+   The renewal argument, delivered eleven months before the renewal.
+   ============================================================ */
+function lgLoad(year) {
+  if (!ME.email) { lgEmpty('Sign in to see your year.'); return; }
+  $('#lglines').innerHTML = flightLoader('Adding up your year', true);
+  apiJson('/api/ledger?year=' + encodeURIComponent(year), function (j) {
+    if (!j || j.error) { lgEmpty('Could not load your year.'); return; }
+    lgPaint(j);
+  });
+}
+
+function lgEmpty(msg) {
+  $('#lgkept').textContent = '';
+  $('#lgkeptlab').textContent = '';
+  $('#lgvs').innerHTML = '';
+  $('#lgverdict').textContent = '';
+  $('#lglines').innerHTML = '<div class="empty" style="padding:44px 20px">' + esc(msg) + '</div>';
+}
+
+function lgPaint(j) {
+  var cur = CCY.current;
+  if (j.empty) {
+    $('#lgkept').textContent = money(0, cur);
+    $('#lgkeptlab').textContent = 'Nothing recorded for ' + j.year + ' yet';
+    $('#lgvs').innerHTML = '';
+    $('#lgverdict').textContent = 'Book a stay, or forward a confirmation, and this fills in.';
+    $('#lglines').innerHTML = '';
+    return;
+  }
+  $('#lgkept').textContent = money(j.keptMinor, cur);
+  $('#lgkeptlab').textContent = 'Kept in ' + j.year;
+  $('#lgvs').innerHTML =
+    '<div><div class="n strike">' + money(j.marketMinor, cur) + '</div><div class="l">Market would have been</div></div>' +
+    '<div><div class="n">' + money(j.paidMinor, cur) + '</div><div class="l">You paid</div></div>' +
+    '<div><div class="n">' + j.trips + '</div><div class="l">Trip' + (j.trips === 1 ? '' : 's') + '</div></div>' +
+    '';
+
+  // The comparison that decides a renewal, stated plainly either way.
+  var fee = money(j.membershipMinor, cur);
+  if (j.keptMinor > j.membershipMinor) {
+    var mult = j.multiple || 1;
+    $('#lgverdict').innerHTML = 'Your membership cost ' + fee + '. You kept <b>' +
+      money(j.keptMinor, cur) + '</b>' +
+      (mult >= 1.2 ? ', which is ' + mult + ' times the fee.' : ', more than it cost.');
+  } else {
+    $('#lgverdict').innerHTML = 'Your membership cost ' + fee + ' and you have kept ' +
+      money(j.keptMinor, cur) + ' so far. One more stay usually settles it.';
+  }
+
+  $('#lglines').innerHTML = (j.lines || []).length
+    ? '<div class="kick" style="font-family:var(--mono);font-size:9px;letter-spacing:.16em;' +
+      'text-transform:uppercase;color:var(--faint);margin-bottom:8px">Every booking</div>' +
+      j.lines.map(function (l) {
+        return '<div class="lgline"><span class="d">' + esc(prettyDate(l.on) || '') + '</span>' +
+          '<span class="t">' + esc(l.title) + '' + '</span>' +
+          '<span class="m">' + money(l.market, cur) + '</span>' +
+          '<span class="s">' + (l.saved > 0 ? money(l.saved, cur) : '') + '</span></div>';
+      }).join('')
+    : '';
+}
+
+function wireYear() {
+  var sel = $('#lgyear');
+  var now = new Date().getFullYear();
+  var html = '';
+  for (var y = now; y >= now - 3; y--) html += '<option value="' + y + '">' + y + '</option>';
+  sel.innerHTML = html;
+  sel.addEventListener('change', function () { lgLoad(sel.value); });
+}
+
+/* ============================================================
+   HOUSEHOLD
+   ============================================================ */
+var CP = { list: [], loaded: false };
+
+function cpLoad() {
+  if (!ME.email) { CP.list = []; cpPaint(); return; }
+  apiJson('/api/companions', function (j) {
+    CP.list = (j && j.companions) || [];
+    CP.loaded = true;
+    cpPaint();
+  });
+}
+
+function cpPaint() {
+  var el = $('#cplist');
+  if (!el) return;
+  if (!CP.list.length) {
+    el.innerHTML = '<div style="font-size:14px;color:var(--faint);line-height:1.6">' +
+      'Nobody added yet. Most trips are for two.</div>';
+    return;
+  }
+  el.innerHTML = CP.list.map(function (c) {
+    var bits = [];
+    if (c.relationship) bits.push(c.relationship);
+    if (c.passportNumber) bits.push('passport on file');
+    if (c.dietary) bits.push('dietary noted');
+    return '<div class="cpcard"><span class="av">' + esc((c.fullName || '?').slice(0, 1)) + '</span>' +
+      '<span class="cn"><b>' + esc(c.fullName) + '</b><span>' +
+      esc(bits.join(' . ') || 'Details incomplete') + '</span></span>' +
+      '<button class="cx" data-cp="' + esc(c.id) + '">Remove</button></div>';
+  }).join('');
+  $$('#cplist [data-cp]').forEach(function (b) {
+    b.addEventListener('click', function () { cpRemove(b.getAttribute('data-cp')); });
+  });
+}
+
+function cpRemove(id) {
+  apiFetch('/api/companions?id=' + encodeURIComponent(id), { method: 'DELETE' })
+    .then(function () { CP.list = CP.list.filter(function (c) { return c.id !== id; }); cpPaint(); })
+    .catch(function () { toast('Could not remove that.', 'halt'); });
+}
+
+function cpOpen() {
+  openModal('<div class="mhead"><h3 class="disp">Someone you travel with</h3>' +
+    '<button class="x" data-close>&#10005;</button></div>' +
+    '<div class="mbody"><div class="pfgrid">' +
+    fld('cp_fullName', 'Full name', 'As printed on their passport') +
+    fld('cp_relationship', 'Relationship', 'Partner, son, colleague') +
+    fld('cp_dateOfBirth', 'Date of birth', '', 'date') +
+    fld('cp_passportNumber', 'Passport number', 'Optional') +
+    fld('cp_passportCountry', 'Issuing country', 'USA') +
+    fld('cp_passportExpiry', 'Expires', '', 'date') +
+    fld('cp_dietary', 'Dietary requirements', 'Optional') +
+    '</div></div>' +
+    '<div class="mfoot"><button class="btn" data-close>Cancel</button>' +
+    '<button class="btn primary" id="cpsave">Save</button></div>');
+  $('#cpsave').addEventListener('click', function () {
+    var body = {};
+    ['fullName','relationship','dateOfBirth','passportNumber','passportCountry','passportExpiry','dietary']
+      .forEach(function (k) { var e = $('#cp_' + k); if (e) body[k] = (e.value || '').trim(); });
+    if (!body.fullName) { toast('A name is needed.', 'warn'); return; }
+    apiFetch('/api/companions', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    }).then(function (r) { return r.json(); }).then(function (j) {
+      if (j && j.saved) { closeModal(); cpLoad(); toast('Saved.', 'live'); return; }
+      toast((j && (j.error || j.detail)) || 'Could not save that.', 'halt');
+    }).catch(function () { toast('Could not reach the server.', 'halt'); });
+  });
+}
+
+function fld(id, label, ph, type) {
+  return '<div class="pff"><label for="' + id + '">' + label + '</label>' +
+    '<input id="' + id + '" type="' + (type || 'text') + '" placeholder="' + esc(ph || '') + '"></div>';
 }
 
 /* ============================================================
@@ -6183,7 +6584,11 @@ function switchView(v) {
   if (v === 'platform') { renderMetrics(); renderEvents(); renderSM(); }
   if (v === 'operator') { renderQueue(); renderCase(); renderAgentBoard(); }
   if (v === 'trip') { renderRateEngine(); renderFareWatch(); }
-  if (v === 'profile') { if (!ME.email) { openAuth(); } else if (!PF.loaded) pfLoad(); else pfPaint(); }
+  if (v === 'profile') {
+    if (!ME.email) { openAuth(); }
+    else { if (!PF.loaded) pfLoad(); else pfPaint(); cpLoad(); }
+  }
+  if (v === 'year') { if (!ME.email) openAuth(); else lgLoad($('#lgyear').value || new Date().getFullYear()); }
 }
 
 function tickClocks() {
@@ -6225,6 +6630,17 @@ function boot() {
   loadAuthConfig();
   wireAuth();
   wireProfile();
+  wireYear();
+  wireBrief();
+  var tb = $('#tripbrief');
+  if (tb) tb.addEventListener('click', function () {
+    // The demo trip when there is one, otherwise whatever is loaded.
+    openBrief(S.trip || (S.realTrips && S.realTrips[0]) || {
+      title: 'Milan, September', startsOn: '2026-09-12', endsOn: '2026-09-18',
+      reservations: (S.reservations || [])
+    });
+  });
+  $('#cpadd').addEventListener('click', cpOpen);
   setTimeout(readOAuthReturn, 500);
   wireOnboarding();
   setTimeout(function () { obOpen(false); }, 260);
