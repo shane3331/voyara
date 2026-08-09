@@ -1101,6 +1101,59 @@ body.hasresults #minisearch{display:flex}
 #searchveil.on{display:flex;opacity:1}
 #searchveil .fload{padding:0}
 
+/* ============ LIGHTBOX ============
+   Photography is how a property is actually chosen, and the grid only ever
+   showed five of them with no way in. Dark ground on purpose: the brand rule
+   is that overlays on photography stay dark, and a cream surround would
+   fight every image behind it. */
+#lb{position:fixed;inset:0;z-index:400;display:none;background:rgba(22,21,18,.97);
+  flex-direction:column}
+#lb.on{display:flex}
+#lbtop{display:flex;align-items:center;gap:14px;flex:0 0 auto;
+  padding:calc(env(safe-area-inset-top,0) + 16px) clamp(16px,3vw,24px) 12px}
+#lbcount{flex:1;font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;
+  text-transform:uppercase;color:rgba(255,255,255,.62)}
+#lbname{font-family:var(--serif);font-size:15px;color:rgba(255,255,255,.9);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:46vw}
+#lbclose{width:38px;height:38px;flex:0 0 38px;border-radius:50%;
+  border:1px solid rgba(255,255,255,.25);color:rgba(255,255,255,.85);font-size:14px;
+  display:flex;align-items:center;justify-content:center;transition:.16s}
+#lbclose:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.5)}
+
+#lbstage{flex:1;min-height:0;position:relative;display:flex;align-items:center;
+  justify-content:center;padding:0 clamp(8px,2vw,20px)}
+#lbmain{max-width:100%;max-height:100%;object-fit:contain;display:block;
+  border-radius:6px;opacity:0;transition:opacity .28s}
+#lbmain.ready{opacity:1}
+.lbnav{position:absolute;top:50%;transform:translateY(-50%);width:46px;height:46px;
+  border-radius:50%;background:rgba(22,21,18,.55);border:1px solid rgba(255,255,255,.25);
+  color:#fff;display:flex;align-items:center;justify-content:center;font-size:19px;
+  transition:.16s;backdrop-filter:blur(6px);z-index:2}
+.lbnav:hover{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.55)}
+#lbprev{left:clamp(10px,2.5vw,26px)}
+#lbnext{right:clamp(10px,2.5vw,26px)}
+
+#lbstrip{flex:0 0 auto;display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;
+  padding:14px clamp(16px,3vw,24px) calc(env(safe-area-inset-bottom,0) + 18px)}
+#lbstrip::-webkit-scrollbar{display:none}
+#lbstrip button{flex:0 0 auto;width:88px;height:60px;border-radius:5px;overflow:hidden;
+  border:1px solid transparent;opacity:.45;transition:.18s;padding:0;background:none}
+#lbstrip button:hover{opacity:.8}
+#lbstrip button.on{opacity:1;border-color:rgba(255,255,255,.85)}
+#lbstrip img{width:100%;height:100%;object-fit:cover;display:block}
+
+/* The grid becomes obviously pressable now that it leads somewhere. */
+#pgal figure{cursor:zoom-in}
+
+@media (max-width:820px){
+  #lbname{max-width:38vw}
+  .lbnav{width:40px;height:40px}
+  #lbstrip button{width:66px;height:46px}
+}
+@media (prefers-reduced-motion:reduce){
+  #lbmain{transition:none}
+}
+
 /* ============ FARE CALENDAR ============
    A month at a time with a price on every day, so the cheapest dates are
    something you see rather than something you hunt for one search at a time. */
@@ -2726,6 +2779,20 @@ body.hasresults #minisearch{display:flex}
 </div>
 
 <!-- Onboarding. Mobile, first visit, once. -->
+<div id="lb" role="dialog" aria-label="Photographs" aria-modal="true">
+  <div id="lbtop">
+    <span id="lbcount"></span>
+    <span id="lbname"></span>
+    <button id="lbclose" aria-label="Close photographs">&#10005;</button>
+  </div>
+  <div id="lbstage">
+    <button class="lbnav" id="lbprev" aria-label="Previous photograph">&#8249;</button>
+    <img id="lbmain" alt="">
+    <button class="lbnav" id="lbnext" aria-label="Next photograph">&#8250;</button>
+  </div>
+  <div id="lbstrip"></div>
+</div>
+
 <div id="calsheet" role="dialog" aria-label="Choose a date" aria-modal="true">
   <div id="calscrim"></div>
   <div id="calpanel">
@@ -4870,16 +4937,124 @@ function closeProperty() {
   document.body.style.overflow = '';
 }
 
+/* ============================================================
+   LIGHTBOX
+   Photography is how a property actually gets chosen. The grid showed five
+   images and led nowhere, so the rest of them may as well not have existed.
+   ============================================================ */
+var LB = { imgs: [], i: 0, title: '', returnTo: null };
+
+function openLightbox(images, index, title) {
+  var imgs = (images || []).filter(Boolean);
+  if (!imgs.length) return;
+  LB.imgs = imgs;
+  LB.i = Math.max(0, Math.min(imgs.length - 1, Number(index) || 0));
+  LB.title = title || '';
+  // Remember what had focus so closing puts it back where it was.
+  LB.returnTo = document.activeElement;
+
+  $('#lb').classList.add('on');
+  document.body.style.overflow = 'hidden';
+  lbStrip();
+  lbShow(LB.i);
+  $('#lbclose').focus();
+  audit('property.photos_opened', { count: imgs.length }, 'traveler');
+}
+
+function closeLightbox() {
+  $('#lb').classList.remove('on');
+  // The property sheet underneath is still open and still needs the lock.
+  document.body.style.overflow = $('#psheet').classList.contains('on') ? 'hidden' : '';
+  if (LB.returnTo && LB.returnTo.focus) { try { LB.returnTo.focus(); } catch (e) {} }
+}
+
+function lbShow(i) {
+  var n = LB.imgs.length;
+  if (!n) return;
+  // Wraps, so the last image steps forward to the first rather than dead ending.
+  LB.i = (i + n) % n;
+
+  var img = $('#lbmain');
+  img.classList.remove('ready');
+  img.src = LB.imgs[LB.i];
+  img.alt = LB.title ? LB.title + ', photograph ' + (LB.i + 1) : 'Photograph ' + (LB.i + 1);
+  img.onload = function () { img.classList.add('ready'); };
+  img.onerror = function () { img.classList.add('ready'); };
+
+  $('#lbcount').textContent = (LB.i + 1) + ' of ' + n;
+  $('#lbname').textContent = LB.title;
+  // No navigation at all when there is only one photograph.
+  $('#lbprev').style.display = n > 1 ? '' : 'none';
+  $('#lbnext').style.display = n > 1 ? '' : 'none';
+
+  $$('#lbstrip button').forEach(function (b, k) {
+    b.classList.toggle('on', k === LB.i);
+    if (k === LB.i && b.scrollIntoView) {
+      try { b.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' }); } catch (e) {}
+    }
+  });
+
+  // The next one is usually the next one, so fetch it before it is asked for.
+  if (n > 1) { var pre = new Image(); pre.src = LB.imgs[(LB.i + 1) % n]; }
+}
+
+function lbStrip() {
+  $('#lbstrip').innerHTML = LB.imgs.map(function (src, k) {
+    return '<button data-i="' + k + '" aria-label="Photograph ' + (k + 1) + '">' +
+      '<img src="' + esc(src) + '" alt="" loading="lazy"></button>';
+  }).join('');
+  $$('#lbstrip button').forEach(function (b) {
+    b.addEventListener('click', function () { lbShow(Number(b.getAttribute('data-i'))); });
+  });
+  $('#lbstrip').style.display = LB.imgs.length > 1 ? '' : 'none';
+}
+
+function wireLightbox() {
+  $('#lbclose').addEventListener('click', closeLightbox);
+  $('#lbprev').addEventListener('click', function () { lbShow(LB.i - 1); });
+  $('#lbnext').addEventListener('click', function () { lbShow(LB.i + 1); });
+
+  // Clicking the dark ground closes, clicking the photograph does not.
+  $('#lbstage').addEventListener('click', function (e) {
+    if (e.target === $('#lbstage')) closeLightbox();
+  });
+
+  // Captured, so Escape closes the photographs and not the sheet behind them.
+  document.addEventListener('keydown', function (e) {
+    if (!$('#lb').classList.contains('on')) return;
+    if (e.key === 'Escape') { e.stopPropagation(); closeLightbox(); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); lbShow(LB.i - 1); }
+    if (e.key === 'ArrowRight') { e.preventDefault(); lbShow(LB.i + 1); }
+    if (e.key === 'Home') { e.preventDefault(); lbShow(0); }
+    if (e.key === 'End') { e.preventDefault(); lbShow(LB.imgs.length - 1); }
+  }, true);
+
+  // Swipe, because on a phone that is how people move through photographs.
+  var x0 = null, y0 = null;
+  var stage = $('#lbstage');
+  stage.addEventListener('touchstart', function (e) {
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY;
+  }, { passive: true });
+  stage.addEventListener('touchend', function (e) {
+    if (x0 === null) return;
+    var dx = e.changedTouches[0].clientX - x0;
+    var dy = e.changedTouches[0].clientY - y0;
+    // Horizontal only, or a scroll gesture would flip the photograph.
+    if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.5) lbShow(LB.i + (dx < 0 ? 1 : -1));
+    x0 = null; y0 = null;
+  }, { passive: true });
+}
+
 function paintProperty() {
   var h = PROP.hotel, imgs = h.images || [];
   var gal = '<div id="pgal"><button id="pclose" aria-label="Close">&#10005;</button>';
   for (var i = 0; i < 5; i++) {
     var src = imgs[i] || imgs[0];
-    gal += '<figure class="g' + i + '">' + (src
+    gal += '<figure class="g' + i + '" data-photo="' + i + '">' + (src
       ? '<img src="' + src + '" alt="" loading="' + (i ? 'lazy' : 'eager') + '" onerror="this.parentNode.style.background=\'var(--raised)\';this.remove()">'
       : '') + '</figure>';
   }
-  if (imgs.length > 5) gal += '<span id="pmore">' + imgs.length + ' photographs</span>';
+  if (imgs.length > 1) gal += '<button id="pmore">' + imgs.length + ' photographs</button>';
   gal += '</div>';
 
   var chips = (h.stars ? '<span class="pill">' + h.stars + ' star</span>' : '') +
@@ -4894,6 +5069,20 @@ function paintProperty() {
     '<div id="pstep"></div><div id="pstage"></div>';
 
   $('#pclose').addEventListener('click', closeProperty);
+
+  // Every tile opens the lightbox at the image it shows, so the photograph
+  // somebody pressed is the one they get.
+  var photos = (PROP.hotel.images || []).filter(Boolean);
+  $$('#pgal [data-photo]').forEach(function (fig) {
+    fig.addEventListener('click', function () {
+      openLightbox(photos, Number(fig.getAttribute('data-photo')), PROP.hotel.name || '');
+    });
+  });
+  var more = $('#pmore');
+  if (more) more.addEventListener('click', function (e) {
+    e.stopPropagation();
+    openLightbox(photos, 0, PROP.hotel.name || '');
+  });
   renderStep();
 }
 
@@ -8000,6 +8189,7 @@ function boot() {
   wireTripType();
   wireDatePickers();
   wireCalendar();
+  wireLightbox();
   wireProfile();
   wireYear();
   wireBrief();
