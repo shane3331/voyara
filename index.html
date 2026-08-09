@@ -3686,7 +3686,12 @@ function acAttach(input, opts) {
   function paint(items) {
     AC.open = list; AC.items = items; AC.idx = -1;
     if (!items.length) {
-      list.innerHTML = '<div class="acempty">Nothing matches that. Try a city, or an airport code.</div>';
+      // Not an error. The suggestion list is a set of shortcuts, and the
+      // supplier resolves anything typed, so an unlisted city still searches.
+      list.innerHTML = o.freeText === false
+        ? '<div class="acempty">No airport matches that. Try a city, or a three letter code.</div>'
+        : '<div class="acempty">Press search to look up ' +
+          '<strong style="color:var(--text)">' + esc(input.value.trim()) + '</strong> anyway.</div>';
       list.classList.add('on');
       input.setAttribute('aria-expanded', 'true');
       return;
@@ -3755,8 +3760,10 @@ function wireAutocomplete() {
   acAttach($('#vq'), {});
   acAttach($('#xq'), {});
   // Flights show the airport code, because that is what a traveller checks.
-  acAttach($('#fq1'), { showCode: true });
-  acAttach($('#fq2'), { showCode: true });
+  // A flight needs a real airport code, so those two are the one place the
+  // list is genuinely a constraint rather than a shortcut.
+  acAttach($('#fq1'), { showCode: true, freeText: false });
+  acAttach($('#fq2'), { showCode: true, freeText: false });
 }
 
 var TRIP = { type: 'round' };
@@ -4623,7 +4630,8 @@ function renderResults(type, live) {
         if (j && j.offers && j.offers.length) {
           renderResults(type, {
             data: offersToCards(type, j), mode: j.mode,
-            qualityLabel: j.qualityLabel, relaxed: j.relaxed
+            qualityLabel: j.qualityLabel, relaxed: j.relaxed,
+            resolvedAs: j.resolvedAs
           });
         } else if (j && j.noResults) {
           emptyResults(type, j.message || 'Nothing available for that search.', 'No properties');
@@ -4646,7 +4654,8 @@ function renderResults(type, live) {
     : type === 'hotels' ? HOTEL_RESULTS : type === 'flights' ? FLIGHT_RESULTS : EXP_RESULTS;
   var sq = stayQuery();
   var head = type === 'hotels'
-    ? 'Hotels . ' + sq.destination + ', ' + prettyDate(sq.checkIn) + ' to ' + prettyDate(sq.checkOut)
+    ? 'Hotels . ' + ((live && live.resolvedAs) || sq.destination) +
+      ', ' + prettyDate(sq.checkIn) + ' to ' + prettyDate(sq.checkOut)
     : type === 'flights' ? 'Flights . JFK to Milan'
       : 'Experiences . while in Milan';
   var extraBtn = type === 'flights' ? '<button class="viewall" id="totalcostbtn" style="margin-right:8px">What it really costs</button>' : '';
