@@ -215,7 +215,13 @@ img{display:block}
 #tbmark{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
   font-family:var(--serif);font-size:clamp(17px,1.85vw,23px);font-weight:normal;
   letter-spacing:.26em;text-transform:uppercase;color:var(--text);white-space:nowrap;
-  pointer-events:none}
+  /* The mark is centred on the page by sitting outside the flow, which means
+     it spans the bar and would swallow clicks meant for the controls behind
+     it. So the element ignores the pointer and the text inside accepts it,
+     giving a hit area the width of the word and nothing more. */
+  pointer-events:none;padding:10px 6px;cursor:pointer;transition:opacity .16s}
+#tbmark span{pointer-events:auto}
+#tbmark:hover span{opacity:.62}
 #whoami{display:flex;align-items:center;gap:10px;padding:6px 12px 6px 6px;border:1px solid var(--rule);border-radius:99px}
 #whoami .av2{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--nav),#5A79A6);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;color:#fff}
 #whoami .wn{font-size:12.5px;line-height:1.15}
@@ -1772,7 +1778,7 @@ body.hasresults #minisearch{display:flex}
 
   <div id="maincol">
     <header id="topbar">
-      <button id="burger" aria-label="Open menu" aria-expanded="false"><span class="bi"><i></i><i></i><i></i></span><span class="bl">Menu</span></button><a id="tbmark" href="#" data-view="home">Voyara</a>
+      <button id="burger" aria-label="Open menu" aria-expanded="false"><span class="bi"><i></i><i></i><i></i></span><span class="bl">Menu</span></button><a id="tbmark" href="#" data-view="home" aria-label="Voyara, back to home"><span>Voyara</span></a>
       <div id="topright">
         <div class="tstat demoonly"><span class="k">Departure in</span><span class="v warn" id="ttd">2:14:00</span></div>
         <div class="tstat demoonly"><span class="k">Workflows</span><span class="v live" id="wfcount">3 running</span></div>
