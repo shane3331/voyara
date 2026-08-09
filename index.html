@@ -285,7 +285,10 @@ img{display:block}
 .cg{display:block;width:19px;height:19px;line-height:0}
 .cg svg{width:100%;height:100%;display:block;opacity:.9}
 .cat.on .cg svg{opacity:1}
-.cat .cl2{font-family:var(--mono);font-size:8px;letter-spacing:.16em;text-transform:uppercase}
+.cat .cl2{font-family:var(--mono);font-size:8px;letter-spacing:.16em;text-transform:uppercase;
+  /* Every category label sits on the same line. A superscript badge here
+     used to raise this one above the rest of the row. */
+  line-height:1;display:block}
 .cat .cl2 sup{font-size:6px;letter-spacing:.1em;color:var(--nav);margin-left:3px;text-transform:uppercase}
 .cat:hover{color:var(--text)}
 .cat.on{background:var(--text);color:var(--surface)}
@@ -2337,7 +2340,7 @@ body.hasresults #minisearch{display:flex}
           <h1 class="disp">Where to next?</h1>
           <div class="hcontrols">
             <div id="cats">
-            <button class="cat on" data-cat="navi"><span class="cg"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2.6l1.9 4.9 4.9 1.9-4.9 1.9L10 16.2l-1.9-4.9L3.2 9.4l4.9-1.9z"/></svg></span><span class="cl2">Navi<sup>Live</sup></span></button>
+            <button class="cat on" data-cat="navi"><span class="cg"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2.6l1.9 4.9 4.9 1.9-4.9 1.9L10 16.2l-1.9-4.9L3.2 9.4l4.9-1.9z"/></svg></span><span class="cl2">Navi</span></button>
             <button class="cat" data-cat="hotels"><span class="cg"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.6L10 3.2l7 5.4"/><path d="M4.6 9.9v6.4h10.8V9.9"/><path d="M8.4 16.3v-3.7h3.2v3.7"/></svg></span><span class="cl2">Hotels</span></button>
             <button class="cat" data-cat="flights"><span class="cg"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M2.6 11.3l14.8-4.6M6.2 9.5L4.4 6.1l1.5-.5 3.1 2.7M7.4 14.4l1.1 2.6 1.4-.6.2-3.4"/></svg></span><span class="cl2">Flights</span></button>
             <button class="cat" data-cat="villas"><span class="cg"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M2.4 9.2L7 5.4l4.6 3.8"/><path d="M3.7 10.3v6h6.6v-6"/><path d="M11.6 16.3h4.8V8.1l-2.4-1.9-2.4 1.9"/><path d="M13.4 10.7h1.2"/></svg></span><span class="cl2">Villas</span></button>
