@@ -401,8 +401,10 @@ img{display:block}
   }
   .rescard .rprice .pe{margin-top:0}
   .rescard .rprice .pp{font-size:26px}
-  .mgate{text-align:left;margin-top:14px;padding:16px}
-  .mgate .mp{font-size:34px}
+  .mgate{text-align:left;margin-top:14px}
+  .mgate .mtop{padding:17px 18px 16px}
+  .mgate .msave{font-size:44px}
+  .mgate .mrow{padding:12px 18px}
   .rescard .rbook{margin-top:12px;width:100%}
 }
 
@@ -959,23 +961,33 @@ body.hasresults #minisearch{display:flex}
    rather than describing it is the whole conversion. It also keeps the
    discounted rate behind a login, which is what a closed user group means
    and what keeps us out of rate parity trouble with suppliers. */
-.mgate{margin-top:12px;padding:14px 15px 13px;border:1px solid rgba(47,122,92,.28);
-  border-radius:var(--r-sm);background:var(--live-soft);text-align:right}
-.mgate .ml{font-family:var(--mono);font-size:8px;letter-spacing:.15em;text-transform:uppercase;
+/* The saving is the hook, so the saving is the biggest thing on the card.
+   Leading with the member price made the block read as a second price tag;
+   leading with what you keep makes it read as an offer. */
+.mgate{margin-top:12px;border:1px solid rgba(47,122,92,.34);border-radius:var(--r-sm);
+  background:linear-gradient(168deg,#EAF4EE 0%,var(--live-soft) 62%);
+  overflow:hidden;text-align:right}
+.mgate .mtop{padding:15px 16px 14px}
+.mgate .ml{font-family:var(--mono);font-size:8px;letter-spacing:.16em;text-transform:uppercase;
   color:var(--live);display:block}
-.mgate .mp{font-family:var(--serif);font-weight:normal;font-size:31px;color:var(--text);
-  margin-top:5px;letter-spacing:-.006em;line-height:1;display:block}
-.mgate .ms{display:inline-flex;align-items:center;gap:6px;margin-top:9px;padding:4px 10px;
-  border-radius:99px;background:var(--live);color:#fff;font-family:var(--mono);font-size:8.5px;
-  letter-spacing:.1em;text-transform:uppercase}
-.mgate button{margin-top:12px;width:100%;padding:11px;border-radius:99px;
-  border:1px solid var(--live);background:none;color:var(--live);
-  font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;
-  font-weight:500;transition:.16s}
-.mgate button:hover{background:var(--live);color:#fff}
+.mgate .msave{display:block;font-family:var(--serif);font-weight:normal;
+  font-size:38px;line-height:1;color:var(--live);letter-spacing:-.008em;margin-top:7px}
+.mgate .mpct{display:inline-block;margin-top:9px;padding:3px 9px;border-radius:99px;
+  background:rgba(47,122,92,.14);color:var(--live);
+  font-family:var(--mono);font-size:8px;letter-spacing:.11em;text-transform:uppercase}
+.mgate .mrow{display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+  padding:11px 16px;border-top:1px solid rgba(47,122,92,.18);
+  background:rgba(255,255,255,.45)}
+.mgate .mrow .k{font-family:var(--mono);font-size:8px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--mute)}
+.mgate .mrow .v{font-family:var(--mono);font-size:14.5px;color:var(--text)}
+.mgate button{display:block;width:100%;padding:14px;border:none;
+  background:var(--live);color:#fff;font-family:var(--mono);font-size:9px;letter-spacing:.16em;
+  text-transform:uppercase;font-weight:500;transition:.16s}
+.mgate button:hover{filter:brightness(1.08)}
 
-/* The market rate is context, not the headline, so it shrinks and strikes. */
-.rescard .rprice .pp.market{font-size:19px;color:var(--faint);text-decoration:line-through;
+/* The market rate is context now, not the headline. */
+.rescard .rprice .pp.market{font-size:20px;color:var(--faint);text-decoration:line-through;
   font-family:var(--mono);letter-spacing:0}
 .rescard .rprice .pe.marketlab{color:var(--faint)}
 
@@ -2406,7 +2418,7 @@ function renderFareWatch() {
   var el = $('#farewatch');
   if (!el) return;
   el.innerHTML = flightLoader('Checking your fare', true);
-  safeFetchJson('/api/watch/orders', function (j) {
+  apiJson('/api/watch/orders', function (j) {
     var list = (j && j.watched) || [];
     if (!list.length) {
       el.innerHTML = '<div class="empty" style="padding:26px">No flights being watched yet.</div>';
@@ -2693,7 +2705,7 @@ function renderHomeGrids() {
 // Trips booked through the platform, shown above the demo trip so the two
 // halves of the product visibly connect.
 function loadRealTrips() {
-  safeFetchJson('/api/trips' + (ME.email ? '?email=' + encodeURIComponent(ME.email) : ''), function (j) {
+  apiJson('/api/trips', function (j) {
     var list = (j && j.trips) || [];
     var el = $('#realtrips');
     if (!el || !list.length) return;
@@ -2971,6 +2983,7 @@ function offersToCards(type, json) {
         route: o.segments || '', departAt: o.departAt || '', arriveAt: o.arriveAt || '',
         stops: Number(o.stops) || 0,
         p: pr.publicDisplay, net: pr.netDisplay, keep: pr.rebateDisplay,
+        pct: (pr.rebatePct != null ? pr.rebatePct : pr.savingPct),
         tags: [o.bagIncluded ? 'Bag included' : 'No bag',
                o.changeable ? 'Changeable' : 'No changes',
                o.refundable ? 'Refundable' : 'Nonrefundable']
@@ -2985,6 +2998,7 @@ function offersToCards(type, json) {
       p: pr.marketDisplay || pr.publicDisplay,
       net: pr.voyaraDisplay || pr.netDisplay,
       keep: pr.savingDisplay || pr.rebateDisplay,
+      pct: (pr.savingPct != null ? pr.savingPct : pr.rebatePct),
       tags: [o.taxesIncluded ? 'Taxes included' : 'Taxes extra',
              o.refundable ? 'Free cancellation' : 'Nonrefundable',
              (pr.savingPct ? pr.savingPct + '% below market' : 'Net rate')]
@@ -3119,11 +3133,7 @@ function flightCard(r) {
              : '<div class="pe">Total</div>') + '</div>';
   } else {
     priceSide = '<div><div class="pp market">' + r.p + '</div>' +
-      '<div class="pe marketlab">Market rate</div></div>' +
-      '<div class="mgate"><span class="ml">Members pay</span>' +
-      '<span class="mp">' + r.net + '</span>' +
-      '<span class="ms">You keep ' + r.keep + '</span>' +
-      '<button data-join="1">Join to unlock</button></div>';
+      '<div class="pe marketlab">Market rate</div></div>' + gateBlock(r);
   }
 
   return '<div class="flcard">' +
@@ -3158,6 +3168,26 @@ function flightCard(r) {
   '</div>';
 }
 
+// One gate, used by hotels and flights alike.
+function gateBlock(r) {
+  // The supplier's own figure, so this badge and the tag beside it can never
+  // disagree. Derived only when they did not send one.
+  var pct = '';
+  if (r.pct != null && r.pct !== '') {
+    pct = (Math.round(Number(r.pct) * 10) / 10) + '% below market';
+  } else {
+    var m = parseMoney(r.p), k = parseMoney(r.keep);
+    if (m > 0 && k > 0) pct = Math.round((k / m) * 100) + '% below market';
+  }
+  return '<div class="mgate">' +
+    '<div class="mtop"><span class="ml">You save</span>' +
+      '<span class="msave">' + r.keep + '</span>' +
+      (pct ? '<span class="mpct">' + pct + '</span>' : '') +
+    '</div>' +
+    '<div class="mrow"><span class="k">Members pay</span><span class="v">' + r.net + '</span></div>' +
+    '<button data-join="1">Join and save ' + r.keep + '</button></div>';
+}
+
 function priceBlock(r) {
   var book = '<button class="rbook"' + (r.hotelId ? ' data-hotel="' + r.hotelId + '"' : '') + '>' +
     (r.hotelId ? 'View property' : 'Request to book') + '</button>';
@@ -3170,11 +3200,7 @@ function priceBlock(r) {
 
   return '<div class="rprice"><div><div class="pp market">' + r.p + '</div>' +
     '<div class="pe marketlab">Market rate</div></div>' +
-    '<div class="mgate"><span class="ml">Members pay</span>' +
-    '<span class="mp">' + r.net + '</span>' +
-    '<span class="ms">You keep ' + r.keep + '</span>' +
-    '<button data-join="1">Join to unlock</button></div>' +
-    book + '</div>';
+    gateBlock(r) + book + '</div>';
 }
 
 /* ============================================================
@@ -3460,9 +3486,9 @@ var PROP = { hotel: null, rooms: [], room: null, step: 1, mode: '', booking: nul
 
 function openProperty(hotelId) {
   var sheet = $('#psheet'), inner = $('#pinner');
-  sheet.classList.add('on');
   document.body.style.overflow = 'hidden';
-  inner.innerHTML = flightLoader('Opening the property');
+  showVeil(true, 'Opening the property');
+  inner.innerHTML = '';
   PROP = { hotel: null, rooms: [], room: null, step: 1, mode: '', booking: null };
 
   var sq = stayQuery();
@@ -3471,16 +3497,25 @@ function openProperty(hotelId) {
         '&guests=' + encodeURIComponent(sq.guests) + '&currency=' + encodeURIComponent(CCY.current))
     .then(function (r) { return r.json(); })
     .then(function (j) {
+      showVeil(false);
+      sheet.classList.add('on');
       if (j.error) { inner.innerHTML = '<div class="empty" style="padding:80px 24px">Could not load this property.<br>' + (j.detail || j.error) + '</div>'; return; }
       PROP.hotel = j.hotel; PROP.rooms = j.rooms || []; PROP.mode = j.mode;
       paintProperty();
       audit('property.viewed', { hotel: j.hotel.id, rooms: PROP.rooms.length }, 'traveler');
     })
-    .catch(function () { inner.innerHTML = '<div class="empty" style="padding:80px 24px">Could not reach the server.</div>'; });
+    .catch(function () {
+      // The veil has to come down on the failure path too, or a dropped
+      // connection leaves the screen blurred with nothing behind it.
+      showVeil(false);
+      sheet.classList.add('on');
+      inner.innerHTML = '<div class="empty" style="padding:80px 24px">Could not reach the server.</div>';
+    });
 }
 
 function closeProperty() {
   $('#psheet').classList.remove('on');
+  showVeil(false);
   document.body.style.overflow = '';
 }
 
@@ -4088,6 +4123,7 @@ function paintSession() {
 }
 
 function setSession(email) {
+  if (!email) setAuthToken('');
   ME.email = email ? String(email).toLowerCase() : null;
   try {
     if (ME.email) window.localStorage.setItem('voyara.email', ME.email);
@@ -4116,11 +4152,12 @@ var PF_FIELDS = ['fullName','phone','dateOfBirth','homeAirport','passportNumber'
 
 function pfLoad() {
   if (!ME.email) return;
-  safeFetchJson('/api/profile?email=' + encodeURIComponent(ME.email), function (j) {
+  // No email in the URL. The server knows who is asking from the token.
+  apiFetch('/api/profile').then(function (r) { return r.json(); }).then(function (j) {
     PF.data = (j && j.profile) || {};
     PF.loaded = true;
     pfPaint();
-  });
+  }).catch(function () { PF.loaded = true; pfPaint(); });
 }
 
 function pfPaint() {
@@ -4178,7 +4215,7 @@ function pfSave() {
   btn.disabled = true;
   pfSay('Saving', '');
   var body = pfCollect();
-  fetch('/api/profile', {
+  apiFetch('/api/profile', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body)
   }).then(function (r) { return r.json(); }).then(function (j) {
@@ -4280,6 +4317,56 @@ function wireProfile() {
    ============================================================ */
 var AUTHCFG = { url: null, anon: null, ready: false };
 
+/* ============================================================
+   SIGNED REQUESTS
+   Every route touching one person's data now derives the email from a
+   verified token rather than from the request, so the browser has to send
+   that token. There is exactly one place that builds such a request, which
+   is what makes it hard to forget on the next route.
+   ============================================================ */
+function authToken() {
+  if (ME.token) return ME.token;
+  try { return window.localStorage.getItem('voyara.token') || ''; } catch (e) { return ''; }
+}
+function setAuthToken(tok) {
+  ME.token = tok || '';
+  try {
+    if (tok) window.localStorage.setItem('voyara.token', tok);
+    else window.localStorage.removeItem('voyara.token');
+  } catch (e) {}
+}
+
+// Signed twin of safeFetchJson, so the existing callback style is unchanged
+// and no call site has to be rewritten to adopt authentication.
+function apiJson(url, cb) {
+  try {
+    apiFetch(url).then(function (r) { return r.json(); })
+      .then(function (j) { cb(j); })
+      .catch(function () { cb(null); });
+  } catch (e) { cb(null); }
+}
+
+function apiFetch(url, opts) {
+  var o = opts || {};
+  var h = {};
+  Object.keys(o.headers || {}).forEach(function (k) { h[k] = o.headers[k]; });
+  var tok = authToken();
+  if (tok) h.Authorization = 'Bearer ' + tok;
+  o.headers = h;
+  return fetch(url, o).then(function (r) {
+    if (r.status === 401) {
+      // Expired or revoked. Clear it so the interface stops pretending to be
+      // signed in, rather than failing quietly on every later call.
+      setAuthToken('');
+      ME.email = null;
+      try { window.localStorage.removeItem('voyara.email'); } catch (e) {}
+      paintSession();
+      toast('Your session expired. Sign in again.', 'warn');
+    }
+    return r;
+  });
+}
+
 function loadAuthConfig() {
   safeFetchJson('/api/config', function (j) {
     if (!j) return;
@@ -4334,6 +4421,7 @@ function readOAuthReturn() {
     headers: { apikey: AUTHCFG.anon || '', Authorization: 'Bearer ' + p.access_token }
   }).then(function (r) { return r.json(); }).then(function (u) {
     if (u && u.email) {
+      setAuthToken(p.access_token);
       setSession(u.email);
       audit('auth.signed_in', { method: 'oauth' }, 'traveler');
       toast('Signed in. Member rates are showing.', 'live');
@@ -4386,6 +4474,7 @@ function authSubmit() {
         return;
       }
       if (j.session) {
+        setAuthToken(j.session.accessToken || '');
         setSession(j.session.email);
         audit('auth.signed_in', { method: 'email_code' }, 'traveler');
         closeAuth();
@@ -4420,7 +4509,7 @@ var CASH = { availableMinor: 0, pendingMinor: 0, entries: [], rules: null };
 
 function loadCash() {
   var q = ME.email ? '?email=' + encodeURIComponent(ME.email) : '';
-  safeFetchJson('/api/cash' + q, function (j) {
+  apiJson('/api/cash', function (j) {
     if (!j) return;
     CASH = j;
     var btn = $('#cashbtn'), now = $('#cashnow');
