@@ -1101,6 +1101,74 @@ body.hasresults #minisearch{display:flex}
 #searchveil.on{display:flex;opacity:1}
 #searchveil .fload{padding:0}
 
+/* ============ FARE CALENDAR ============
+   A month at a time with a price on every day, so the cheapest dates are
+   something you see rather than something you hunt for one search at a time. */
+#calsheet{position:fixed;inset:0;z-index:350;display:none}
+#calsheet.on{display:block}
+#calscrim{position:absolute;inset:0;background:rgba(38,36,31,.44);backdrop-filter:blur(3px)}
+#calpanel{position:absolute;left:0;right:0;bottom:0;background:var(--surface);
+  border-top:1px solid var(--rule);border-radius:calc(var(--r) + 8px) calc(var(--r) + 8px) 0 0;
+  padding:0 0 calc(env(safe-area-inset-bottom,0) + 20px);
+  transform:translateY(102%);transition:transform .42s cubic-bezier(.3,0,.2,1);
+  box-shadow:0 -20px 60px rgba(38,36,31,.16);max-height:92vh;display:flex;flex-direction:column}
+#calsheet.on #calpanel{transform:none}
+@media (min-width:820px){
+  #calpanel{left:50%;right:auto;bottom:auto;top:50%;width:560px;max-height:86vh;
+    transform:translate(-50%,-46%);opacity:0;border-radius:calc(var(--r) + 4px);
+    border:1px solid var(--rule)}
+  #calsheet.on #calpanel{transform:translate(-50%,-50%);opacity:1}
+}
+#calhead{display:flex;align-items:center;gap:14px;padding:22px clamp(18px,4vw,26px) 16px;
+  border-bottom:1px solid var(--rule-soft)}
+#calhead .ct{flex:1;min-width:0}
+#calhead .c1{font-family:var(--serif);font-size:22px;color:var(--text);line-height:1.15}
+#calhead .c2{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--faint);margin-top:6px}
+#calclose{width:34px;height:34px;flex:0 0 34px;border-radius:50%;border:1px solid var(--rule);
+  color:var(--mute);font-family:var(--mono);font-size:13px}
+#calclose:hover{border-color:var(--text);color:var(--text)}
+
+#calnav{display:flex;align-items:center;gap:12px;padding:16px clamp(18px,4vw,26px) 8px}
+#calnav button{width:34px;height:34px;border-radius:50%;border:1px solid var(--rule);color:var(--mute)}
+#calnav button:hover:not(:disabled){border-color:var(--text);color:var(--text)}
+#calnav button:disabled{opacity:.3}
+#calmonth{flex:1;text-align:center;font-family:var(--serif);font-size:20px;color:var(--text)}
+
+#calbody{flex:1;min-height:0;overflow-y:auto;padding:0 clamp(12px,3vw,20px)}
+.caldow{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;padding:8px 0 6px}
+.caldow span{text-align:center;font-family:var(--mono);font-size:9px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--faint)}
+.calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;padding-bottom:14px}
+.calday{position:relative;min-height:58px;border-radius:9px;border:1px solid transparent;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  background:none;padding:6px 2px;transition:.14s;cursor:pointer;overflow:hidden}
+.calday:hover:not(.off){background:var(--raised2)}
+.calday .n{font-family:var(--serif);font-size:16px;color:var(--text);line-height:1}
+.calday .p{font-family:var(--mono);font-size:9.5px;color:var(--mute);line-height:1}
+.calday.off{cursor:default;opacity:.32}
+.calday.off .p{color:var(--faint)}
+.calday.blank{visibility:hidden}
+/* The corner mark says this day is in the cheaper third of the month, which is
+   a comparison against the other days rather than a claim about the market. */
+.calday.good:before{content:'';position:absolute;top:0;left:0;border-width:11px 11px 0 0;
+  border-style:solid;border-color:var(--live) transparent transparent transparent}
+.calday.good .p{color:var(--live)}
+.calday.sel{background:var(--gold);border-color:var(--gold)}
+.calday.sel .n,.calday.sel .p{color:#fff}
+.calday.sel:before{border-top-color:rgba(255,255,255,.65)}
+.calday.cheapest .p{font-weight:500}
+
+#calfoot{display:flex;align-items:center;gap:clamp(10px,3vw,20px);flex-wrap:wrap;
+  padding:14px clamp(18px,4vw,26px) 0;border-top:1px solid var(--rule-soft);margin:0 clamp(12px,3vw,20px)}
+#calfoot .lg{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:9px;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+#calfoot .lg i{width:9px;height:9px;border-radius:2px;display:block}
+#calfoot .lg i.sel{background:var(--gold)}
+#calfoot .lg i.good{background:var(--live)}
+#calfoot .lg i.non{background:var(--rule)}
+#calnote{padding:12px clamp(18px,4vw,26px) 0;font-size:12px;color:var(--faint);line-height:1.5}
+
 /* ============ FLIGHT SEARCH FIELDS ============
    On a desktop these sit in a row. On a phone the two place fields take a
    line each, because a city name in half a phone width is three letters and
@@ -2658,6 +2726,29 @@ body.hasresults #minisearch{display:flex}
 </div>
 
 <!-- Onboarding. Mobile, first visit, once. -->
+<div id="calsheet" role="dialog" aria-label="Choose a date" aria-modal="true">
+  <div id="calscrim"></div>
+  <div id="calpanel">
+    <div id="calhead">
+      <span class="ct"><span class="c1" id="calttl">Leaving</span>
+        <span class="c2" id="calsub"></span></span>
+      <button id="calclose" aria-label="Close">&#10005;</button>
+    </div>
+    <div id="calnav">
+      <button id="calprev" aria-label="Previous month">&#8249;</button>
+      <span id="calmonth"></span>
+      <button id="calnext" aria-label="Next month">&#8250;</button>
+    </div>
+    <div id="calbody"></div>
+    <div id="calfoot">
+      <span class="lg"><i class="sel"></i>Selected</span>
+      <span class="lg"><i class="good"></i>Cheaper days</span>
+      <span class="lg"><i class="non"></i>No fare found</span>
+    </div>
+    <p id="calnote"></p>
+  </div>
+</div>
+
 <div id="memsheet" role="dialog" aria-label="Become a member" aria-modal="true">
   <div id="memscrim"></div>
   <div id="mempanel">
@@ -3684,8 +3775,164 @@ function setTripType(t) {
 // A date field is a small target if only its icon opens the picker. Clicking
 // anywhere in the field opens it, where the browser supports that, and typing
 // still works exactly as it would natively.
+/* ============================================================
+   FARE CALENDAR
+   A month at a time with a price on every day. The point is to make the
+   cheap dates visible rather than something you find by searching one date
+   after another.
+   ============================================================ */
+var CAL = { target: null, month: null, data: null, loading: false };
+
+var MONTHS = ['January','February','March','April','May','June',
+  'July','August','September','October','November','December'];
+
+function openCalendar(inputId) {
+  var el = $('#' + inputId);
+  if (!el) return;
+  CAL.target = inputId;
+  CAL.month = (el.value || todayISO()).slice(0, 7);
+  $('#calttl').textContent = inputId === 'fret' ? 'Returning' : 'Leaving';
+  var f = flightQuery();
+  $('#calsub').textContent = f.origin + ' to ' + f.destination;
+  $('#calsheet').classList.add('on');
+  document.body.style.overflow = 'hidden';
+  calLoad();
+}
+
+function closeCalendar() {
+  $('#calsheet').classList.remove('on');
+  document.body.style.overflow = '';
+}
+
+function calShift(delta) {
+  var y = Number(CAL.month.slice(0, 4)), m = Number(CAL.month.slice(5, 7)) - 1 + delta;
+  var d = new Date(Date.UTC(y, m, 1));
+  CAL.month = d.toISOString().slice(0, 7);
+  calLoad();
+}
+
+function calLoad() {
+  var f = flightQuery();
+  calPaint(null);
+  CAL.loading = true;
+  var url = '/api/flights/calendar?origin=' + encodeURIComponent(f.origin) +
+    '&destination=' + encodeURIComponent(f.destination) +
+    '&month=' + encodeURIComponent(CAL.month) +
+    '&passengers=' + encodeURIComponent(f.passengers);
+  safeFetchJson(url, function (j) {
+    CAL.loading = false;
+    // Only paint if the month has not been changed while this was in flight.
+    if (!j || j.month !== CAL.month) { if (!j) calPaint(false); return; }
+    CAL.data = j;
+    calPaint(j);
+  });
+}
+
+function calPaint(j) {
+  var body = $('#calbody');
+  var y = Number(CAL.month.slice(0, 4)), m = Number(CAL.month.slice(5, 7));
+  $('#calmonth').textContent = MONTHS[m - 1] + ' ' + y;
+
+  // A month before this one is only worth offering if it is not entirely past.
+  var thisMonth = todayISO().slice(0, 7);
+  $('#calprev').disabled = CAL.month <= thisMonth;
+
+  if (j === null) {
+    body.innerHTML = flightLoader('Pricing every day', true);
+    $('#calnote').textContent = '';
+    return;
+  }
+  if (j === false) {
+    body.innerHTML = '<div class="empty" style="padding:40px 20px">Could not load fares for this month.</div>';
+    return;
+  }
+
+  var first = new Date(Date.UTC(y, m - 1, 1)).getUTCDay();
+  var cells = '';
+  for (var b = 0; b < first; b++) cells += '<div class="calday blank"></div>';
+
+  j.days.forEach(function (d) {
+    var sel = $('#' + CAL.target) && $('#' + CAL.target).value === d.date;
+    var off = d.past || d.minor === null;
+    cells += '<button class="calday' +
+      (off ? ' off' : '') + (d.good ? ' good' : '') +
+      (d.cheapest ? ' cheapest' : '') + (sel ? ' sel' : '') + '"' +
+      (off ? ' disabled' : ' data-date="' + d.date + '"') + '>' +
+      '<span class="n">' + Number(d.date.slice(8)) + '</span>' +
+      '<span class="p">' + (d.display || '&#8212;') + '</span>' +
+    '</button>';
+  });
+
+  body.innerHTML =
+    '<div class="caldow"><span>S</span><span>M</span><span>T</span><span>W</span>' +
+    '<span>T</span><span>F</span><span>S</span></div>' +
+    '<div class="calgrid">' + cells + '</div>';
+
+  $$('#calbody [data-date]').forEach(function (b2) {
+    b2.addEventListener('click', function () { calPick(b2.getAttribute('data-date')); });
+  });
+
+  // Say where the data came from. A calendar of invented prices would be the
+  // most damaging thing this product could show.
+  $('#calnote').textContent = j.mode === 'mock'
+    ? 'Sample prices. Connect the flight supplier to price these days for real.'
+    : j.cheapestOn
+      ? 'Cheapest this month is ' + prettyDate(j.cheapestOn) + ' at ' +
+        (j.days.filter(function (d) { return d.cheapest; })[0] || {}).display + '.'
+      : 'No fares found for this month.';
+}
+
+function calPick(date) {
+  var el = $('#' + CAL.target);
+  if (!el) return;
+  el.value = date;
+  el.dispatchEvent(new Event('change', { bubbles: true }));
+
+  // A return before the departure is not a trip. Move the other end rather
+  // than letting somebody build an impossible search.
+  if (CAL.target === 'fout') {
+    var ret = $('#fret');
+    if (ret && ret.value && ret.value < date) ret.value = date;
+  } else if (CAL.target === 'fret') {
+    var out = $('#fout');
+    if (out && out.value && out.value > date) out.value = date;
+  }
+  markEmptyDates(document);
+  closeCalendar();
+  audit('flights.calendar_used', { date: date }, 'traveler');
+}
+
+function todayISO() { return new Date().toISOString().slice(0, 10); }
+
+function wireCalendar() {
+  $('#calclose').addEventListener('click', closeCalendar);
+  $('#calscrim').addEventListener('click', closeCalendar);
+  $('#calprev').addEventListener('click', function () { calShift(-1); });
+  $('#calnext').addEventListener('click', function () { calShift(1); });
+  document.addEventListener('keydown', function (e) {
+    if (!$('#calsheet').classList.contains('on')) return;
+    if (e.key === 'Escape') closeCalendar();
+    if (e.key === 'ArrowLeft' && !$('#calprev').disabled) calShift(-1);
+    if (e.key === 'ArrowRight') calShift(1);
+  });
+
+  // The flight dates open the fare calendar rather than the browser picker,
+  // because a month of prices is the whole reason to look at a calendar here.
+  ['fout', 'fret'].forEach(function (id) {
+    var el = $('#' + id);
+    if (!el) return;
+    el.addEventListener('focus', function (e) { e.target.blur(); });
+    el.addEventListener('click', function (e) {
+      e.preventDefault();
+      openCalendar(id);
+    });
+  });
+}
+
 function wireDatePickers() {
   $$('input[type=date]').forEach(function (el) {
+    // The two flight dates have their own fare calendar.
+    if (el.id === 'fout' || el.id === 'fret') return;
     if (el.dataset.pickerWired) return;
     el.dataset.pickerWired = '1';
     el.addEventListener('click', function () {
@@ -7743,6 +7990,7 @@ function boot() {
   wireAutocomplete();
   wireTripType();
   wireDatePickers();
+  wireCalendar();
   wireProfile();
   wireYear();
   wireBrief();
