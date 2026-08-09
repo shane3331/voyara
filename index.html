@@ -322,10 +322,13 @@ img{display:block}
 #searchforms{width:min(880px,calc(100% - 40px))}
 .sform{display:none;padding:8px}
 .sform.on{display:flex;align-items:stretch;flex-wrap:wrap}
-/* Without wrap, a child asking for 100% just gets squeezed into the row, which
-   is what put the trip toggle inline with the fields and left the rest of them
-   fighting over what was left. */
-.sform.on > .sfield{flex:1 1 0}
+/* Desktop only. This is three classes deep, so it outranks .sfield.shalf and
+   .sfield.swide no matter what a media query says. Left unscoped it gave every
+   field a zero basis, which is why five hotel fields crammed into one row on a
+   phone however many times the mobile widths were rewritten. */
+@media (min-width:821px){
+  .sform.on > .sfield{flex:1 1 0}
+}
 .sfield{flex:1;min-width:0;padding:12px 18px;border-right:1px solid var(--rule);display:flex;flex-direction:column;gap:4px;justify-content:center}
 .sfield:last-of-type{border-right:none}
 .sfield .fk{font-family:var(--mono);font-size:8px;letter-spacing:.16em;text-transform:uppercase;color:var(--mute)}
