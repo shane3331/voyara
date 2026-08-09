@@ -1,4 +1,7 @@
-// GET /api/flights/search?origin=JFK&destination=MIL&departOn=2026-09-12
+// GET /api/flights/search?origin=JFK&destination=MIL&departOn=2026-09-12&returnOn=2026-09-18
+//
+// A return date adds a second slice. Without one this route only ever searched
+// one way, which meant the returning field in the form was decorative.
 // Duffel when DUFFEL_TOKEN is set, deterministic fixtures otherwise.
 const AIR_COMMISSION = num(process.env.RATE_AIR_COMMISSION, 0.01);
 const AIR_KEEP = num(process.env.RATE_AIR_KEEP, 0.005);
@@ -9,6 +12,7 @@ module.exports = async (req, res) => {
   const origin = String(q.origin || '').toUpperCase().trim();
   const destination = String(q.destination || '').toUpperCase().trim();
   const departOn = String(q.departOn || '');
+  const returnOn = String(q.returnOn || '');
   const passengers = Math.max(1, Number(q.passengers) || 1);
 
   if (!origin || !destination || !departOn) {
@@ -17,15 +21,21 @@ module.exports = async (req, res) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(departOn)) {
     return res.status(400).end(JSON.stringify({ error: 'departOn must be YYYY-MM-DD' }));
   }
+  if (returnOn && !/^\d{4}-\d{2}-\d{2}$/.test(returnOn)) {
+    return res.status(400).end(JSON.stringify({ error: 'returnOn must be YYYY-MM-DD' }));
+  }
+  if (returnOn && returnOn < departOn) {
+    return res.status(400).end(JSON.stringify({ error: 'returnOn cannot be before departOn' }));
+  }
 
   let mode = 'mock';
   let offers;
   try {
     if (process.env.DUFFEL_TOKEN) {
-      offers = await duffel(origin, destination, departOn, passengers);
+      offers = await duffel(origin, destination, departOn, passengers, returnOn);
       mode = 'live:duffel';
     } else {
-      offers = fixtures(origin, destination, departOn);
+      offers = fixtures(origin, destination, departOn, returnOn);
     }
   } catch (e) {
     return res.status(502).end(JSON.stringify({
@@ -56,7 +66,7 @@ module.exports = async (req, res) => {
   res.status(200).end(JSON.stringify({ mode, count: priced.length, offers: priced }));
 };
 
-async function duffel(origin, destination, departOn, passengers) {
+async function duffel(origin, destination, departOn, passengers, returnOn) {
   const r = await fetch('https://api.duffel.com/air/offer_requests?return_offers=true', {
     method: 'POST',
     headers: {
@@ -67,7 +77,10 @@ async function duffel(origin, destination, departOn, passengers) {
     },
     body: JSON.stringify({
       data: {
-        slices: [{ origin, destination, departure_date: departOn }],
+        slices: returnOn
+          ? [{ origin, destination, departure_date: departOn },
+             { origin: destination, destination: origin, departure_date: returnOn }]
+          : [{ origin, destination, departure_date: departOn }],
         passengers: Array.from({ length: passengers }, () => ({ type: 'adult' })),
         cabin_class: 'economy'
       }
@@ -105,11 +118,15 @@ async function duffel(origin, destination, departOn, passengers) {
   });
 }
 
-function fixtures(origin, destination, departOn) {
+function fixtures(origin, destination, departOn, returnOn) {
+  // A return trip costs more than a single leg, so the fixture says so rather
+  // than quietly showing one way prices under a round trip heading.
+  const legs = returnOn ? 2 : 1;
+  const leg = (v) => Math.round(v * (legs === 2 ? 1.78 : 1));
   return [
-    { id: 'mock_az631', carrier: 'AZ', carrierName: 'ITA Airways', carrierLogo: 'https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/AZ.svg', segments: origin + ' to FCO, FCO to ' + destination, departAt: departOn + 'T18:40:00Z', arriveAt: departOn + 'T15:20:00Z', stops: 1, publicMinor: 214800, currency: 'EUR', bagIncluded: true, changeable: true, refundable: false, expiresAt: new Date(Date.now() + 240000).toISOString() },
-    { id: 'mock_az605', carrier: 'AZ', carrierName: 'ITA Airways', carrierLogo: 'https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/AZ.svg', segments: origin + ' to MXP nonstop', departAt: departOn + 'T22:10:00Z', arriveAt: departOn + 'T12:05:00Z', stops: 0, publicMinor: 239000, currency: 'EUR', bagIncluded: true, changeable: true, refundable: false, expiresAt: new Date(Date.now() + 240000).toISOString() },
-    { id: 'mock_lh401', carrier: 'LH', carrierLogo: 'https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/LH.svg', carrierName: 'Lufthansa', segments: origin + ' to FRA, FRA to ' + destination, departAt: departOn + 'T16:05:00Z', arriveAt: departOn + 'T13:40:00Z', stops: 1, publicMinor: 190500, currency: 'EUR', bagIncluded: false, changeable: false, refundable: false, expiresAt: new Date(Date.now() + 240000).toISOString() }
+    { id: 'mock_az631', carrier: 'AZ', carrierName: 'ITA Airways', carrierLogo: 'https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/AZ.svg', segments: origin + ' to ' + destination + (returnOn ? ' and back' : ''), departAt: departOn + 'T18:40:00Z', arriveAt: departOn + 'T15:20:00Z', stops: 1, publicMinor: leg(214800), currency: 'EUR', bagIncluded: true, changeable: true, refundable: false, expiresAt: new Date(Date.now() + 240000).toISOString() },
+    { id: 'mock_az605', carrier: 'AZ', carrierName: 'ITA Airways', carrierLogo: 'https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/AZ.svg', segments: origin + ' to ' + destination + (returnOn ? ' and back' : ''), departAt: departOn + 'T22:10:00Z', arriveAt: departOn + 'T12:05:00Z', stops: 0, publicMinor: leg(239000), currency: 'EUR', bagIncluded: true, changeable: true, refundable: false, expiresAt: new Date(Date.now() + 240000).toISOString() },
+    { id: 'mock_lh401', carrier: 'LH', carrierLogo: 'https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/LH.svg', carrierName: 'Lufthansa', segments: origin + ' to ' + destination + (returnOn ? ' and back' : ''), departAt: departOn + 'T16:05:00Z', arriveAt: departOn + 'T13:40:00Z', stops: 1, publicMinor: leg(190500), currency: 'EUR', bagIncluded: false, changeable: false, refundable: false, expiresAt: new Date(Date.now() + 240000).toISOString() }
   ];
 }
 
