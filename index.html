@@ -1550,7 +1550,7 @@ body.hasresults #minisearch{display:flex}
   background:repeating-linear-gradient(90deg,var(--rule) 0 4px,transparent 4px 8px)}
 #flroute .mid .pin{position:absolute;right:-3px;top:9px;width:7px;height:7px;border-radius:50%;
   background:var(--gold)}
-#flroute .mid svg{position:absolute;left:0;top:5px;width:17px;height:17px;color:var(--gold)}
+#flroute .mid svg{position:absolute;left:0;top:4px;width:19px;height:19px;color:var(--gold)}
 
 /* the ticket */
 .flcard{position:relative;background:var(--surface);border:1px solid var(--rule);
@@ -1595,7 +1595,7 @@ body.hasresults #minisearch{display:flex}
   font-family:var(--mono);font-size:11px;letter-spacing:.05em;color:var(--text-dim)}
 .flpath .ln{position:absolute;left:20px;right:10px;top:36px;height:1px;
   background:repeating-linear-gradient(90deg,var(--rule) 0 3px,transparent 3px 7px)}
-.flpath .plane{position:absolute;left:0;top:28px;width:17px;height:17px;color:var(--gold)}
+.flpath .plane{position:absolute;left:0;top:27px;width:19px;height:19px;color:var(--gold)}
 .flpath .plane svg{width:100%;height:100%}
 .flpath .dot{position:absolute;right:0;top:33px;width:7px;height:7px;border-radius:50%;
   background:var(--gold)}
@@ -4686,8 +4686,17 @@ function wireSortBar() {
   if (fc) fc.addEventListener('click', clearFilters);
 }
 
-var PLANE_SVG = '<svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">' +
-  '<path d="M19 9.2l-6.6-1.1L9.6 2.3a.7.7 0 0 0-1.3.3l.3 5.1L3.4 6.8 2.6 5.2a.5.5 0 0 0-.9.2l-.4 3 .4 3a.5.5 0 0 0 .9.2l.8-1.6 5.2-.9-.3 5.1a.7.7 0 0 0 1.3.3l2.8-5.8L19 7.6a.6.6 0 0 0 0-1.2z" transform="translate(0 2)"/></svg>';
+// The mark. The same folded dart the loader flies, so the thing that carries
+// you and the thing that waits for you are drawn by one hand. Two faces: the
+// lit upper surface and the shaded underside of the near wing. Outline rather
+// than a solid glyph, because a solid triangle at this size stops reading as
+// paper and starts reading as a cursor.
+var PLANE_SVG = '<svg viewBox="0 0 22 16" fill="none" aria-hidden="true">' +
+  '<path d="M20.6 8 L2 1.4 L6.6 8 L2 14.6 Z" fill="var(--surface)" ' +
+    'stroke="currentColor" stroke-width="1.25" stroke-linejoin="round" stroke-linecap="round"/>' +
+  '<path d="M20.6 8 L2 14.6 L6.6 8 Z" fill="currentColor" fill-opacity=".2" ' +
+    'stroke="currentColor" stroke-width="1.1" stroke-linejoin="round" stroke-linecap="round"/>' +
+  '</svg>';
 
 // A ticket rather than a list row. Two halves, a perforated divider, and a
 // notch punched out of each side, because a boarding pass is the object a
@@ -7600,8 +7609,9 @@ function closeModal() { $('#scrim').classList.remove('on'); }
 // One continuous line, a small loop in it, climbing to the right. Drawn in
 // the same hand as the reference: nothing rendered but a hairline and a folded
 // dart at the end of it.
-var PP_PATH = 'M8 104 C46 104 66 78 92 72 C112 67 122 82 108 90 ' +
-  'C96 97 86 82 106 72 C138 56 176 66 212 52 C248 38 268 26 292 16';
+var PP_PATH = 'M8 102 C48 102 82 94 108 78 ' +
+  'C134 62 152 38 130 32 C110 27 104 54 128 64 ' +
+  'C150 72 168 56 196 46 C234 32 262 22 292 12';
 
 function flightLoader(caption, small) {
   return '<div class="fload' + (small ? ' sm' : '') + '" role="status" aria-live="polite">' +
