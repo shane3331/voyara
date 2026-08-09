@@ -1110,6 +1110,15 @@ body.hasresults #minisearch{display:flex}
 #searchveil.on{display:flex;opacity:1}
 #searchveil .fload{padding:0}
 
+/* ============ NAVI TYPING ============ */
+.tdot{width:5px;height:5px;border-radius:50%;background:var(--mute);
+  animation:tbounce 1.25s infinite ease-in-out}
+.tdot:nth-child(2){animation-delay:.16s}
+.tdot:nth-child(3){animation-delay:.32s}
+@keyframes tbounce{0%,72%,100%{opacity:.28;transform:translateY(0)}
+  36%{opacity:1;transform:translateY(-3px)}}
+@media (prefers-reduced-motion:reduce){.tdot{animation:none;opacity:.6}}
+
 /* ============ LIGHTBOX ============
    Photography is how a property is actually chosen, and the grid only ever
    showed five of them with no way in. Dark ground on purpose: the brand rule
@@ -2676,6 +2685,10 @@ body.hasresults #minisearch{display:flex}
             <span class="pill nav" id="chanpill"><span class="bd"></span>Web</span>
           </div>
           <div id="msgs"></div>
+          <div id="navityping" style="display:none;align-items:center;gap:9px;padding:10px 4px 2px">
+            <span class="tdot"></span><span class="tdot"></span><span class="tdot"></span>
+            <span style="font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)">Navi is checking</span>
+          </div>
           <div id="chatinput">
             <div class="row">
               <textarea id="ta" rows="1" placeholder="Ask about the trip"></textarea>
@@ -7026,72 +7039,96 @@ function thinking(cb, ms) {
   setTimeout(function () { if (d.parentNode) d.parentNode.removeChild(d); cb(); }, ms || 900);
 }
 
-function naviAnswer(q) {
-  var t = q.toLowerCase();
-  var d = S.disruption;
+// The scripted stand in that used to answer here has been removed. Navi now
+// runs on a real model with tools; see api/navi.js.
 
-  if (/human|agent|person|someone|call me|speak to/.test(t)) return { handoff: true };
 
-  if (/gate|terminal/.test(t)) {
-    return { text: 'Gate B41, Terminal 1 at JFK. That is the current airport feed, last refreshed ' + hhmm(now()).slice(0, 5) + '. Gates move, so I watch this one and will message you the moment it changes.', facts: ['F.AZ631.GATE', 'F.AZ631.DEP'] };
-  }
-  if (/delay|late|what happened|status|why/.test(t)) {
-    if (d) return { text: 'ITA reported a 130 minute departure delay on AZ 631. New arrival into Fiumicino is 10:35 instead of 08:25. That is the operating carrier delay, and it is what puts the Milan connection out of reach.', facts: ['F.AZ631.ARR', 'F.AZ631.STATUS'] };
-    return { text: 'AZ 631 is on time for an 18:40 departure. I am polling every 15 minutes now that you are inside three hours of departure, and I will message you on any gate or time change.', facts: ['F.AZ631.STATUS', 'F.AZ631.DEP'] };
-  }
-  if (/connect|miss|make it|tight|fco|rome/.test(t)) {
-    if (d) return { text: 'You will not make it. Fiumicino needs 75 minutes for an international to domestic connection on one ticket. With the new 10:35 arrival you would have 22 minutes before AZ 1265 doors close. This is a calculation, not a guess, and it is the reason I already started looking at alternatives.', facts: ['F.FCO.MCT', 'F.AZ1265.DEP', 'F.AZ631.ARR'] };
-    return { text: 'The connection has 110 minutes of buffer against a 75 minute minimum at Fiumicino, on one ticket. Comfortable as scheduled. I recalculate this on every status change.', facts: ['F.CONN.BUFFER', 'F.FCO.MCT', 'F.TICKET'] };
-  }
-  if (/option|alternative|rebook|what can|fix|other flight|else/.test(t)) {
-    if (d) return { options: true };
-    return { text: 'Nothing needs fixing right now. Everything is confirmed and monitored. If that changes I will bring you options with real prices and real seat counts, not suggestions.', facts: ['F.AZ631.STATUS'] };
-  }
-  if (/hotel|portrait|check ?in|room/.test(t)) {
-    return { text: 'Portrait Milano, check in from 14:00 on 13 September. Free cancellation runs until 10 September at 23:59 Rome time. If your arrival slips past 18:00 I will send the property a late arrival note, but I will show you the wording before anything goes out.', facts: ['F.HTL.CHECKIN', 'F.HTL.POLICY'] };
-  }
-  if (/cancel|refund|policy|penalt|change fee|cost to change/.test(t)) {
-    return { text: 'On the flights: this fare is changeable, and because ITA is delaying the first segment past 60 minutes, a reaccommodation carries no fare difference. On the hotel: free cancellation until 10 September, one night charged after that. Both of those are snapshots I captured at import, not something I am recalling.', facts: ['F.AIR.POLICY', 'F.HTL.POLICY'] };
-  }
-  if (/transfer|driver|car|pickup|chauffeur/.test(t)) {
-    if (!S.imported.M_TRANSFER) return { text: 'I do not have a ground transfer on this trip. If you booked one, forward the confirmation and it will be on the timeline in a few seconds.', facts: [] };
-    return { text: 'Blacklane BL-77213K, pickup at Linate arrivals at 12:00 on 13 September. Amendments are free up to four hours before pickup, which is why I bundled the transfer change into the same approval rather than charging you twice.', facts: [] };
-  }
-  if (/cost|price|how much|charge|pay/.test(t)) {
-    var p = S.proposals[S.proposals.length - 1];
-    if (p) return { text: 'The flight change is ' + money(0, 'EUR') + ' because it is a protected reaccommodation on one ticket. The only money that moves is ' + money(1800, 'EUR') + ' for the transfer amendment. That total is on the approval, along with what is refundable and what is not.', facts: ['F.AIR.POLICY', 'F.PAY.METHOD'] };
-    return { text: 'Nothing is pending payment. Your card on file is a Visa ending 4419, and it is never charged without an approval you sign.', facts: ['F.PAY.METHOD'] };
-  }
-  if (/bag|luggage|suitcase|checked/.test(t)) {
-    return { text: 'I do not have a baggage record for this ticket. ITA has not sent one and I will not guess at an allowance you might rely on at the counter. I can put an operator on it who will call ITA and come back with an answer in writing.', facts: [], offer: 'handoff' };
-  }
-  if (/italian|translate|language|speak/.test(t)) {
-    return { text: 'Yes. Forward a voice note or a message in Italian and I will transcribe it, detect the language, and give you the original and the translation side by side. I will draft your reply in both languages, and you approve before anything sends.', facts: [] };
-  }
-  if (/thank|thanks|great|perfect|ok$|got it/.test(t)) {
-    return { text: 'Anytime. I am watching the whole trip until you check out on the 18th.', facts: [] };
-  }
-  if (/hello|hi |hey|good morning/.test(t)) {
-    return { text: 'Hello Elena. Everything on the Milan trip is confirmed and monitored. Ask me anything about it.', facts: [] };
-  }
-  return { text: 'I do not have a record that answers that, and I am not going to invent one. Tell me a little more, or I can bring in a Voyara operator who can dig into it properly.', facts: [], offer: 'handoff' };
-}
+// The conversation so far, so Navi can follow a thread. Trimmed server side.
+var NAVI_HISTORY = [];
+
+var TOOL_LABEL = {
+  search_hotels: 'Checked live hotel rates',
+  search_flights: 'Checked live fares',
+  fare_calendar: 'Priced the month',
+  get_profile: 'Read your profile',
+  get_companions: 'Read who you travel with',
+  get_trips: 'Read your trips',
+  get_ledger: 'Read your year',
+  get_signature: 'Read the Signature notes',
+  get_membership: 'Checked your membership'
+};
 
 function sendUser(txt) {
   if (!txt.trim()) return;
   say('user', escapeHtml(txt));
   audit('message.received', { channel: 'WEB', chars: txt.length }, 'traveler');
   emit('message.received.v1', 'messaging-gateway');
-  thinking(function () {
-    var r = naviAnswer(txt);
-    if (r.handoff) { doHandoff('Traveler asked for a person'); return; }
-    if (r.options) { presentOptions(); return; }
-    say('navi', r.text, { facts: r.facts });
-    audit('navi.run_completed', { grounded_facts: r.facts.length, tools: ['get_trip', 'get_flight_status'], model: 'navi-planner-v1.4' }, 'navi');
-    if (r.offer === 'handoff') {
-      setTimeout(function () { renderSugg(['Yes, get an operator', 'No, leave it']); }, 300);
-    } else renderSugg();
-  }, 850);
+
+  // A person still gets an operator on request. That is a promise the brand
+  // makes, and it should not depend on a model deciding to honour it.
+  if (/\b(human|person|operator|agent|someone real|talk to a)\b/i.test(txt)) {
+    thinking(function () { doHandoff('Traveler asked for a person'); }, 500);
+    return;
+  }
+
+  var t0 = Date.now();
+  showTyping(true);
+
+  apiFetch('/api/navi', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: txt, history: NAVI_HISTORY.slice(-12) })
+  }).then(function (r) {
+    return r.text().then(function (b) {
+      try { return { code: r.status, j: JSON.parse(b) }; }
+      catch (e) { return { code: r.status, j: null }; }
+    });
+  }).then(function (out) {
+    showTyping(false);
+    var j = out.j;
+
+    if (!j) {
+      say('navi', out.code === 404
+        ? 'Navi is not deployed yet. Upload api/navi.js.'
+        : 'Something went wrong reaching Navi (' + out.code + ').');
+      return;
+    }
+    if (out.code === 401) { say('navi', 'Sign in and I can answer properly.'); openAuth(); return; }
+    if (j.error) { say('navi', j.detail || 'I could not answer that just now.'); return; }
+
+    NAVI_HISTORY.push({ role: 'user', content: txt });
+    NAVI_HISTORY.push({ role: 'assistant', content: j.reply });
+
+    // What it actually looked at, shown under the answer. This is the whole
+    // "answers cite trip records" promise made visible.
+    var facts = (j.tools || []).filter(function (t, i, a) { return a.indexOf(t) === i; })
+      .map(function (t) { return TOOL_LABEL[t] || t; });
+
+    say('navi', formatNavi(j.reply), { facts: facts });
+    audit('navi.run_completed', {
+      grounded_facts: facts.length, tools: j.tools || [],
+      model: j.model || 'unknown', ms: Date.now() - t0
+    }, 'navi');
+    renderSugg();
+  }).catch(function () {
+    showTyping(false);
+    say('navi', 'I could not reach the server. Try again in a moment.');
+  });
+}
+
+// Paragraphs, and nothing else. The model is told not to use markdown, so
+// this escapes everything and only honours line breaks.
+function formatNavi(text) {
+  return escapeHtml(String(text || ''))
+    .split(/\n{2,}/).map(function (p) { return p.replace(/\n/g, '<br>'); })
+    .join('</p><p style="margin-top:10px">');
+}
+
+function showTyping(on) {
+  var el = $('#navityping');
+  if (!el) return;
+  el.style.display = on ? 'flex' : 'none';
+  var w = $('#msgs');
+  if (on && w) w.scrollTop = w.scrollHeight;
 }
 
 function renderSugg(list) {
