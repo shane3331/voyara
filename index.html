@@ -407,7 +407,9 @@ img{display:block}
 .rescard .rtags{display:flex;gap:7px;flex-wrap:wrap;margin-top:15px}
 .rescard .rprice{
   width:250px;flex:0 0 250px;padding:24px 26px;border-left:1px solid var(--rule-soft);
-  display:flex;flex-direction:column;justify-content:center;align-items:flex-end;text-align:right;
+  /* Starts at the top rather than centring. Centring a short savings block in
+     a tall card is what left a band of empty paper above and below it. */
+  display:flex;flex-direction:column;justify-content:flex-start;align-items:flex-end;text-align:right;
 }
 .rescard .rprice .pp{font-weight:300;font-size:30px;letter-spacing:-.025em;color:var(--text);line-height:1}
 .rescard .rprice .pe{font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--warn);margin-top:9px;line-height:1.5}
@@ -1181,10 +1183,19 @@ body.hasresults #minisearch{display:flex}
 /* Cards inside the thread are narrower than a results page, so the flight
    ticket and the hotel row both drop to a stacked layout here. */
 .nvart .flcard,.nvart .rescard{margin-bottom:10px}
-.nvart .rescard{flex-direction:column}
-.nvart .rescard .rimgwrap{width:100%;height:150px}
-.nvart .rescard .rprice{width:100%;flex:none;border-left:none;
-  border-top:1px solid var(--rule-soft);padding:16px 20px 18px}
+.nvart .rescard{flex-direction:row;align-items:stretch}
+.nvart .rescard .rimgwrap{width:180px;flex:0 0 180px;height:auto;min-height:190px}
+.nvart .rescard .rmain{padding:20px 22px}
+.nvart .rescard .rprice{width:250px;flex:0 0 250px;border-left:1px solid var(--rule-soft);
+  border-top:none;padding:20px}
+/* Below this the three columns stop fitting, so the photograph goes full width
+   and the money sits under the name rather than beside it. */
+@media (max-width:900px){
+  .nvart .rescard{flex-direction:column}
+  .nvart .rescard .rimgwrap{width:100%;flex:none;height:170px;min-height:0}
+  .nvart .rescard .rprice{width:100%;flex:none;border-left:none;
+    border-top:1px solid var(--rule-soft)}
+}
 .nvart .flcard{flex-direction:column}
 .nvart .flmain{padding:18px 20px}
 .nvart .flperf{margin:0 20px}
@@ -1631,7 +1642,7 @@ body.hasresults #minisearch{display:flex}
 /* The saving is the hook, so the saving is the biggest thing on the card.
    Leading with the member price made the block read as a second price tag;
    leading with what you keep makes it read as an offer. */
-.mgate{margin-top:12px;border:1px solid rgba(47,122,92,.34);border-radius:var(--r-sm);
+.mgate{width:100%;margin-top:12px;border:1px solid rgba(47,122,92,.34);border-radius:var(--r-sm);
   background:linear-gradient(168deg,#EAF4EE 0%,var(--live-soft) 62%);
   overflow:hidden;text-align:right}
 .mgate .mtop{padding:15px 16px 14px}
@@ -1912,7 +1923,9 @@ body.hasresults #minisearch{display:flex}
 .kv .v.mono{font-family:var(--mono);font-size:11px;letter-spacing:.03em}
 
 /* ============ TRIP ============ */
-#trip{display:flex;min-height:100%}
+/* Scoped to .on, because an id selector outranks .view{display:none} and
+   this view was rendering under every other one. */
+#trip.on{display:flex;min-height:100%}
 #tripcol{flex:1 1 auto;min-width:0;padding:16px 14px 16px 18px}
 #chatcol{width:380px;flex:0 0 380px;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--rule);border-radius:var(--r);margin:16px 18px 16px 0;overflow:hidden;position:sticky;top:16px;max-height:calc(100vh - var(--topbar) - var(--demobar) - 32px)}
 
@@ -2076,7 +2089,7 @@ body.hasresults #minisearch{display:flex}
 .mailpick .tagz{margin-top:9px;display:flex;gap:5px;flex-wrap:wrap}
 
 /* ============ OPERATOR ============ */
-#operator{display:flex;min-height:100%;gap:0}
+#operator.on{display:flex;min-height:100%;gap:0}
 #opqueue{width:288px;flex:0 0 288px;border-right:1px solid var(--rule-soft);display:flex;flex-direction:column;background:var(--surface)}
 #opqueue .qh{padding:16px}
 #opqueue .qh h3{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-dim);font-weight:400}
@@ -2276,7 +2289,7 @@ body.hasresults #minisearch{display:flex}
   .cgrid,.tgrid{grid-template-columns:repeat(2,1fr);gap:10px;padding:14px 14px 6px}
   #resultszone{padding:6px 14px 0}
   #proofstrip{margin:34px 14px 22px;padding:20px}
-  #trip{flex-direction:column}
+  #trip.on{flex-direction:column}
   #tripcol{padding:10px}
   #chatcol{width:auto;flex:none;margin:0 10px 12px;position:static;max-height:none}
   #msgs{min-height:280px;max-height:420px}
@@ -2345,7 +2358,7 @@ body.hasresults #minisearch{display:flex}
 .tcrow.win .tct{color:var(--live)}
 
 /* ============ AGENT CONSOLE: deliberately not the consumer product ============ */
-#operator{flex-direction:column;background:#06070A}
+#operator.on{flex-direction:column;background:#06070A}
 #operator .card,#operator .btn,#operator .pill,#operator .rbtn,#operator .sw{border-radius:2px}
 #operator .sw i{border-radius:1px}
 #opbody{display:flex;flex:1;min-height:0}
