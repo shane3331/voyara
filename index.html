@@ -712,7 +712,30 @@ img{display:block}
   background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;
   background-size:5px 5px,5px 5px;background-repeat:no-repeat}
 .pff textarea{resize:vertical;min-height:88px;line-height:1.55}
-.pff input[type=date]{color-scheme:light}
+
+/* A date input is the one control every browser draws its own way. iOS centres
+   the value, gives the field a different intrinsic height to a text input, and
+   renders an empty one as a completely blank box that reads as broken. All
+   three are fixed here rather than lived with. */
+.pff{position:relative}
+.pff input[type=date]{
+  color-scheme:light;-webkit-appearance:none;appearance:none;
+  text-align:left;min-height:49px;display:block;
+}
+.pff input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0;padding:0}
+.pff input[type=date]::-webkit-datetime-edit{text-align:left;padding:0}
+.pff input[type=date]::-webkit-calendar-picker-indicator{opacity:.4;cursor:pointer}
+.pff input[type=date]::-webkit-calendar-picker-indicator:hover{opacity:.75}
+/* Text fields match that height so a column of them lines up. */
+.pff input:not([type=date]),.pff select{min-height:49px}
+
+/* An empty date field says so. Placeholders are not allowed on a date input,
+   so the hint sits on the wrapper and is taken away the moment there is a value. */
+.pff.dateempty:after{
+  content:'Not set';position:absolute;left:16px;bottom:0;height:49px;
+  display:flex;align-items:center;font-size:15px;color:var(--faint);
+  pointer-events:none;font-family:var(--body)
+}
 
 #pfbar{position:sticky;bottom:0;z-index:20;display:flex;align-items:center;gap:14px;
   padding:16px clamp(20px,4vw,40px) calc(env(safe-area-inset-bottom,0) + 16px);
@@ -5399,6 +5422,11 @@ function cpOpen() {
     '</div></div>' +
     '<div class="mfoot"><button class="btn" data-close>Cancel</button>' +
     '<button class="btn primary" id="cpsave">Save</button></div>');
+  markEmptyDates($('#modal'));
+  $$('#modal input[type=date]').forEach(function (el) {
+    el.addEventListener('change', function () { markEmptyDates($('#modal')); });
+    el.addEventListener('input', function () { markEmptyDates($('#modal')); });
+  });
   $('#cpsave').addEventListener('click', function () {
     var body = {};
     ['fullName','relationship','dateOfBirth','passportNumber','passportCountry','passportExpiry','dietary']
@@ -5414,7 +5442,8 @@ function cpOpen() {
 }
 
 function fld(id, label, ph, type) {
-  return '<div class="pff"><label for="' + id + '">' + label + '</label>' +
+  return '<div class="pff' + (type === 'date' ? ' dateempty' : '') + '">' +
+    '<label for="' + id + '">' + label + '</label>' +
     '<input id="' + id + '" type="' + (type || 'text') + '" placeholder="' + esc(ph || '') + '"></div>';
 }
 
@@ -5489,6 +5518,8 @@ function pfPaint() {
     var el = $('#pf_' + f);
     if (el && p[f] != null) el.value = p[f];
   });
+
+  markEmptyDates($('#profile'));
 
   var name = p.fullName || (ME.email ? ME.email.split('@')[0] : '');
   $('#pfname').textContent = name || 'Your profile';
@@ -5608,6 +5639,15 @@ function pfReadPhoto(file) {
   reader.readAsDataURL(file);
 }
 
+// The hint is only correct while the field is empty, so it is recomputed on
+// every paint and on every keystroke rather than set once at render.
+function markEmptyDates(scope) {
+  $$('input[type=date]', scope || document).forEach(function (el) {
+    var wrap = el.closest ? el.closest('.pff') : el.parentNode;
+    if (wrap) wrap.classList.toggle('dateempty', !el.value);
+  });
+}
+
 function wireProfile() {
   $('#pfav').addEventListener('click', function () { $('#pffile').click(); });
   $('#pffile').addEventListener('change', function (e) {
@@ -5622,6 +5662,10 @@ function wireProfile() {
     el.addEventListener('input', function () {
       PF.dirty = true;
       pfSay('Unsaved changes', '');
+      if (el.type === 'date') markEmptyDates($('#profile'));
+    });
+    el.addEventListener('change', function () {
+      if (el.type === 'date') markEmptyDates($('#profile'));
     });
   });
   // Leaving with unsaved work should cost something, quietly.
