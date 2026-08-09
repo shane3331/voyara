@@ -5425,7 +5425,7 @@ function fld(id, label, ph, type) {
    under about 40KB and means nobody has to configure a storage bucket
    before a profile picture works.
    ============================================================ */
-var PF = { data: {}, dirty: false, loaded: false };
+var PF = { data: {}, dirty: false, loaded: false, loading: false };
 
 var PF_FIELDS = ['fullName','phone','dateOfBirth','homeAirport','passportNumber',
   'passportCountry','passportExpiry','knownTraveler','seatPref','bedPref',
@@ -5433,12 +5433,54 @@ var PF_FIELDS = ['fullName','phone','dateOfBirth','homeAirport','passportNumber'
 
 function pfLoad() {
   if (!ME.email) return;
+  if (PF.loading) return;
+  PF.loading = true;
+  pfSay('Loading your details', '');
+
   // No email in the URL. The server knows who is asking from the token.
-  apiFetch('/api/profile').then(function (r) { return r.json(); }).then(function (j) {
-    PF.data = (j && j.profile) || {};
+  apiFetch('/api/profile').then(function (r) {
+    return r.json().then(function (j) { return { code: r.status, j: j }; });
+  }).then(function (out) {
+    PF.loading = false;
+    if (out.code >= 400 || (out.j && out.j.error)) {
+      // A failed load must never be cached as a successful empty one. That is
+      // what made saved details look like they had never been saved: the
+      // fetch failed, the form stayed blank, and nothing ever tried again.
+      PF.loaded = false;
+      pfSay((out.j && out.j.detail) || 'Could not load your details.', 'no');
+      pfFailed(true);
+      return;
+    }
+    PF.data = (out.j && out.j.profile) || {};
     PF.loaded = true;
+    pfFailed(false);
+    pfSay('', '');
     pfPaint();
-  }).catch(function () { PF.loaded = true; pfPaint(); });
+  }).catch(function () {
+    PF.loading = false;
+    PF.loaded = false;
+    pfSay('Could not reach the server.', 'no');
+    pfFailed(true);
+  });
+}
+
+// A retry, rather than leaving somebody staring at an empty form wondering
+// whether they ever saved anything.
+function pfFailed(on) {
+  var bar = $('#pfbar');
+  if (!bar) return;
+  var btn = $('#pfretry');
+  if (on && !btn) {
+    btn = document.createElement('button');
+    btn.id = 'pfretry';
+    btn.textContent = 'Retry';
+    btn.style.cssText = 'padding:14px 22px;border-radius:99px;border:1px solid var(--rule);' +
+      'font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--text)';
+    btn.addEventListener('click', function () { pfFailed(false); pfLoad(); });
+    bar.insertBefore(btn, $('#pfsave'));
+  } else if (!on && btn) {
+    btn.remove();
+  }
 }
 
 function pfPaint() {
@@ -7518,7 +7560,13 @@ function switchView(v) {
   if (v === 'trip') { renderRateEngine(); renderFareWatch(); }
   if (v === 'profile') {
     if (!ME.email) { openAuth(); }
-    else { if (!PF.loaded) pfLoad(); else pfPaint(); cpLoad(); }
+    else {
+      // Repaint what we have immediately so the page is never blank, then
+      // reload unless a good copy is already in hand.
+      pfPaint();
+      if (!PF.loaded) pfLoad();
+      cpLoad();
+    }
   }
   if (v === 'year') { if (!ME.email) openAuth(); else lgLoad($('#lgyear').value || new Date().getFullYear()); }
 }
