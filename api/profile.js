@@ -1,18 +1,28 @@
-// GET  /api/profile?email=x   -> one profile
-// POST /api/profile           -> create or update it
+// GET  /api/profile          -> the caller's profile
+// POST /api/profile          -> create or update it
 //
 // Keyed on email because that is what the session carries. Everything is
 // optional: a member should be able to save a name and nothing else, come
 // back later, and add a passport when they need one.
+const { verifyCaller, dbConfigured, unauthorized } = require('./_auth');
+
 module.exports = async (req, res) => {
   res.setHeader('content-type', 'application/json');
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_KEY;
 
+  // This row holds a passport number and a date of birth. The email is taken
+  // from the verified token and never from the request, so asking for someone
+  // else's profile is not a thing this route can do.
+  let caller = null;
+  if (dbConfigured()) {
+    caller = await verifyCaller(req);
+    if (!caller) return unauthorized(res);
+  }
+
   if (req.method === 'GET') {
-    const email = String((req.query && req.query.email) || '').trim().toLowerCase();
-    if (!email) return res.status(400).end(JSON.stringify({ error: 'email is required' }));
     if (!url || !key) return res.status(200).end(JSON.stringify({ mode: 'mock', profile: null }));
+    const email = caller.email;
     try {
       const r = await fetch(
         url + '/rest/v1/profiles?select=*&email=eq.' + encodeURIComponent(email) + '&limit=1',
@@ -21,16 +31,20 @@ module.exports = async (req, res) => {
       const rows = await r.json();
       return res.status(200).end(JSON.stringify({ mode: 'live:supabase', profile: rows[0] ? shape(rows[0]) : null }));
     } catch (e) {
-      return res.status(200).end(JSON.stringify({ mode: 'mock', profile: null, warning: String(e.message).slice(0, 160) }));
+      return res.status(502).end(JSON.stringify({
+        error: 'db_unavailable',
+        detail: String(e.message).slice(0, 200)
+      }));
     }
   }
 
   if (req.method !== 'POST') return res.status(405).end(JSON.stringify({ error: 'GET or POST only' }));
 
   const b = await readJson(req);
-  const email = String(b.email || '').trim().toLowerCase();
+  // Whatever email the body claims is ignored.
+  const email = caller ? caller.email : '';
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-    return res.status(400).end(JSON.stringify({ error: 'a valid email is required' }));
+    return res.status(400).end(JSON.stringify({ error: 'a valid session is required' }));
   }
   for (const [v, label] of [[b.dateOfBirth, 'dateOfBirth'], [b.passportExpiry, 'passportExpiry']]) {
     if (v && !/^\d{4}-\d{2}-\d{2}$/.test(String(v))) {
