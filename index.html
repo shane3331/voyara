@@ -510,69 +510,77 @@ img{display:block}
    only. It is slow on purpose: a fast spinner reads as a computer working,
    a slow arc reads as a journey being planned, and the second one is the
    brand. */
+/* ============ THE PAPER PLANE ============
+   Every loading state in the product is this. A paper dart laying a dotted
+   contrail behind it, drawn along the path rather than wiped across it, so
+   the line appears exactly where the plane has already been.
+
+   The reveal is a mask: a copy of the same path stroked thick, with its dash
+   offset animated. Whatever the mask has drawn is where the dotted trail
+   shows. That is the only way to reveal a dashed line along its own curve,
+   because dasharray is already doing the dashes. */
 .fload{display:flex;flex-direction:column;align-items:center;justify-content:center;
-  padding:clamp(38px,7vw,72px) 22px;text-align:center}
-.fload svg{width:clamp(180px,42vw,268px);height:auto;display:block;overflow:visible}
+  padding:38px 20px;width:100%}
+.fload svg{width:clamp(200px,46vw,320px);height:auto;display:block;overflow:visible}
 
-.fl-arc{fill:none;stroke:var(--rule);stroke-width:1;stroke-dasharray:2 5;
-  stroke-linecap:round;opacity:.85}
-.fl-prog{fill:none;stroke:var(--text);stroke-width:1.1;stroke-linecap:round;
-  stroke-dasharray:var(--len,240);stroke-dashoffset:var(--len,240);
-  animation:flDraw 3.4s cubic-bezier(.55,0,.35,1) infinite}
-@keyframes flDraw{
-  0%{stroke-dashoffset:var(--len,240);opacity:0}
-  8%{opacity:1}
-  62%{stroke-dashoffset:0;opacity:1}
-  82%{stroke-dashoffset:0;opacity:1}
-  100%{stroke-dashoffset:0;opacity:0}
+.pp-trail{fill:none;stroke:var(--faint);stroke-width:1.1;stroke-linecap:round;
+  stroke-dasharray:1.5 6.5}
+.pp-reveal{fill:none;stroke:#fff;stroke-width:7;stroke-linecap:round;
+  stroke-dasharray:1000;stroke-dashoffset:1000;
+  animation:ppDraw 3.6s cubic-bezier(.42,0,.3,1) infinite}
+
+/* The dart. Two faces so it reads as folded paper rather than a triangle:
+   the lit upper surface and the shaded underside of the near wing. */
+.pp-plane{offset-path:var(--path);offset-rotate:auto;offset-distance:0%;
+  animation:ppFly 3.6s cubic-bezier(.42,0,.3,1) infinite}
+.pp-body{fill:var(--surface);stroke:var(--text);stroke-width:1.1;
+  stroke-linejoin:round;stroke-linecap:round}
+.pp-fold{fill:var(--rule);stroke:var(--text);stroke-width:1;stroke-linejoin:round}
+
+@keyframes ppDraw{
+  0%{stroke-dashoffset:1000}
+  72%{stroke-dashoffset:0}
+  100%{stroke-dashoffset:0}
 }
-
-.fl-node{fill:var(--ink);stroke:var(--text);stroke-width:1}
-.fl-node.b{opacity:0;animation:flLand 3.4s cubic-bezier(.55,0,.35,1) infinite}
-@keyframes flLand{0%,58%{opacity:0;r:2.2}66%{opacity:1;r:3.4}72%,100%{opacity:1;r:2.6}}
-
-.fl-ring{fill:none;stroke:var(--live);stroke-width:1;opacity:0;
-  animation:flRing 3.4s cubic-bezier(.2,.6,.2,1) infinite}
-@keyframes flRing{0%,60%{opacity:0;r:3}70%{opacity:.55;r:9}80%,100%{opacity:0;r:13}}
-
-.fl-plane{fill:var(--text);
-  offset-path:var(--path);offset-rotate:auto;offset-distance:0%;
-  animation:flFly 3.4s cubic-bezier(.55,0,.35,1) infinite}
-@keyframes flFly{
+@keyframes flDots{0%,100%{opacity:0}50%{opacity:1}}
+@keyframes ppFly{
   0%{offset-distance:0%;opacity:0}
-  8%{opacity:1}
-  62%{offset-distance:100%;opacity:1}
-  86%{offset-distance:100%;opacity:1}
-  100%{offset-distance:100%;opacity:0}
-}
-/* Older engines without offset-path still get a plane, sliding the arc's
-   chord rather than its curve. Less lovely, never broken. */
-@supports not (offset-path: path('M0 0')){
-  .fl-plane{animation:flSlide 3.4s cubic-bezier(.55,0,.35,1) infinite}
-  @keyframes flSlide{
-    0%{transform:translate(20px,54px);opacity:0}
-    8%{opacity:1}
-    62%{transform:translate(176px,54px);opacity:1}
-    86%{transform:translate(176px,54px);opacity:1}
-    100%{transform:translate(176px,54px);opacity:0}
-  }
+  6%{opacity:1}
+  72%{offset-distance:100%;opacity:1}
+  86%{offset-distance:100%;opacity:0}
+  100%{offset-distance:0%;opacity:0}
 }
 
 .fload .cap{font-family:var(--mono);font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;
-  color:var(--faint);margin-top:26px}
+  color:var(--faint);margin-top:24px;text-align:center}
 .fload .cap i{font-style:normal;animation:flDots 1.6s steps(1,end) infinite;opacity:0}
 .fload .cap i:nth-child(2){animation-delay:.4s}
 .fload .cap i:nth-child(3){animation-delay:.8s}
-@keyframes flDots{0%,74%{opacity:0}12%,72%{opacity:1}}
+
+.fload.sm{padding:26px 18px}
+.fload.sm svg{width:clamp(160px,38vw,230px)}
+.fload.sm .cap{margin-top:18px;font-size:9px}
+
+/* Where offset-path is unavailable the dart simply is not drawn. A trail
+   laying itself down still reads as working; a plane stuck at the origin
+   reads as broken. */
+@supports not (offset-path: path('M0 0 L1 1')){
+  .pp-plane{display:none}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .pp-reveal{animation:none;stroke-dashoffset:0}
+  .pp-plane{animation:none;offset-distance:100%}
+  .fload .cap i{animation:none;opacity:1}
+}
+}
 
 .fload.sm{padding:26px 18px}
 .fload.sm svg{width:clamp(140px,34vw,190px)}
 .fload.sm .cap{margin-top:18px;font-size:9px}
 
 @media (prefers-reduced-motion:reduce){
-  .fl-prog,.fl-plane,.fl-node.b,.fl-ring,.fload .cap i{animation:none}
-  .fl-prog{stroke-dashoffset:0}
-  .fl-plane{offset-distance:62%}
+
   .fload .cap i{opacity:1}
 }
 
@@ -1364,6 +1372,27 @@ body.hasresults #minisearch{display:flex}
 #calfoot .lg i.good{background:var(--live)}
 #calfoot .lg i.non{background:var(--rule)}
 #calnote{padding:12px clamp(18px,4vw,26px) 0;font-size:12px;color:var(--faint);line-height:1.5}
+
+/* ============ SEARCH FIELDS ============
+   Widths live here rather than inline, so a media query can actually change
+   them. Inline flex was why five hotel fields tried to share one phone width
+   and printed over each other. */
+.sfield.swide{flex:1 1 30%;min-width:150px}
+.sfield.shalf{flex:1 1 18%;min-width:120px}
+/* A label that wraps to two lines pushes its value out of the field. */
+.sfield .fk{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sfield .fv,.sfield input,.sfield select{min-width:0;overflow:hidden;text-overflow:ellipsis}
+
+@media (max-width:820px){
+  /* Destination takes a line of its own, then the short fields pair up. Two
+     dates side by side is the most a phone width can hold legibly. */
+  .sfield.swide{flex:1 1 100%;min-width:0;border-right:none}
+  .sfield.shalf{flex:1 1 50%;min-width:0}
+  .sfield.shalf:nth-of-type(even){border-right:none}
+  .sform.on .sgo{flex:1 1 100%}
+  .sfield{padding:12px 14px}
+  .sfield .fk{font-size:8px;letter-spacing:.1em}
+}
 
 /* ============ FLIGHT SEARCH FIELDS ============
    On a desktop these sit in a row. On a phone the two place fields take a
@@ -2509,11 +2538,11 @@ body.hasresults #minisearch{display:flex}
 
           <div id="searchforms" style="margin-top:12px">
             <div class="glass sform" id="sf-hotels">
-              <div class="sfield full" style="flex:1.5"><span class="fk">Where to</span><input id="hq" placeholder="Milan, Mykonos, Tokyo, Spain" value="Milan" autocomplete="off"></div>
-              <div class="sfield"><span class="fk">Check in</span><input id="hin" type="date" value="2026-09-13"></div>
-              <div class="sfield"><span class="fk">Check out</span><span class="fk" style="display:none"></span><input id="hout" type="date" value="2026-09-18"></div>
-              <div class="sfield" style="flex:.5"><span class="fk">Guests</span><input id="hg" type="number" min="1" max="8" value="2"></div>
-              <div class="sfield" style="flex:.9"><span class="fk">Standard</span>
+              <div class="sfield swide"><span class="fk">Where to</span><input id="hq" placeholder="Milan, Mykonos, Tokyo, Spain" value="Milan" autocomplete="off"></div>
+              <div class="sfield shalf"><span class="fk">Check in</span><input id="hin" type="date" value="2026-09-13"></div>
+              <div class="sfield shalf"><span class="fk">Check out</span><span class="fk" style="display:none"></span><input id="hout" type="date" value="2026-09-18"></div>
+              <div class="sfield shalf"><span class="fk">Guests</span><input id="hg" type="number" min="1" max="8" value="2"></div>
+              <div class="sfield shalf"><span class="fk">Standard</span>
                 <select id="hql">
                   <option value="luxury">Five star only</option>
                   <option value="premium" selected>Four star and above</option>
@@ -2538,13 +2567,13 @@ body.hasresults #minisearch{display:flex}
               <button class="sgo" data-search="flights">Search</button>
             </div>
             <div class="glass sform" id="sf-villas">
-              <div class="sfield full" style="flex:1.5"><span class="fk">Where</span><input id="vq" placeholder="Amalfi, Mykonos, Como, Provence"></div>
+              <div class="sfield swide"><span class="fk">Where</span><input id="vq" placeholder="Amalfi, Mykonos, Como, Provence"></div>
               <div class="sfield"><span class="fk">Sleeps</span><span class="fv">Any</span></div>
               <div class="sfield"><span class="fk">Held by</span><span class="fv">Voyara directly</span></div>
               <button class="sgo" data-search="villas">Show the collection</button>
             </div>
             <div class="glass sform" id="sf-experiences">
-              <div class="sfield full" style="flex:1.6"><span class="fk">What are you after</span><input id="xq" placeholder="A table, a boat, a vineyard, a court"></div>
+              <div class="sfield swide"><span class="fk">What are you after</span><input id="xq" placeholder="A table, a boat, a vineyard, a court"></div>
               <div class="sfield"><span class="fk">When</span><span class="fv">While in Milan</span></div>
               <button class="sgo" data-search="experiences">Search</button>
             </div>
@@ -7561,24 +7590,35 @@ function openModal(html, paperish) {
 function closeModal() { $('#scrim').classList.remove('on'); }
 
 // One loader, used everywhere something is being fetched. The path is
-// declared once and handed to both the stroke and the aircraft, so the plane
-// always traces exactly the line being drawn.
-var FL_PATH = 'M20 54 C 60 4, 140 4, 180 54';
-var FL_LEN = 183;   // measured length of that exact curve. A guess here
-// leaves the line visibly short when the aircraft lands, which is the sort
-// of small wrongness that reads as cheap without anyone knowing why.
+// declared once and handed to the trail, the mask and the dart, so all three
+// trace exactly the same line.
+//
+// pathLength="1000" on the mask means the dash maths needs no measurement of
+// the real curve. Guessing a length leaves the line visibly short when the
+// plane lands, which reads as cheap without anyone knowing why.
+
+// One continuous line, a small loop in it, climbing to the right. Drawn in
+// the same hand as the reference: nothing rendered but a hairline and a folded
+// dart at the end of it.
+var PP_PATH = 'M8 104 C46 104 66 78 92 72 C112 67 122 82 108 90 ' +
+  'C96 97 86 82 106 72 C138 56 176 66 212 52 C248 38 268 26 292 16';
 
 function flightLoader(caption, small) {
   return '<div class="fload' + (small ? ' sm' : '') + '" role="status" aria-live="polite">' +
-    '<svg viewBox="0 0 200 76" aria-hidden="true">' +
-      '<path class="fl-arc" d="' + FL_PATH + '"/>' +
-      '<path class="fl-prog" d="' + FL_PATH + '" style="--len:' + FL_LEN + '"/>' +
-      '<circle class="fl-node" cx="20" cy="54" r="2.6"/>' +
-      '<circle class="fl-ring" cx="180" cy="54" r="3"/>' +
-      '<circle class="fl-node b" cx="180" cy="54" r="2.6"/>' +
-      '<path class="fl-plane" d="M-5.6 0 L4.4 0 M4.4 0 L1.2 -2.6 M4.4 0 L1.2 2.6 M-2 0 L-4.4 -3.4 M-2 0 L-4.4 3.4" ' +
-        'stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" fill="none" ' +
-        'style="--path:path(\'' + FL_PATH + '\');color:var(--text)"/>' +
+    '<svg viewBox="0 0 300 120" aria-hidden="true">' +
+      '<defs><mask id="ppmask">' +
+        // White is what shows. This copy of the path draws itself, and the
+        // dotted trail beneath appears only where it has already been.
+        '<path class="pp-reveal" d="' + PP_PATH + '" pathLength="1000"/>' +
+      '</mask></defs>' +
+
+      '<path class="pp-trail" d="' + PP_PATH + '" mask="url(#ppmask)"/>' +
+
+      '<g class="pp-plane" style="--path:path(\'' + PP_PATH + '\')">' +
+        // Drawn around its own nose so it sits on the line and turns with it.
+        '<path class="pp-body" d="M11 0 L-9 -7.5 L-4.5 0 L-9 7.5 Z"/>' +
+        '<path class="pp-fold" d="M11 0 L-9 7.5 L-4.5 0 Z"/>' +
+      '</g>' +
     '</svg>' +
     '<div class="cap">' + (caption || 'Working') +
       '<i>.</i><i>.</i><i>.</i></div>' +
