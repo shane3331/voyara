@@ -266,7 +266,13 @@ img{display:block}
 .view.on{display:block}
 
 /* ============ HOME (consumer) ============ */
-#hero{position:relative;margin:16px 18px 0;border-radius:calc(var(--r) + 6px);overflow:hidden;min-height:560px;display:flex;flex-direction:column;align-items:center;justify-content:center;isolation:isolate}
+/* The kicker and the headline are anchored to the top of the hero with a
+   fixed lead, so they sit in exactly the same place whichever category is
+   open. Centring them, which is what this did, meant every change in the
+   height of the form below re-centred the whole stack and the headline
+   visibly jumped. The form grows downward from a fixed point instead.
+   min-height keeps the photograph a consistent size when the form is short. */
+#hero{position:relative;margin:16px 18px 0;border-radius:calc(var(--r) + 6px);overflow:hidden;min-height:560px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:72px 0 48px;isolation:isolate}
 #hero .bgimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2}
 /* No scrim. The photograph carries itself, which means the type over it
    has to be dark rather than white. */
@@ -1066,7 +1072,7 @@ body.demomode #demobadge{display:block}
 #hero .hcontrols{width:100%;display:flex;flex-direction:column;align-items:center}
 
 body.hasresults #hero{
-  min-height:0;margin-bottom:0;
+  min-height:0;margin-bottom:0;padding:0;
   border-bottom-left-radius:0;border-bottom-right-radius:0;
 }
 body.hasresults #hero .bgimg,
