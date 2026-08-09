@@ -50,6 +50,13 @@ dashes.
 Prices: always say the currency. When you have both a market rate and a member
 rate, give both and the difference, because that comparison is the product.
 
+WHAT THE INTERFACE DRAWS
+When you search hotels, flights or a fare calendar, the results appear in the
+conversation as real cards the person can look at and book from. So do not
+list them out in your reply. Say what matters about them, in a sentence or
+two: which one you would take and why, what the saving is, what to watch for.
+The cards carry the times, the prices and the buttons.
+
 MEMBERSHIP
 If the person is not a member and asks about hotel rates, tell them what
 members pay and what they would keep, and let them decide. Do not nag. Never
@@ -86,7 +93,7 @@ module.exports = async (req, res) => {
   const proto = String(req.headers['x-forwarded-proto'] || 'https');
   const origin = host ? proto + '://' + host : '';
 
-  const ctx = { caller, origin, used: [] };
+  const ctx = { caller, origin, used: [], artifacts: [] };
 
   // Prior turns, trimmed. The model needs the thread; it does not need all of it.
   const history = Array.isArray(body.history) ? body.history.slice(-MAX_HISTORY) : [];
@@ -104,6 +111,9 @@ module.exports = async (req, res) => {
       // What it actually looked at. The interface shows these, so a member can
       // see the answer came from records rather than from the model's memory.
       tools: ctx.used,
+      // The results themselves, for the interface to draw as real cards under
+      // the answer rather than as prose describing them.
+      artifacts: ctx.artifacts.slice(0, 3),
       rounds: out.rounds
     }));
   } catch (e) {
@@ -198,36 +208,61 @@ const TOOLS = [
     }
   },
   {
+    name: 'show_join_offer',
+    description: "Put the membership offer in the conversation as something the person can act on without leaving the chat. Call this when they ask how to join, ask what membership costs, or when you have just shown them a hotel saving they cannot have without being a member. Check get_membership first: never offer this to somebody who already has one.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        reason: { type: 'string', description: 'One short line on why it is worth it for this person, referring to what you just found. For example: this one stay would save you $512.' }
+      }
+    }
+  },
+  {
     name: 'get_membership',
     description: 'Whether this person is a visitor, has a free account, or is a paying member, and when it renews. Use before saying anything about what they can book or what they pay.',
     input_schema: { type: 'object', properties: {} }
   }
 ];
 
+// Tools whose output the interface can draw. Anything else is read by the
+// model and never reaches the browser.
+const DRAWABLE = { search_hotels: 'hotels', search_flights: 'flights', fare_calendar: 'calendar', get_signature: 'signature' };
+
 async function callTool(name, input, ctx) {
   ctx.used.push(name);
+
+  if (name === 'show_join_offer') {
+    ctx.artifacts.push({ type: 'join', reason: String((input && input.reason) || '').slice(0, 200) });
+    return { shown: true, note: 'The membership offer is now in the conversation with a button. Do not repeat the price in your reply; the card says it.' };
+  }
   const q = (o) => Object.keys(o)
     .filter((k) => o[k] !== undefined && o[k] !== null && o[k] !== '')
     .map((k) => encodeURIComponent(k) + '=' + encodeURIComponent(o[k])).join('&');
 
   try {
     if (name === 'search_hotels') {
-      return await getJson(ctx.origin + '/api/stays/search?' + q({
+      const j = await getJson(ctx.origin + '/api/stays/search?' + q({
         destination: input.destination, checkIn: input.checkIn, checkOut: input.checkOut,
         guests: input.guests || 2, quality: input.quality || 'premium'
       }));
+      draw(ctx, 'hotels', j, { destination: input.destination, checkIn: input.checkIn, checkOut: input.checkOut });
+      return j;
     }
     if (name === 'search_flights') {
-      return await getJson(ctx.origin + '/api/flights/search?' + q({
+      const j = await getJson(ctx.origin + '/api/flights/search?' + q({
         origin: up(input.origin), destination: up(input.destination),
         departOn: input.departOn, returnOn: input.returnOn, passengers: input.passengers || 1
       }));
+      draw(ctx, 'flights', j, { origin: up(input.origin), destination: up(input.destination), departOn: input.departOn });
+      return j;
     }
     if (name === 'fare_calendar') {
-      return await getJson(ctx.origin + '/api/flights/calendar?' + q({
+      const j = await getJson(ctx.origin + '/api/flights/calendar?' + q({
         origin: up(input.origin), destination: up(input.destination),
         month: input.month, passengers: input.passengers || 1
       }));
+      draw(ctx, 'calendar', j, { origin: up(input.origin), destination: up(input.destination) });
+      return j;
     }
     if (name === 'get_signature') {
       return await getJson(ctx.origin + '/api/signature' + (input.city ? '?city=' + encodeURIComponent(input.city) : ''));
@@ -365,6 +400,15 @@ async function getJson(url) {
   const text = await r.text();
   try { return JSON.parse(text); }
   catch (e) { throw new Error('that route returned ' + r.status + ', not JSON'); }
+}
+
+// Only worth drawing if there is something in it. An empty search is a
+// sentence, not a card.
+function draw(ctx, type, json, meta) {
+  if (!json || json.error) return;
+  const has = (json.offers && json.offers.length) || (json.days && json.days.length);
+  if (!has) return;
+  ctx.artifacts.push({ type, meta: meta || {}, data: json });
 }
 
 function up(v) { return String(v || '').toUpperCase().trim(); }
