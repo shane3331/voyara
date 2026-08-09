@@ -326,7 +326,9 @@ img{display:block}
    the date picker and the stepper in dark chrome, which is why those two
    fields never looked like the rest of the form. */
 .sfield input[type=date],.sfield input[type=number]{color-scheme:light;font-family:var(--body);cursor:pointer}
-.sfield input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:.5;cursor:pointer}
+/* Inverting the icon was right on a dark page and turns it white on a cream
+   one, which is why the calendar looked like an empty square. */
+.sfield input[type=date]::-webkit-calendar-picker-indicator{opacity:.4;cursor:pointer}
 .sfield select{background:none;border:none;outline:none;font-family:var(--body);font-size:14.5px;font-weight:300;color:var(--text);width:100%;cursor:pointer;appearance:none}
 .sfield select option{background:var(--surface);color:var(--text)}
 .sfield input[type=number]::-webkit-inner-spin-button{opacity:.4}
@@ -726,8 +728,7 @@ img{display:block}
    three are fixed here rather than lived with. */
 .pff{position:relative}
 .pff input[type=date]{
-  color-scheme:light;-webkit-appearance:none;appearance:none;
-  text-align:left;min-height:49px;display:block;
+  color-scheme:light;text-align:left;min-height:49px;display:block;width:100%;cursor:pointer;
 }
 .pff input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0;padding:0}
 .pff input[type=date]::-webkit-datetime-edit{text-align:left;padding:0}
@@ -741,10 +742,14 @@ img{display:block}
 input[type=number]{-moz-appearance:textfield;appearance:textfield}
 input[type=number]::-webkit-outer-spin-button,
 input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-/* Same for the date field in the search bar, which was clipping to "09/1". */
-.sfield input[type=date]{-webkit-appearance:none;appearance:none;min-width:0;width:100%}
+/* The search bar date field. No appearance:none here: it strips the native
+   segmented widget, and with it the ability to edit the day, month and year
+   separately. Width and alignment are enough to fix the clipping. */
+.sfield input[type=date]{min-width:0;width:100%;cursor:pointer}
 .sfield input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
-.sfield input[type=date]::-webkit-calendar-picker-indicator{opacity:.35;padding:0;margin:0}
+.sfield input[type=date]::-webkit-datetime-edit{padding:0}
+.sfield input[type=date]::-webkit-calendar-picker-indicator{opacity:.4;cursor:pointer}
+.sfield input[type=date]::-webkit-calendar-picker-indicator:hover{opacity:.8}
 
 /* An empty date field says so. Placeholders are not allowed on a date input,
    so the hint sits on the wrapper and is taken away the moment there is a value. */
@@ -3489,6 +3494,7 @@ var PLACE_DATA = [
 'Dubai|AE|DXB|','Abu Dhabi|AE|AUH|','Doha|QA|DOH|','Muscat|OM|MCT|oman',
 'Tel Aviv|IL|TLV|israel','Amman|JO|AMM|jordan petra','Beirut|LB|BEY|',
 'Marrakech|MA|RAK|marrakesh','Casablanca|MA|CMN|','Fez|MA|FEZ|',
+'Tangier|MA|TNG|tanger','Agadir|MA|AGA|','Essaouira|MA|ESU|','Rabat|MA|RBA|','Chefchaouen|MA|TNG|blue city','Merzouga|MA|ERH|sahara','Luxor|EG|LXR|',
 'Cairo|EG|CAI|egypt','Cape Town|ZA|CPT|','Johannesburg|ZA|JNB|',
 'Nairobi|KE|NBO|kenya safari','Zanzibar|TZ|ZNZ|','Kilimanjaro|TZ|JRO|tanzania',
 'Victoria Falls|ZW|VFA|','Seychelles|SC|SEZ|mahe','Mauritius|MU|MRU|',
@@ -3672,6 +3678,19 @@ function setTripType(t) {
     var on = b.getAttribute('data-trip') === TRIP.type;
     b.classList.toggle('on', on);
     b.setAttribute('aria-pressed', String(on));
+  });
+}
+
+// A date field is a small target if only its icon opens the picker. Clicking
+// anywhere in the field opens it, where the browser supports that, and typing
+// still works exactly as it would natively.
+function wireDatePickers() {
+  $$('input[type=date]').forEach(function (el) {
+    if (el.dataset.pickerWired) return;
+    el.dataset.pickerWired = '1';
+    el.addEventListener('click', function () {
+      if (el.showPicker) { try { el.showPicker(); } catch (e) { /* not allowed here */ } }
+    });
   });
 }
 
@@ -7723,6 +7742,7 @@ function boot() {
   wireMembership();
   wireAutocomplete();
   wireTripType();
+  wireDatePickers();
   wireProfile();
   wireYear();
   wireBrief();
