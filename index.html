@@ -4562,8 +4562,9 @@ function hotelCard(r) {
 
 // Re-attached after every re-render, because sorting and filtering rebuild
 // the list and listeners do not survive innerHTML.
-function wireCards() {
-  $$('#reslist [data-join]').forEach(function (b) {
+function wireCards(scope) {
+  var root = scope || $('#reslist') || document;
+  $$('[data-join]', root).forEach(function (b) {
     b.addEventListener('click', function (e) {
       e.stopPropagation();
       // Sending somebody who is already signed in back to a sign in sheet is
@@ -4572,7 +4573,7 @@ function wireCards() {
       else openAuth();
     });
   });
-  $$('#reslist .rbook').forEach(function (b) {
+  $$('.rbook', root).forEach(function (b) {
     b.addEventListener('click', function () {
       var hid = b.getAttribute('data-hotel');
       if (hid) return openProperty(hid);
@@ -4581,7 +4582,7 @@ function wireCards() {
         '<div class="mfoot"><button class="btn" data-close>Close</button></div>');
     });
   });
-  $$('#reslist .flbook').forEach(function (b) {
+  $$('.flbook', root).forEach(function (b) {
     b.addEventListener('click', function () {
       openModal('<div class="mhead"><h3 class="disp">Booking is approval gated</h3><button class="x" data-close>&#10005;</button></div>' +
         '<div class="mbody"><p style="font-size:13.5px;line-height:1.6">A fare is held and re-priced before anything is charged. You approve the exact number before it books.</p></div>' +
@@ -5371,7 +5372,7 @@ function nvArtifacts(host, arts) {
   });
 
   host.innerHTML = html;
-  wireCards();
+  wireCards(host);
   $$('[data-nvjoin]', host).forEach(function (b) {
     b.addEventListener('click', function () { openMembership(); });
   });
@@ -5889,15 +5890,14 @@ var OB = { i: 0, n: 5, done: false };
    pitch does not lose it on the first navigation.
    ============================================================ */
 function initMode() {
+  // Demo mode lasts exactly as long as ?demo=1 is in the address bar. It used
+  // to stick to the session, which meant loading the plain URL still showed
+  // the operator console and the proof layer, and there was no obvious way
+  // out. Sticky is the wrong default for a mode that changes what the product
+  // appears to be.
   var on = false;
-  try {
-    if (/[?&]demo=1/.test(window.location.search)) {
-      on = true;
-      window.sessionStorage.setItem('voyara.demo', '1');
-    } else if (window.sessionStorage.getItem('voyara.demo') === '1') {
-      on = true;
-    }
-  } catch (e) { on = /[?&]demo=1/.test(window.location.search); }
+  try { on = /[?&]demo=1/.test(window.location.search); } catch (e) { on = false; }
+  try { window.sessionStorage.removeItem('voyara.demo'); } catch (e) {}
   document.body.classList.toggle('demomode', on);
   return on;
 }
@@ -5905,6 +5905,13 @@ function initMode() {
 function exitDemo() {
   try { window.sessionStorage.removeItem('voyara.demo'); } catch (e) {}
   document.body.classList.remove('demomode');
+  // Take the flag out of the address bar too, or a reload puts it straight
+  // back and it looks like leaving demo mode did not work.
+  try {
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  } catch (e) {}
   switchView('home');
 }
 
