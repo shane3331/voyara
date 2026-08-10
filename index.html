@@ -4505,6 +4505,11 @@ function paintSaveBar(data) {
     '<button data-join="1">See member rates</button></div>';
   if (anchor) anchor.insertAdjacentHTML('afterend', html);
   else zone.insertAdjacentHTML('afterbegin', html);
+  // This bar is inserted into #resultszone, but wireCards defaults its scope to
+  // #reslist, so its join button was never given a listener and did nothing
+  // when pressed. Wire the bar itself rather than relying on the default.
+  var bar = zone.querySelector('.savebar');
+  if (bar) wireCards(bar);
 }
 
 // Reads a formatted amount back to minor units. Intl puts the symbol in
@@ -7163,9 +7168,20 @@ function beginPayment() {
       return;
     }
     if (!j || !j.clientSecret) {
-      memSay(j && j.mode === 'mock'
-        ? 'Payments are not connected yet.'
-        : (j && (j.detail || j.error)) || 'Checkout is unavailable.', 'no');
+      var why;
+      if (j && j.mode === 'mock') {
+        // The route already knows exactly which variables it could not find.
+        // Saying "not connected yet" hid that and sent us looking in three
+        // places, so it now names them.
+        why = (j.missing && j.missing.length)
+          ? 'Not reaching the server: ' + j.missing.join(', ') + '. Set it for Production, then redeploy.'
+          : 'Payments are not connected yet.';
+      } else if (j && j.error === 'sign_in_required') {
+        why = 'Sign in first, so the membership attaches to your account.';
+      } else {
+        why = (j && (j.detail || j.error)) || 'Checkout is unavailable.';
+      }
+      memSay(why, 'no');
       resetOfferButton();
       return;
     }
