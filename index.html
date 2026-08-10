@@ -4522,6 +4522,21 @@ function esc(v) {
     .replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+// Which supplier a rate came from is our business, not the traveler's. The
+// adapter mode used to be printed raw, so every property page announced the
+// bedbank by name. It still reaches the audit chain, where it belongs.
+//
+// It cannot simply be deleted from the interface though: the same field is
+// what distinguishes a real rate from a sample one, and a sample price shown
+// as if it were real is a lie. So a live feed says nothing at all, and
+// anything that is NOT live has to announce itself. Unknown values fall to
+// the honest side deliberately.
+function sourceLabel(mode) {
+  var m = String(mode == null ? '' : mode).toLowerCase();
+  if (m.indexOf('live') === 0) return '';
+  return 'Sample data, not live rates';
+}
+
 // Image errors do not bubble, so the listener is captured rather than
 // delegated the usual way. One listener covers every card ever rendered.
 document.addEventListener('error', function (e) {
@@ -5071,7 +5086,8 @@ function renderResults(type, live) {
   var extraBtn = type === 'flights' ? '<button class="viewall" id="totalcostbtn" style="margin-right:8px">What it really costs</button>' : '';
   var h = '<div class="hsec" style="padding-top:26px"><div class="hh"><div>' +
     '<h2 class="disp" style="font-size:24px">' + head + '</h2>' +
-    '<div class="hsub">' + srcMode + ' . ' + (live && live.qualityLabel ? live.qualityLabel : 'four star and above') +
+    '<div class="hsub">' + (sourceLabel(srcMode) ? sourceLabel(srcMode) + ' . ' : '') +
+    (live && live.qualityLabel ? live.qualityLabel : 'four star and above') +
     ' . sorted by quality, not price</div>' +
     (live && live.relaxed
       ? '<div class="hsub" style="color:var(--warn)">Not enough properties met that standard here, so the floor was relaxed. Every result is still shown with its rating.</div>'
@@ -5652,7 +5668,7 @@ function paintProperty() {
   var chips = (h.stars ? '<span class="pill">' + h.stars + ' star</span>' : '') +
     (h.rating ? '<span class="pill live"><span class="bd"></span>' + h.rating + ' rated</span>' : '') +
     ((h.checkinTime || h.checkoutTime) ? '<span class="pill">In ' + (h.checkinTime || '?') + ' . Out ' + (h.checkoutTime || '?') + '</span>' : '') +
-    '<span class="pill nav"><span class="bd"></span>' + PROP.mode + '</span>';
+    (sourceLabel(PROP.mode) ? '<span class="pill warn">' + sourceLabel(PROP.mode) + '</span>' : '');
 
   $('#pinner').innerHTML = gal +
     '<div id="phead"><h2 class="disp">' + h.name + '</h2>' +
@@ -5843,7 +5859,7 @@ function stepConfirmed() {
     '<div class="cnote">The booking was retrieved back from the supplier and compared to what you approved before we called it confirmed. ' +
     'It is written into the audit chain' + (b.tripFiled ? ', filed as a trip in your account,' : '') + ' and now monitored.</div>' +
     '<div style="margin-top:22px;display:flex;gap:9px;justify-content:center;flex-wrap:wrap">' +
-    '<span class="pill">' + (PROP.mode || '') + '</span>' +
+    (sourceLabel(PROP.mode) ? '<span class="pill warn">' + sourceLabel(PROP.mode) + '</span>' : '') +
     '<span class="pill live"><span class="bd"></span>Verified against the supplier</span></div>' +
     '<button class="btn" id="doneBtn" style="margin-top:26px">Back to search</button></div>';
   $('#doneBtn').addEventListener('click', closeProperty);
