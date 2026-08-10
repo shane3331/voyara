@@ -88,7 +88,9 @@ module.exports = async (req, res) => {
       form.set('metadata[tier]', 'founding');
       form.set('metadata[email]', email);
       form.set('metadata[source]', String(body.source || 'site').slice(0, 40));
-      form.set('subscription_data[metadata][tier]', 'founding');
+      // No subscription_data here. That parameter belongs to a Checkout
+      // Session, and the Subscriptions API rejects the whole request for it.
+      // metadata above is already set on the subscription itself.
 
       sub = await stripe(sk, 'POST', '/v1/subscriptions', form, {
         // Two taps on a slow connection must not become two subscriptions.
