@@ -2,14 +2,22 @@
 //
 // The membership is the business model. Commission goes back to the traveller,
 // so this subscription is what actually funds the platform.
+const { verifyCaller, dbConfigured } = require('./_auth');
+const { guard } = require('./_guard');
+
 module.exports = async (req, res) => {
+  if (guard(req, res, { limit: { name: 'checkout', max: 8, windowMs: 60000 } })) return;
   res.setHeader('content-type', 'application/json');
   if (req.method !== 'POST') return res.status(405).end(JSON.stringify({ error: 'POST only' }));
 
   const sk = process.env.STRIPE_SECRET_KEY;
   const price = process.env.STRIPE_PRICE_ID;
   const body = await readJson(req);
-  const email = String(body.email || '').trim().toLowerCase();
+  // The membership belongs to whoever is signed in, not to whatever address
+  // the request supplies, or somebody can buy a membership onto another
+  // person's account.
+  const caller = dbConfigured() ? await verifyCaller(req) : null;
+  const email = caller ? caller.email : String(body.email || '').trim().toLowerCase();
 
   if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
     return res.status(400).end(JSON.stringify({ error: 'that does not look like an email address' }));

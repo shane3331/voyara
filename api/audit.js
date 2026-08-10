@@ -7,7 +7,11 @@
 const crypto = require('crypto');
 const GENESIS = '0'.repeat(64);
 
+const { verifyCaller, dbConfigured } = require('./_auth');
+const { guard } = require('./_guard');
+
 module.exports = async (req, res) => {
+  if (guard(req, res, { limit: { name: 'audit', max: 30, windowMs: 60000 } })) return;
   res.setHeader('content-type', 'application/json');
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_KEY;
@@ -43,6 +47,13 @@ module.exports = async (req, res) => {
   }
 
   try {
+    // The ledger names members, bookings and trips. Reading it is an
+    // operations job, not something a passer by should be able to do.
+    if (dbConfigured() && !(await verifyCaller(req))) {
+      return res.status(401).end(JSON.stringify({
+        error: 'unauthorized', detail: 'The audit ledger is not public.'
+      }));
+    }
     const r = await fetch(url + '/rest/v1/audit_events?select=*&order=seq.asc&limit=500', { headers: auth(key) });
     if (!r.ok) throw new Error('supabase ' + r.status);
     const rows = await r.json();

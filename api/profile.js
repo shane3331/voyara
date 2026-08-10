@@ -1,3 +1,5 @@
+const { guard } = require('./_guard');
+
 // GET  /api/profile          -> the caller's profile
 // POST /api/profile          -> create or update it
 //
@@ -7,6 +9,7 @@
 const { verifyCaller, dbConfigured, unauthorized } = require('./_auth');
 
 module.exports = async (req, res) => {
+  if (guard(req, res, { limit: { name: 'profile', max: 40, windowMs: 60000 } })) return;
   res.setHeader('content-type', 'application/json');
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_KEY;

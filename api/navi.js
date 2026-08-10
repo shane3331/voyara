@@ -1,3 +1,5 @@
+const { guard } = require('./_guard');
+
 // POST /api/navi   { message, history? }
 //
 // The real Navi. A frontier model with tools pointed at this product's own
@@ -64,6 +66,7 @@ imply somebody has a booking, a membership or a saving that the tools do not
 show.`;
 
 module.exports = async (req, res) => {
+  if (guard(req, res, { limit: { name: 'navi', max: 20, windowMs: 60000 } })) return;
   res.setHeader('content-type', 'application/json');
   if (req.method !== 'POST') return res.status(405).end(JSON.stringify({ error: 'POST only' }));
 

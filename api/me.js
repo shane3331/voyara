@@ -1,3 +1,5 @@
+const { guard } = require('./_guard');
+
 // GET /api/me
 //
 // Who is asking, and what are they entitled to. There are three states and
@@ -16,6 +18,7 @@ const { verifyCaller, dbConfigured, unauthorized } = require('./_auth');
 const ACTIVE = ['active', 'trialing', 'past_due'];
 
 module.exports = async (req, res) => {
+  if (guard(req, res, { limit: { name: 'me', max: 60, windowMs: 60000 } })) return;
   res.setHeader('content-type', 'application/json');
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_KEY;

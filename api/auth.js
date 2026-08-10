@@ -1,3 +1,5 @@
+const { guard } = require('./_guard');
+
 // POST /api/auth  { action: 'send' | 'verify', email, token? }
 //
 // Passwordless sign in through Supabase Auth, proxied rather than called
@@ -7,6 +9,7 @@
 //   send    emails a six digit code
 //   verify  exchanges the code for a session
 module.exports = async (req, res) => {
+  if (guard(req, res, { limit: { name: 'auth', max: 8, windowMs: 60000 } })) return;
   res.setHeader('content-type', 'application/json');
   if (req.method !== 'POST') return res.status(405).end(JSON.stringify({ error: 'POST only' }));
 
@@ -64,6 +67,10 @@ module.exports = async (req, res) => {
       session: {
         email: (j.user && j.user.email) || email,
         userId: (j.user && j.user.id) || null,
+        // Handed to the browser so it can prove who it is on later requests.
+        // Without this every protected route would be back to trusting an
+        // email typed into a URL.
+        accessToken: j.access_token || null,
         expiresIn: j.expires_in || 3600
       }
     }));

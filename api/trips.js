@@ -1,3 +1,5 @@
+const { guard } = require('./_guard');
+
 const { verifyCaller, dbConfigured, unauthorized } = require('./_auth');
 
 // GET  /api/trips?email=x   -> a traveller's trips with their reservations
@@ -9,6 +11,7 @@ const { verifyCaller, dbConfigured, unauthorized } = require('./_auth');
 const crypto = require('crypto');
 
 module.exports = async (req, res) => {
+  if (guard(req, res, { limit: { name: 'trips', max: 40, windowMs: 60000 } })) return;
   res.setHeader('content-type', 'application/json');
 
   // Identity comes from the verified token. A route that takes an email from
