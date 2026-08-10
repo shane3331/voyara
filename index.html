@@ -1122,6 +1122,71 @@ body.hasresults #minisearch{display:flex}
 #searchveil.on{display:flex;opacity:1}
 #searchveil .fload{padding:0}
 
+/* ============ LIVE FLIGHT ============
+   A flight in progress, not a flight for sale. The search card sells you a
+   seat; this one tells you where you are. It is the "operated" promise made
+   visible, and it is the only card in the product that changes while you
+   are looking at it. */
+#liveflight{margin:0 0 12px}
+.lfcard{border:1px solid var(--rule);border-radius:var(--r);background:var(--surface);
+  padding:22px 24px 20px}
+.lfhead{display:flex;align-items:center;gap:10px;margin-bottom:20px}
+.lfstate{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:8.5px;
+  letter-spacing:.15em;text-transform:uppercase;color:var(--live)}
+.lfstate i{width:6px;height:6px;border-radius:50%;background:var(--live);
+  box-shadow:0 0 0 0 rgba(47,122,92,.45);animation:lfPulse 2.4s infinite}
+.lfstate.warn{color:var(--warn)}
+.lfstate.warn i{background:var(--warn);box-shadow:0 0 0 0 rgba(154,106,28,.45)}
+.lfstate.done{color:var(--mute)}
+.lfstate.done i{background:var(--mute);animation:none;box-shadow:none}
+@keyframes lfPulse{
+  0%{box-shadow:0 0 0 0 rgba(47,122,92,.4)}
+  70%{box-shadow:0 0 0 7px rgba(47,122,92,0)}
+  100%{box-shadow:0 0 0 0 rgba(47,122,92,0)}
+}
+.lfnum{margin-left:auto;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--faint)}
+
+.lfends{display:flex;align-items:flex-start;gap:16px}
+.lfend{flex:0 1 auto;min-width:0;display:flex;flex-direction:column}
+.lfend.to{margin-left:auto;align-items:flex-end;text-align:right}
+.lfend .city{display:block;font-size:13px;color:var(--mute);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.lfend .code{display:block;font-family:var(--serif);font-size:clamp(26px,5vw,32px);
+  line-height:1;letter-spacing:.01em;color:var(--text);margin-top:7px}
+.lfend .time{display:block;font-size:17px;color:var(--text);margin-top:10px}
+.lfend .time s{font-family:var(--mono);font-size:12px;color:var(--faint);
+  text-decoration:line-through;margin-right:6px}
+
+/* The track. A solid line for the distance already flown, a dotted one for
+   what is left, and the dart sitting exactly on the join. */
+.lftrack{flex:1;min-width:70px;position:relative;height:34px;margin-top:26px}
+.lftrack .flown{position:absolute;left:0;top:16px;height:1.5px;background:var(--text);
+  border-radius:2px;transition:width 1s cubic-bezier(.3,0,.2,1)}
+.lftrack .left{position:absolute;right:0;top:16px;height:1px;
+  background:repeating-linear-gradient(90deg,var(--rule) 0 3px,transparent 3px 7px);
+  transition:width 1s cubic-bezier(.3,0,.2,1)}
+.lftrack .dart{position:absolute;top:8px;width:19px;height:19px;color:var(--gold);
+  transform:translateX(-50%);transition:left 1s cubic-bezier(.3,0,.2,1)}
+.lftrack .dart svg{width:100%;height:100%;display:block}
+
+.lfleft{display:flex;justify-content:center;margin-top:16px}
+.lfleft span{display:inline-flex;align-items:center;gap:8px;padding:8px 15px;border-radius:99px;
+  background:var(--raised2);border:1px solid var(--rule);
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--text-dim)}
+.lfnote{font-size:13.5px;color:var(--mute);line-height:1.55;margin-top:16px;
+  padding-top:14px;border-top:1px solid var(--rule-soft)}
+
+@media (max-width:820px){
+  .lfcard{padding:18px 18px 16px}
+  .lfend .code{font-size:26px}
+  .lftrack{min-width:44px}
+}
+@media (prefers-reduced-motion:reduce){
+  .lfstate i{animation:none}
+  .lftrack .flown,.lftrack .left,.lftrack .dart{transition:none}
+}
+
 /* ============ NAVI ============
    Its own space rather than a panel bolted to a trip. Opens on a single
    question, and the results of that question arrive underneath as the same
@@ -2857,6 +2922,7 @@ body.navilock #stage{overflow:hidden}
           </div>
 
           <div id="alertzone"></div>
+          <div id="liveflight"></div>
 
           <div class="tlwrap">
             <div class="cardhead">
@@ -7377,6 +7443,134 @@ function escapeHtml(s) {
 /* ============================================================
    TRAVELER RENDER
    ============================================================ */
+/* ============================================================
+   LIVE FLIGHT
+   The flight you are on, or the next one you are due on. Everything else in
+   the product is a list of options; this is the one card that answers "where
+   am I" without being asked.
+   ============================================================ */
+var LF = { timer: null };
+
+// Segments carry clock times and a day label rather than timestamps, so build
+// a real date from them against the trip's year.
+function lfWhen(day, hhmm, year) {
+  var months = { JAN:0,FEB:1,MAR:2,APR:3,MAY:4,JUN:5,JUL:6,AUG:7,SEP:8,OCT:9,NOV:10,DEC:11 };
+  var p = String(day || '').trim().split(/\s+/);
+  var t = String(hhmm || '').split(':');
+  if (p.length < 2 || t.length < 2) return null;
+  var m = months[p[1].toUpperCase().slice(0, 3)];
+  if (m == null) return null;
+  var d = new Date(year || 2026, m, Number(p[0]), Number(t[0]), Number(t[1]), 0, 0);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function lfPick(now) {
+  var flights = SEGS.filter(function (s) { return s.kind === 'FLIGHT'; });
+  var built = flights.map(function (s) {
+    var dep = lfWhen(s.depDay, s.newDep || s.dep, 2026);
+    var arr = lfWhen(s.arrDay, s.newArr || s.arr, 2026);
+    // A flight landing before it departs has crossed midnight.
+    if (dep && arr && arr <= dep) arr = new Date(arr.getTime() + 86400000);
+    return { s: s, dep: dep, arr: arr };
+  }).filter(function (x) { return x.dep && x.arr; });
+  if (!built.length) return null;
+
+  // In the air wins. Otherwise the next one to leave. Otherwise the last one
+  // to land, so the card still says something after a trip is over.
+  var flying = built.filter(function (x) { return now >= x.dep && now <= x.arr; })[0];
+  if (flying) return flying;
+  var upcoming = built.filter(function (x) { return x.dep > now; })
+    .sort(function (a, b) { return a.dep - b.dep; })[0];
+  if (upcoming) return upcoming;
+  return built.sort(function (a, b) { return b.arr - a.arr; })[0];
+}
+
+function lfDur(ms) {
+  var mins = Math.max(0, Math.round(ms / 60000));
+  var h = Math.floor(mins / 60), m = mins % 60;
+  return h ? h + 'h ' + ('0' + m).slice(-2) + 'm' : m + 'm';
+}
+
+function renderLiveFlight() {
+  var host = $('#liveflight');
+  if (!host) return;
+  var now = new Date();
+  var pick = lfPick(now);
+  if (!pick) { host.innerHTML = ''; return; }
+
+  var s = pick.s, dep = pick.dep, arr = pick.arr;
+  var total = arr - dep;
+  var state, label, pct, note, cls = '';
+
+  if (now < dep) {
+    pct = 0;
+    var until = dep - now;
+    state = 'Not departed';
+    label = lfDur(until) + ' until departure';
+    note = s.gate
+      ? 'Gate ' + s.gate + (s.term ? ', terminal ' + s.term : '') + '. We are watching it and will tell you if it moves.'
+      : 'We are watching this flight and will tell you if anything moves.';
+    if (s.status === 'DELAYED') { cls = 'warn'; state = 'Delayed ' + s.delay + ' min'; }
+    if (s.status === 'AT RISK') { cls = 'warn'; state = 'Connection at risk'; }
+  } else if (now <= arr) {
+    pct = Math.max(0, Math.min(100, ((now - dep) / total) * 100));
+    state = 'In the air';
+    label = lfDur(arr - now) + ' remaining';
+    note = 'Landing at ' + esc(s.toCity || s.to) + '. Your next reservation is held and does not need confirming.';
+  } else {
+    pct = 100; cls = 'done';
+    state = 'Landed';
+    label = 'Landed ' + esc(s.newArr || s.arr);
+    note = 'Arrived at ' + esc(s.toCity || s.to) + '.';
+  }
+
+  var delayed = s.delay > 0;
+  host.innerHTML =
+    '<div class="lfcard">' +
+      '<div class="lfhead">' +
+        '<span class="lfstate ' + cls + '"><i></i>' + esc(state) + '</span>' +
+        '<span class="lfnum">' + esc(s.num || '') + '</span>' +
+      '</div>' +
+
+      '<div class="lfends">' +
+        '<span class="lfend">' +
+          '<span class="city">' + esc(s.fromCity || '') + '</span>' +
+          '<span class="code">' + esc(s.from || '') + '</span>' +
+          '<span class="time">' +
+            (delayed ? '<s>' + esc(s.dep) + '</s>' : '') + esc(s.newDep || s.dep) + '</span>' +
+        '</span>' +
+
+        '<span class="lftrack">' +
+          '<span class="flown" style="width:' + pct.toFixed(1) + '%"></span>' +
+          '<span class="left" style="width:' + (100 - pct).toFixed(1) + '%"></span>' +
+          '<span class="dart" style="left:' + pct.toFixed(1) + '%">' + PLANE_SVG + '</span>' +
+        '</span>' +
+
+        '<span class="lfend to">' +
+          '<span class="city">' + esc(s.toCity || '') + '</span>' +
+          '<span class="code">' + esc(s.to || '') + '</span>' +
+          '<span class="time">' +
+            (delayed ? '<s>' + esc(s.arr) + '</s>' : '') + esc(s.newArr || s.arr) + '</span>' +
+        '</span>' +
+      '</div>' +
+
+      '<div class="lfleft"><span>' + esc(label) + '</span></div>' +
+      '<div class="lfnote">' + note + '</div>' +
+    '</div>';
+}
+
+// Redrawn on a slow tick. A minute is the smallest unit shown, so anything
+// faster is work nobody can see, and the interval is dropped the moment the
+// trip view is not open.
+function startLiveFlight() {
+  stopLiveFlight();
+  renderLiveFlight();
+  LF.timer = setInterval(renderLiveFlight, 30000);
+}
+function stopLiveFlight() {
+  if (LF.timer) { clearInterval(LF.timer); LF.timer = null; }
+}
+
 function renderTimeline() {
   var h = '';
   SEGS.forEach(function (s) {
@@ -8684,6 +8878,7 @@ function switchView(v) {
   // The lock belongs to Navi alone. Leaving it set would freeze every other
   // page, which is a far worse bug than the one it fixes.
   if (v !== 'navi') document.body.classList.remove('navilock');
+  if (v === 'trip') startLiveFlight(); else stopLiveFlight();
   S.view = v;
   $$('.view').forEach(function (n) { n.classList.toggle('on', n.id === v); });
   $$('.stab').forEach(function (n) { n.classList.toggle('on', n.getAttribute('data-view') === v); });
