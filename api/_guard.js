@@ -48,30 +48,66 @@ function rateLimited(req, res, { name, max, windowMs }) {
 // Only our own site may call these routes from a browser. Server to server
 // callers send no Origin at all and are unaffected, which is what lets Stripe
 // and the cron keep working.
+//
+// NOTE, learned the hard way: do NOT fall back to VERCEL_URL here. That is the
+// deployment-specific hostname, a new random one on every deploy, and it is
+// never the address anyone actually visits. Using it as the allowlist meant the
+// list was non-empty but contained only a hostname no browser would ever send,
+// so every POST from the live site was refused with a 403. Configured origins
+// are additions only. Our own origin is decided below, by the request itself.
 function allowedOrigins() {
   const extra = String(process.env.ALLOWED_ORIGINS || '')
     .split(',').map((s) => s.trim()).filter(Boolean);
-  const site = process.env.SITE_URL || process.env.VERCEL_URL;
+  const site = String(process.env.SITE_URL || '').trim();
   const own = site ? [site.startsWith('http') ? site : 'https://' + site] : [];
-  return own.concat(extra);
+  return own.concat(extra).map(stripTrailingSlash);
+}
+
+function stripTrailingSlash(s) {
+  return String(s || '').replace(/\/+$/, '');
+}
+
+// An origin whose host is the host this request was sent to is same-origin by
+// definition. That is our own page talking to our own API, and no allowlist
+// gets a vote on it. This is what makes the check impossible to misconfigure
+// into locking the owner out of the site: every preview deployment, every
+// custom domain and every rename keeps working with no env var set at all.
+function isSameOrigin(req, origin) {
+  const host = String(req.headers['x-forwarded-host'] || req.headers.host || '')
+    .trim().toLowerCase();
+  if (!host) return false;
+  let originHost;
+  try {
+    originHost = new URL(origin).host.toLowerCase();
+  } catch (e) {
+    return false;
+  }
+  return originHost === host;
 }
 
 function originBlocked(req, res) {
   const origin = req.headers.origin;
   if (!origin) return false;                 // not a browser cross-site call
+
+  const clean = stripTrailingSlash(origin);
   const list = allowedOrigins();
-  // With nothing configured we cannot tell our own origin from anyone else's,
-  // so allow rather than lock the owner out of their own site by accident.
-  if (!list.length) return false;
-  const ok = list.some((o) => origin === o) ||
-    /^https?:\/\/localhost(:\d+)?$/.test(origin);
+
+  const ok =
+    isSameOrigin(req, origin) ||
+    list.some((o) => clean === o) ||
+    /^https?:\/\/localhost(:\d+)?$/.test(clean);
+
   if (ok) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Vary', 'Origin');
     return false;
   }
+
   res.setHeader('content-type', 'application/json');
-  res.status(403).end(JSON.stringify({ error: 'origin_not_allowed' }));
+  res.status(403).end(JSON.stringify({
+    error: 'origin_not_allowed',
+    detail: 'This API only accepts browser requests from its own site.'
+  }));
   return true;
 }
 
