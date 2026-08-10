@@ -836,6 +836,36 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 #memmsg{font-size:12.5px;text-align:center;margin-top:12px;min-height:16px;color:var(--faint)}
 #memmsg.no{color:var(--warn)}
 
+/* ---- embedded payment ----
+   The card field is a Stripe iframe, which is what keeps card numbers out of
+   this page and out of PCI scope. Everything around it is ours, and the
+   Appearance API carries our type and colour inside it, so the traveller
+   never sees a Stripe surface or leaves the site. */
+#mempay{display:none;margin-top:20px;padding-top:20px;border-top:1px solid var(--rule-soft)}
+#memsheet.paying #mempay{display:block}
+#memsheet.paying #memlist{display:none}
+#memsheet.paying #memsub{display:none}
+#mempayhd{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px}
+#mempayhd .t{font-family:var(--mono);font-size:9px;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--mute)}
+#mempayhd .a{font-family:var(--serif);font-size:19px;color:var(--text)}
+#memback{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--faint);margin-top:14px;width:100%;text-align:center}
+#memback:hover{color:var(--mute)}
+#memsecure{display:flex;align-items:center;justify-content:center;gap:7px;margin-top:14px;
+  font-family:var(--mono);font-size:8.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--faint)}
+#memsecure svg{width:11px;height:11px}
+#memdone{display:none;text-align:center;padding:8px 0 4px}
+#memsheet.done #memdone{display:block}
+#memsheet.done #memlist,#memsheet.done #memprice,#memsheet.done #memgo,
+#memsheet.done #memnote,#memsheet.done #memsub,#memsheet.done #memttl,
+#memsheet.done #mempay{display:none}
+#memdone .dttl{font-family:var(--serif);font-size:30px;line-height:1.15;color:var(--text);margin-top:18px}
+#memdone .dsub{font-size:14.5px;color:var(--mute);line-height:1.6;margin-top:12px}
+#memdone .dbtn{width:100%;margin-top:24px;padding:16px;border-radius:99px;background:var(--text);
+  color:var(--surface);font-family:var(--mono);font-size:10px;letter-spacing:.16em;
+  text-transform:uppercase;font-weight:500}
+
 /* ============ SIGN IN SHEET ============
    A bottom sheet with the one tap paths first. Emailing a six digit code is
    real friction at the exact moment somebody decides to join, so it sits
@@ -3141,6 +3171,26 @@ body.navilock #stage{overflow:hidden}
       <li><i>&#10003;</i><span>A human when something breaks, with your whole trip in front of them</span></li>
     </ul>
     <button id="memgo">Become a member</button>
+
+    <div id="mempay">
+      <div id="mempayhd"><span class="t">Founding membership</span><span class="a" id="mempayamt">$499</span></div>
+      <div id="mempayel"></div>
+      <div id="memsecure">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>
+        </svg>
+        Encrypted . Never stored by Voyara
+      </div>
+      <button id="memback">Back</button>
+    </div>
+
+    <div id="memdone">
+      <div class="dttl">You are a member.</div>
+      <div class="dsub">Hotel rates are open. Every stay now shows what we pay, what
+      the market asks, and what you keep.</div>
+      <button class="dbtn" id="memdonebtn">Start searching</button>
+    </div>
+
     <p id="memmsg"></p>
     <p id="memnote">Cancel any time. If your first trip does not save you more than the
     membership, we refund it.</p>
@@ -5975,30 +6025,18 @@ function wireWaitlist() {
 
   var join = $('#joinnow');
   if (join) join.addEventListener('click', function () {
-    var email = (input.value || '').trim();
-    join.disabled = true;
-    join.textContent = 'Opening checkout';
-    fetch('/api/checkout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email || undefined, source: 'home' })
-    }).then(function (r) { return r.json(); }).then(function (j) {
-      if (j && j.url) { window.location.href = j.url; return; }
-      msg.innerHTML = j && j.mode === 'mock'
-        ? '<span style="color:var(--warn)">Payments are not connected yet. Set the Stripe keys to take a real membership.</span>'
-        : '<span style="color:var(--halt)">' + ((j && (j.detail || j.error)) || 'Checkout is unavailable.') + '</span>';
-    }).catch(function () {
-      msg.innerHTML = '<span style="color:var(--halt)">Could not reach the server.</span>';
-    }).then(function () {
-      join.disabled = false;
-      join.textContent = 'Become a founding member';
-    });
+    // Both entry points now open the same sheet. This one used to make its own
+    // call to /api/checkout and redirect, which is the behaviour that has been
+    // removed, and it also skipped the sign in step that a membership needs.
+    openMembership();
   });
 
-  // Returning from Stripe
+  // Returning from a bank's own authentication screen. A normal card never
+  // leaves the page, so this only fires for 3D Secure.
   if (/[?&]membership=active/.test(window.location.search)) {
     msg.innerHTML = '<span style="color:var(--live)">You are a founding member. Welcome. Your commission comes back on every booking from here.</span>';
     audit('membership.activated', { tier: 'founding' }, 'traveler');
+    loadMe();
   } else if (/[?&]membership=cancelled/.test(window.location.search)) {
     msg.innerHTML = 'No charge was made. The waitlist is still open if you would rather wait.';
   }
@@ -7027,6 +7065,8 @@ function openMembership() {
     return;
   }
   $('#memsheet').classList.add('on');
+  $('#memsheet').classList.remove('paying', 'done');
+  PAY.stage = 'offer';
   $('#memmsg').textContent = '';
   $('#memmsg').className = '';
   $('#memgo').disabled = false;
@@ -7040,31 +7080,224 @@ function closeMembership() {
   document.body.style.overflow = '';
 }
 
+/* ============================================================
+   EMBEDDED PAYMENT
+   Hosted Checkout sent people to stripe.com at the exact moment they decided
+   to spend $499, which is the one screen in the product we do not control.
+   The Payment Element renders in our own sheet instead. Stripe still owns the
+   iframe holding the card number, which is what keeps this page out of PCI
+   scope, but the Appearance API carries our type and colour into it.
+   ============================================================ */
+var PAY = { stage: 'offer', stripe: null, elements: null, secret: null, loading: false };
+
+// Stripe.js is ~40KB and irrelevant to anyone who never opens this sheet, so
+// it loads on demand rather than on every page view.
+function loadStripeJs() {
+  if (window.Stripe) return Promise.resolve(window.Stripe);
+  if (PAY.loadingPromise) return PAY.loadingPromise;
+  PAY.loadingPromise = new Promise(function (resolve, reject) {
+    var s = document.createElement('script');
+    s.src = 'https://js.stripe.com/v3/';
+    s.onload = function () { window.Stripe ? resolve(window.Stripe) : reject(new Error('stripe_missing')); };
+    s.onerror = function () { reject(new Error('stripe_blocked')); };
+    document.head.appendChild(s);
+  });
+  return PAY.loadingPromise;
+}
+
+// Our tokens, handed to Stripe. Radius follows the house rule: the field holds
+// content, so 16px, and the pressable button below it is ours and stays 99px.
+function payAppearance() {
+  return {
+    theme: 'flat',
+    variables: {
+      colorPrimary: '#26241F',
+      colorBackground: '#FFFFFF',
+      colorText: '#26241F',
+      colorTextSecondary: '#726D64',
+      colorTextPlaceholder: '#A29C91',
+      colorDanger: '#A83C29',
+      fontFamily: "'BDO Grotesk','Inter',-apple-system,sans-serif",
+      fontSizeBase: '15px',
+      borderRadius: '16px',
+      spacingUnit: '4px'
+    },
+    rules: {
+      '.Input': { border: '1px solid #DEDAD0', boxShadow: 'none', padding: '14px 16px' },
+      '.Input:focus': { border: '1px solid #9A7B3C', boxShadow: 'none' },
+      '.Input--invalid': { border: '1px solid #A83C29', boxShadow: 'none' },
+      '.Label': {
+        fontFamily: "'DM Mono','SFMono-Regular',Menlo,monospace",
+        fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase',
+        color: '#726D64', marginBottom: '7px'
+      },
+      '.Tab': { border: '1px solid #DEDAD0', boxShadow: 'none', borderRadius: '16px' },
+      '.Tab:hover': { border: '1px solid #A29C91', boxShadow: 'none' },
+      '.Tab--selected': { border: '1px solid #26241F', color: '#26241F', boxShadow: 'none' },
+      '.Error': { fontSize: '12.5px', color: '#A83C29' }
+    }
+  };
+}
+
+function memSay(text, cls) {
+  var m = $('#memmsg');
+  m.textContent = text || '';
+  m.className = cls || '';
+}
+
+// Step one. Ask the server to open a subscription and hand back a secret, then
+// mount the form underneath the price.
+function beginPayment() {
+  var btn = $('#memgo');
+  btn.disabled = true;
+  btn.textContent = 'One moment';
+  memSay('');
+
+  apiFetch('/api/checkout', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ source: 'gate' })
+  }).then(function (r) { return r.json(); }).then(function (j) {
+    if (j && j.alreadyMember) {
+      loadMe();
+      showMemberDone();
+      return;
+    }
+    if (!j || !j.clientSecret) {
+      memSay(j && j.mode === 'mock'
+        ? 'Payments are not connected yet.'
+        : (j && (j.detail || j.error)) || 'Checkout is unavailable.', 'no');
+      resetOfferButton();
+      return;
+    }
+    if (typeof j.amountMinor === 'number') {
+      $('#mempayamt').textContent = money(j.amountMinor, j.currency || 'USD');
+    }
+    PAY.secret = j.clientSecret;
+
+    return loadStripeJs().then(function (Stripe) {
+      PAY.stripe = Stripe(j.publishableKey);
+      PAY.elements = PAY.stripe.elements({
+        clientSecret: j.clientSecret,
+        appearance: payAppearance(),
+        fonts: [{ cssSrc: 'https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap' }]
+      });
+      var el = PAY.elements.create('payment', {
+        layout: { type: 'tabs', defaultCollapsed: false },
+        defaultValues: { billingDetails: { email: j.email || ME.email || '' } }
+      });
+      el.mount('#mempayel');
+      PAY.stage = 'pay';
+      $('#memsheet').classList.add('paying');
+      btn.disabled = false;
+      btn.textContent = 'Pay and join';
+      audit('membership.payment_opened', { tier: 'founding' }, 'traveler');
+    });
+  }).catch(function (e) {
+    memSay(String(e && e.message) === 'stripe_blocked'
+      ? 'The payment form could not load. A content blocker may be stopping it.'
+      : 'Could not reach the server.', 'no');
+    resetOfferButton();
+  });
+}
+
+// Step two. Confirm in place. redirect:'if_required' means a normal card never
+// leaves the page at all; only a bank that insists on its own screen does, and
+// the return_url catches that case.
+function confirmPayment() {
+  var btn = $('#memgo');
+  btn.disabled = true;
+  btn.textContent = 'Confirming';
+  memSay('');
+
+  PAY.stripe.confirmPayment({
+    elements: PAY.elements,
+    confirmParams: { return_url: window.location.origin + '/?membership=active' },
+    redirect: 'if_required'
+  }).then(function (result) {
+    if (result.error) {
+      // Declines and validation are the traveller's problem to fix, so they
+      // are shown as written by the bank rather than reworded into something
+      // vaguer.
+      memSay(result.error.message || 'That payment did not go through.', 'no');
+      btn.disabled = false;
+      btn.textContent = 'Pay and join';
+      audit('membership.payment_failed', { reason: result.error.code || 'unknown' }, 'traveler');
+      return;
+    }
+    var pi = result.paymentIntent || {};
+    if (pi.status === 'succeeded' || pi.status === 'processing') {
+      btn.textContent = 'Opening your rates';
+      audit('membership.activated', { tier: 'founding' }, 'traveler');
+      waitForMembership(0);
+    } else {
+      memSay('The payment is still pending. Nothing has been charged twice.', 'no');
+      btn.disabled = false;
+      btn.textContent = 'Pay and join';
+    }
+  }).catch(function () {
+    memSay('Could not confirm the payment. Nothing was charged.', 'no');
+    btn.disabled = false;
+    btn.textContent = 'Pay and join';
+  });
+}
+
+// Stripe says paid before our webhook has written the membership, so the
+// interface waits for our own record rather than trusting the browser. If the
+// webhook is slow the payment still stands; this only affects when the rates
+// visibly open.
+function waitForMembership(attempt) {
+  apiJson('/api/me', function (j) {
+    if (j && j.member) {
+      ME.member = true;
+      ME.state = 'member';
+      ME.tier = j.tier || 'founding';
+      ME.renewsOn = j.renewsOn || null;
+      paintSession();
+      if ($('#reslist') && RES.all.length) paintList();
+      showMemberDone();
+      return;
+    }
+    if (attempt >= 9) {
+      // Paid, but not yet visible. Say exactly that instead of implying it failed.
+      showMemberDone(true);
+      return;
+    }
+    setTimeout(function () { waitForMembership(attempt + 1); }, 1500);
+  });
+}
+
+function showMemberDone(slow) {
+  $('#memsheet').classList.remove('paying');
+  $('#memsheet').classList.add('done');
+  if (slow) {
+    $('#memdone').querySelector('.dsub').textContent =
+      'Your payment went through. The account is still catching up, so give it a moment and refresh if the rates have not opened.';
+  }
+  memSay('');
+}
+
+function resetOfferButton() {
+  var btn = $('#memgo');
+  btn.disabled = false;
+  btn.textContent = 'Become a member';
+  PAY.stage = 'offer';
+}
+
 function wireMembership() {
   $('#memscrim').addEventListener('click', closeMembership);
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && $('#memsheet').classList.contains('on')) closeMembership();
   });
   $('#memgo').addEventListener('click', function () {
-    var btn = $('#memgo'), msg = $('#memmsg');
-    btn.disabled = true;
-    btn.textContent = 'Opening checkout';
-    apiFetch('/api/checkout', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: ME.email, source: 'gate' })
-    }).then(function (r) { return r.json(); }).then(function (j) {
-      if (j && j.url) { window.location.href = j.url; return; }
-      msg.textContent = j && j.mode === 'mock'
-        ? 'Payments are not connected yet.'
-        : (j && (j.detail || j.error)) || 'Checkout is unavailable.';
-      msg.className = 'no';
-      btn.disabled = false; btn.textContent = 'Become a member';
-    }).catch(function () {
-      msg.textContent = 'Could not reach the server.';
-      msg.className = 'no';
-      btn.disabled = false; btn.textContent = 'Become a member';
-    });
+    if (PAY.stage === 'pay') confirmPayment(); else beginPayment();
   });
+  $('#memback').addEventListener('click', function () {
+    $('#memsheet').classList.remove('paying');
+    PAY.stage = 'offer';
+    resetOfferButton();
+    memSay('');
+  });
+  $('#memdonebtn').addEventListener('click', closeMembership);
 }
 
 function wireAuth() {
